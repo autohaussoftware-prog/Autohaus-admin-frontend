@@ -1,0 +1,51 @@
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
+type ButtonVariant = "primary" | "secondary" | "ghost" | "outline" | "danger";
+type ButtonSize = "sm" | "md" | "lg" | "icon";
+
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+};
+
+const variants: Record<ButtonVariant, string> = {
+  primary: "bg-[#D6A93D] text-black hover:bg-[#c89b32]",
+  secondary: "bg-white text-black hover:bg-zinc-200",
+  ghost: "bg-transparent text-zinc-300 hover:bg-zinc-900 hover:text-white",
+  outline: "border border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-900 hover:text-white",
+  danger: "bg-red-500/10 text-red-300 border border-red-500/30 hover:bg-red-500/20",
+};
+
+const sizes: Record<ButtonSize, string> = {
+  sm: "h-9 px-3 text-xs",
+  md: "h-10 px-4 text-sm",
+  lg: "h-12 px-5 text-sm",
+  icon: "h-10 w-10 p-0",
+};
+
+export function buttonClassName({
+  variant = "primary",
+  size = "md",
+  className,
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+}) {
+  return cn(
+    "inline-flex items-center justify-center gap-2 rounded-2xl font-medium transition disabled:pointer-events-none disabled:opacity-50",
+    variants[variant],
+    sizes[size],
+    className
+  );
+}
+
+export function Button({ className, variant = "primary", size = "md", ...props }: ButtonProps) {
+  return (
+    <button
+      className={buttonClassName({ variant, size, className })}
+      {...props}
+    />
+  );
+}
