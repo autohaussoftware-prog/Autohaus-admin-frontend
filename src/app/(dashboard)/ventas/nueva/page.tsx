@@ -33,9 +33,8 @@ export default async function NewSalePage({
     getVehicleFormOptions(),
   ]);
 
-  const availableVehicles = vehicles.filter((v) =>
-    v.status === "Disponible" || v.status === "Publicado"
-  );
+  const SOLD_STATUSES = new Set(["Separado", "Vendido", "Entregado"]);
+  const availableVehicles = vehicles.filter((v) => !SOLD_STATUSES.has(v.status));
 
   return (
     <>
@@ -157,12 +156,10 @@ export default async function NewSalePage({
             <ArrowLeft className="h-4 w-4" />
             Volver
           </Link>
-          {availableVehicles.length > 0 && (
-            <Button type="submit">
-              <Save className="h-4 w-4" />
-              Registrar
-            </Button>
-          )}
+          <Button type="submit" disabled={availableVehicles.length === 0}>
+            <Save className="h-4 w-4" />
+            Registrar
+          </Button>
         </div>
       </form>
     </>
