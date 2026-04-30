@@ -1,7 +1,7 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { vehicleMovements as mockVehicleMovements, vehicles as mockVehicles } from "@/data/mock";
-import type { Vehicle, VehicleMovement, VehicleStatus } from "@/types/vehicle";
+import type { Vehicle, VehicleMovement, VehiclePhoto, VehicleStatus } from "@/types/vehicle";
 
 export type VehicleFormOption = {
   id: string;
@@ -339,6 +339,28 @@ export async function updateVehicle(vehicleId: string, input: CreateVehicleInput
     new_status: status,
     metadata: { userName: "Sistema" },
   });
+}
+
+export async function getVehiclePhotos(vehicleId: string): Promise<VehiclePhoto[]> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("vehicle_documents")
+    .select("id,vehicle_id,file_url,file_name,uploaded_at")
+    .eq("vehicle_id", vehicleId)
+    .eq("document_type", "foto_vehiculo")
+    .order("uploaded_at", { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map((d: any) => ({
+    id: d.id as string,
+    vehicleId: d.vehicle_id as string,
+    fileUrl: d.file_url as string,
+    fileName: (d.file_name as string) ?? "foto",
+    uploadedAt: (d.uploaded_at as string) ?? "",
+  }));
 }
 
 export async function updateVehicleStatus(vehicleId: string, status: VehicleStatus, responsible: string) {

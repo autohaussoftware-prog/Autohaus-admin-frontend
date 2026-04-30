@@ -51,3 +51,11 @@ export type VehicleMovement = {
   createdAt: string;
   user: string;
 };
+
+export type VehiclePhoto = {
+  id: string;
+  vehicleId: string;
+  fileUrl: string;
+  fileName: string;
+  uploadedAt: string;
+};
