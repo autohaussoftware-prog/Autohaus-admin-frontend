@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, LogOut, Menu, Search } from "lucide-react";
+import { Bell, LogOut, Menu, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
@@ -50,7 +51,10 @@ export function Topbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
           <Button variant="outline" size="icon" aria-label="Alertas">
             <Bell className="h-4 w-4" />
           </Button>
-          <Button className="hidden md:inline-flex">Registrar movimiento</Button>
+          <Link href="/movimientos/nuevo" className="hidden md:inline-flex items-center gap-2 rounded-2xl bg-[#D6A93D] px-4 py-2 text-sm font-medium text-black hover:bg-[#c49835] transition-colors">
+            <Plus className="h-4 w-4" />
+            Registrar movimiento
+          </Link>
           <Button variant="outline" size="icon" aria-label="Cerrar sesión" onClick={handleLogout}>
             <LogOut className="h-4 w-4" />
           </Button>

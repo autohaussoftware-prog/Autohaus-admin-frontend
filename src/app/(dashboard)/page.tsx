@@ -12,6 +12,7 @@ export default async function DashboardPage() {
         title="Control ejecutivo del negocio"
         description="Vista central para dueños y socios: inventario, capital, utilidad, alertas, banco, efectivo y prioridades operativas."
         actionLabel="Nuevo movimiento"
+        actionHref="/movimientos/nuevo"
       />
       <ExecutiveDashboard data={dashboardData} />
     </>

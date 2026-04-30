@@ -19,6 +19,7 @@ export default async function CommissionsPage() {
         title="Control de captadores, vendedores y crédito"
         description="Reglas visuales actuales: captador 20%, vendedor 20% y crédito 33% sobre el valor que ingresa a la empresa."
         actionLabel="Registrar comisión"
+        actionHref="/comisiones/nueva"
       />
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Comisiones pendientes" value={compactCOP(totalPending)} helper={`${pending.length} registros por validar`} icon={HandCoins} tone="red" />
