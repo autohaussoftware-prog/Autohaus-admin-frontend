@@ -16,7 +16,6 @@ export default async function AlertsPage() {
         eyebrow="Alertas críticas"
         title="Centro de riesgos operativos"
         description="Alertas para pagos incompletos, documentos vencidos, margen bajo, gastos no previstos y movimientos de efectivo grandes."
-        actionLabel="Configurar alertas"
       />
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total activas" value={`${alerts.length}`} helper="Requieren revisión" icon={BellRing} tone="gold" />

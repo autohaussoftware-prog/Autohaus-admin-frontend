@@ -17,7 +17,8 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         eyebrow="Ficha individual"
         title={`${vehicle.brand} ${vehicle.line}`}
         description="Control completo del vehículo desde ingreso hasta venta, entrega y cierre documental."
-        actionLabel="Registrar novedad"
+        actionLabel="Editar vehículo"
+        actionHref={`/vehiculos/${vehicle.id}/editar`}
       />
       <VehicleDetail vehicle={vehicle} movements={movements} />
     </>

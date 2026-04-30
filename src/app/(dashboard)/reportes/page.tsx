@@ -11,7 +11,6 @@ export default async function ReportsPage() {
         eyebrow="Reportes"
         title="Reportes bancarios, efectivo y consolidado"
         description="Vista diseñada para que dueños y socios entiendan rentabilidad real, flujo, cartera, comisiones y costos por periodo."
-        actionLabel="Exportar PDF"
       />
       <ReportsDashboard monthlyPerformance={monthlyPerformance} />
     </>

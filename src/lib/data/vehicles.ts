@@ -287,6 +287,60 @@ export async function createVehicle(input: CreateVehicleInput) {
   return vehicleId;
 }
 
+export async function updateVehicle(vehicleId: string, input: CreateVehicleInput) {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  const status = input.status;
+  const published = status === "Publicado";
+  const separated = status === "Separado";
+
+  const { error } = await supabase
+    .from("vehicles")
+    .update({
+      plate: input.plate.trim().toUpperCase(),
+      brand: input.brand.trim(),
+      line: input.line.trim(),
+      version: input.version?.trim() || null,
+      year: input.year || null,
+      mileage: input.mileage || 0,
+      color: input.color?.trim() || null,
+      motor: input.motor?.trim() || null,
+      transmission: input.transmission?.trim() || null,
+      fuel: input.fuel?.trim() || null,
+      traction: input.traction?.trim() || null,
+      city_registration: input.cityRegistration?.trim() || null,
+      legal_status: input.legalStatus?.trim() || "Sin restricciones",
+      status,
+      location_id: input.locationId || null,
+      owner_type: input.ownerType,
+      buy_price: input.buyPrice || 0,
+      target_price: input.targetPrice || 0,
+      min_price: input.minPrice || 0,
+      estimated_cost: input.estimatedCost || 0,
+      real_cost: input.realCost || 0,
+      advisor_buyer_id: input.advisorBuyerId || null,
+      advisor_seller_id: input.advisorSellerId || null,
+      soat_due: input.soatDue || null,
+      techno_due: input.technoDue || null,
+      published,
+      separated,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", vehicleId);
+
+  if (error) throw new Error(error.message ?? "No se pudo actualizar el vehículo.");
+
+  await supabase.from("vehicle_movements").insert({
+    vehicle_id: vehicleId,
+    type: "Actualización",
+    title: "Ficha actualizada",
+    description: "Datos del vehículo modificados desde el formulario de edición.",
+    new_status: status,
+    metadata: { userName: "Sistema" },
+  });
+}
+
 export async function updateVehicleStatus(vehicleId: string, status: VehicleStatus, responsible: string) {
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) throw new Error("Supabase no configurado.");

@@ -19,7 +19,6 @@ export default function SettingsPage() {
         eyebrow="Configuración"
         title="Reglas internas del sistema"
         description="Pantalla visual para parametrizar reglas de comisión, margen mínimo, categorías, estados, ubicaciones y alertas."
-        actionLabel="Editar reglas"
       />
       <Card>
         <CardHeader className="border-b border-zinc-900">

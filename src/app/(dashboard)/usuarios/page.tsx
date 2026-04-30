@@ -18,7 +18,6 @@ export default function UsersPage() {
         eyebrow="Usuarios y permisos"
         title="Accesos internos"
         description="Primera versión enfocada en dueños y socios, dejando preparada la estructura para asesores, captadores, contabilidad y solo lectura."
-        actionLabel="Crear usuario"
       />
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Usuarios" value={`${users.length}`} helper="Base inicial del MVP" icon={Users} tone="gold" />
