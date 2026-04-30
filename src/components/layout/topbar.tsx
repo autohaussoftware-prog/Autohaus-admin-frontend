@@ -1,11 +1,22 @@
 "use client";
 
 import Image from "next/image";
-import { Bell, Menu, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bell, LogOut, Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/client";
 
 export function Topbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
   return (
     <header className="sticky top-0 z-30 border-b border-zinc-900 bg-[#050505]/88 px-4 py-3 backdrop-blur-xl xl:px-8">
       <div className="flex items-center justify-between gap-4">
@@ -40,6 +51,9 @@ export function Topbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
             <Bell className="h-4 w-4" />
           </Button>
           <Button className="hidden md:inline-flex">Registrar movimiento</Button>
+          <Button variant="outline" size="icon" aria-label="Cerrar sesión" onClick={handleLogout}>
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     </header>
