@@ -15,7 +15,15 @@ function InfoItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function VehicleDetail({ vehicle, movements }: { vehicle: Vehicle; movements: VehicleMovement[] }) {
+export function VehicleDetail({
+  vehicle,
+  movements,
+  showFinancials = true,
+}: {
+  vehicle: Vehicle;
+  movements: VehicleMovement[];
+  showFinancials?: boolean;
+}) {
   const grossProfit = vehicle.targetPrice - vehicle.buyPrice;
   const netProfit = grossProfit - vehicle.realCost;
   const margin = (netProfit / vehicle.targetPrice) * 100;
@@ -92,32 +100,34 @@ export function VehicleDetail({ vehicle, movements }: { vehicle: Vehicle; moveme
       </div>
 
       <div className="space-y-6">
-        <Card>
-          <CardHeader className="border-b border-zinc-900">
-            <CardTitle>Rentabilidad</CardTitle>
-            <CardDescription>Lectura financiera individual.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-5">
-            <InfoItem label="Precio compra" value={currencyCOP(vehicle.buyPrice)} />
-            <InfoItem label="Precio mínimo" value={currencyCOP(vehicle.minPrice)} />
-            <InfoItem label="Costo real acumulado" value={currencyCOP(vehicle.realCost)} />
-            <InfoItem label="Utilidad neta estimada" value={currencyCOP(netProfit)} />
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Margen neto</p>
-                <p className="text-sm font-semibold text-[#D6A93D]">{percentage(margin)}</p>
+        {showFinancials && (
+          <Card>
+            <CardHeader className="border-b border-zinc-900">
+              <CardTitle>Rentabilidad</CardTitle>
+              <CardDescription>Lectura financiera individual.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 p-5">
+              <InfoItem label="Precio compra" value={currencyCOP(vehicle.buyPrice)} />
+              <InfoItem label="Precio mínimo" value={currencyCOP(vehicle.minPrice)} />
+              <InfoItem label="Costo real acumulado" value={currencyCOP(vehicle.realCost)} />
+              <InfoItem label="Utilidad neta estimada" value={currencyCOP(netProfit)} />
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Margen neto</p>
+                  <p className="text-sm font-semibold text-[#D6A93D]">{percentage(margin)}</p>
+                </div>
+                <Progress value={Math.min(margin * 8, 100)} className="mt-3" />
               </div>
-              <Progress value={Math.min(margin * 8, 100)} className="mt-3" />
-            </div>
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Costo usado vs estimado</p>
-                <p className="text-sm font-semibold text-white">{percentage(costUsage)}</p>
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Costo usado vs estimado</p>
+                  <p className="text-sm font-semibold text-white">{percentage(costUsage)}</p>
+                </div>
+                <Progress value={costUsage} className="mt-3" />
               </div>
-              <Progress value={costUsage} className="mt-3" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="border-b border-zinc-900">

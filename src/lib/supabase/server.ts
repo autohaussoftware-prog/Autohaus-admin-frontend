@@ -32,3 +32,21 @@ export async function getSupabaseServerClient() {
   if (!hasSupabaseConfig()) return null;
   return createClient();
 }
+
+export type UserRole = "owner" | "partner" | "admin" | "advisor" | "accounting" | "viewer";
+
+export async function getUserRole(): Promise<UserRole> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return "owner"; // dev fallback: full access when no Supabase
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return "viewer";
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  return (profile?.role as UserRole) ?? "viewer";
+}

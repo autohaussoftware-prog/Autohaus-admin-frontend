@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { getVehicleFormOptions } from "@/lib/data/vehicles";
+import { getUserRole } from "@/lib/supabase/server";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -23,8 +24,13 @@ export default async function NewVehiclePage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [{ locations, advisors }, params] = await Promise.all([getVehicleFormOptions(), searchParams]);
+  const [{ locations, advisors }, params, role] = await Promise.all([
+    getVehicleFormOptions(),
+    searchParams,
+    getUserRole(),
+  ]);
   const error = params.error ? decodeURIComponent(params.error) : null;
+  const isAdvisor = role === "advisor";
 
   return (
     <>
@@ -101,7 +107,11 @@ export default async function NewVehiclePage({
         <Card>
           <CardHeader className="border-b border-zinc-900">
             <CardTitle>Negocio</CardTitle>
-            <CardDescription>Datos que alimentan rentabilidad, estados y operación.</CardDescription>
+            <CardDescription>
+              {isAdvisor
+                ? "Precios comerciales, estado y asesor captador."
+                : "Datos que alimentan rentabilidad, estados y operación."}
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Estado">
@@ -132,21 +142,34 @@ export default async function NewVehiclePage({
                 ))}
               </Select>
             </Field>
-            <Field label="Precio compra">
-              <Input name="buyPrice" type="number" min="0" placeholder="315000000" />
-            </Field>
-            <Field label="Precio objetivo">
+
+            {/* Campos financieros — solo visibles para owners, partners y admins */}
+            {!isAdvisor && (
+              <>
+                <Field label="Precio compra">
+                  <Input name="buyPrice" type="number" min="0" placeholder="315000000" />
+                </Field>
+              </>
+            )}
+
+            <Field label="Precio publicación">
               <Input name="targetPrice" type="number" min="0" placeholder="369000000" />
             </Field>
             <Field label="Precio mínimo">
               <Input name="minPrice" type="number" min="0" placeholder="354000000" />
             </Field>
-            <Field label="Costo estimado">
-              <Input name="estimatedCost" type="number" min="0" placeholder="14500000" />
-            </Field>
-            <Field label="Costo real inicial">
-              <Input name="realCost" type="number" min="0" placeholder="0" />
-            </Field>
+
+            {!isAdvisor && (
+              <>
+                <Field label="Costo estimado">
+                  <Input name="estimatedCost" type="number" min="0" placeholder="14500000" />
+                </Field>
+                <Field label="Costo real inicial">
+                  <Input name="realCost" type="number" min="0" placeholder="0" />
+                </Field>
+              </>
+            )}
+
             <Field label="Asesor captador">
               <Select name="advisorBuyerId" defaultValue="">
                 <option value="">Sin asignar</option>
@@ -155,14 +178,19 @@ export default async function NewVehiclePage({
                 ))}
               </Select>
             </Field>
-            <Field label="Asesor vendedor">
-              <Select name="advisorSellerId" defaultValue="">
-                <option value="">Sin asignar</option>
-                {advisors.map((advisor) => (
-                  <option key={advisor.id} value={advisor.id}>{advisor.name}</option>
-                ))}
-              </Select>
-            </Field>
+
+            {/* Asesor vendedor solo para owners/admins — en ventas se asigna en el formulario de venta */}
+            {!isAdvisor && (
+              <Field label="Asesor vendedor">
+                <Select name="advisorSellerId" defaultValue="">
+                  <option value="">Sin asignar</option>
+                  {advisors.map((advisor) => (
+                    <option key={advisor.id} value={advisor.id}>{advisor.name}</option>
+                  ))}
+                </Select>
+              </Field>
+            )}
+
             <Field label="SOAT vence">
               <Input name="soatDue" type="date" />
             </Field>
