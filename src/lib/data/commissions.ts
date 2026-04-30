@@ -18,7 +18,7 @@ function toAmount(value: number | string) {
 }
 
 export async function getCommissions() {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   if (!supabase) return mockCommissions;
 
   const [commissionsResult, advisorsResult, vehiclesResult] = await Promise.all([
@@ -32,19 +32,20 @@ export async function getCommissions() {
     return mockCommissions;
   }
 
-  const advisors = new Map((advisorsResult.data ?? []).map((advisor) => [advisor.id as string, advisor.full_name as string]));
+  const advisors = new Map(
+    (advisorsResult.data ?? []).map((a) => [a.id as string, a.full_name as string])
+  );
   const vehicles = new Map(
-    (vehiclesResult.data ?? []).map((vehicle) => [vehicle.id as string, `${vehicle.brand as string} ${vehicle.line as string}`])
+    (vehiclesResult.data ?? []).map((v) => [v.id as string, `${v.brand as string} ${v.line as string}`])
   );
 
-  return (commissionsResult.data as DbCommission[]).map((commission) => ({
-    id: commission.id,
-    advisor: commission.advisor_id ? advisors.get(commission.advisor_id) ?? "Sin asesor" : "Sin asesor",
-    role: commission.role,
-    vehicle: commission.vehicle_id ? vehicles.get(commission.vehicle_id) ?? "Sin vehículo" : "Sin vehículo",
-    amount: toAmount(commission.amount),
-    status: commission.status,
-    month: commission.month ?? "",
+  return (commissionsResult.data as DbCommission[]).map((c) => ({
+    id: c.id,
+    advisor: c.advisor_id ? advisors.get(c.advisor_id) ?? "Sin asesor" : "Sin asesor",
+    role: c.role,
+    vehicle: c.vehicle_id ? vehicles.get(c.vehicle_id) ?? "Sin vehículo" : "Sin vehículo",
+    amount: toAmount(c.amount),
+    status: c.status,
+    month: c.month ?? "",
   }));
 }
-

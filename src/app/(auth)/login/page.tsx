@@ -3,8 +3,16 @@ import { LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { loginAction } from "@/app/actions/auth";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
+  const error = params.error ? decodeURIComponent(params.error) : null;
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#050505] p-4">
       <div className="w-full max-w-md">
@@ -32,16 +40,22 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <form className="space-y-4">
+            {error && (
+              <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {error}
+              </div>
+            )}
+
+            <form action={loginAction} className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm text-zinc-400">Correo</label>
-                <Input type="email" placeholder="usuario@autohaus.co" />
+                <Input name="email" type="email" placeholder="usuario@autohaus.co" required />
               </div>
               <div>
                 <label className="mb-2 block text-sm text-zinc-400">Contraseña</label>
-                <Input type="password" placeholder="••••••••" />
+                <Input name="password" type="password" placeholder="••••••••" required />
               </div>
-              <Button className="w-full" type="button">Entrar al sistema</Button>
+              <Button className="w-full" type="submit">Entrar al sistema</Button>
             </form>
           </CardContent>
         </Card>

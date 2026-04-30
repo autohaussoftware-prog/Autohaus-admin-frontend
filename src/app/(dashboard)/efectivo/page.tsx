@@ -18,7 +18,8 @@ export default async function CashPage() {
         eyebrow="Contabilidad en efectivo"
         title="Caja física por ubicaciones"
         description="Control separado del efectivo en dos ubicaciones, responsables, motivos y alertas por montos grandes."
-        actionLabel="Nuevo movimiento de efectivo"
+        actionLabel="Nuevo movimiento"
+        actionHref="/movimientos/nuevo"
       />
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Efectivo ubicación 1" value={compactCOP(cash1)} helper="Saldo disponible" icon={MapPin} tone="gold" />

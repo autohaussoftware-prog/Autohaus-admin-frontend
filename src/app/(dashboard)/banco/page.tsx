@@ -17,7 +17,8 @@ export default async function BankPage() {
         eyebrow="Contabilidad bancaria"
         title="Movimientos bancarizados"
         description="Control de ingresos, egresos, soportes, categorías, responsables y asociación a vehículo."
-        actionLabel="Nuevo movimiento bancario"
+        actionLabel="Nuevo movimiento"
+        actionHref="/movimientos/nuevo"
       />
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Saldo bancario" value={compactCOP(balance)} helper="Ingresos menos egresos registrados" icon={Landmark} tone="blue" />

@@ -99,7 +99,7 @@ function uniqueOptions(names: string[]) {
 }
 
 async function getReferenceMaps() {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   if (!supabase) return { locations: new Map<string, string>(), advisors: new Map<string, string>() };
 
   const [locationsResult, advisorsResult] = await Promise.all([
@@ -160,7 +160,7 @@ function mapMovement(movement: DbVehicleMovement): VehicleMovement {
 }
 
 export async function getVehicles() {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   if (!supabase) return mockVehicles;
 
   const { data, error } = await supabase.from("vehicles").select("*").order("created_at", { ascending: false });
@@ -174,7 +174,7 @@ export async function getVehicles() {
 }
 
 export async function getVehicleById(id: string) {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   if (!supabase) return mockVehicles.find((vehicle) => vehicle.id === id) ?? null;
 
   const { data, error } = await supabase.from("vehicles").select("*").eq("id", id).single();
@@ -188,7 +188,7 @@ export async function getVehicleById(id: string) {
 }
 
 export async function getVehicleMovementsByVehicleId(vehicleId: string) {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   if (!supabase) return mockVehicleMovements.filter((movement) => movement.vehicleId === vehicleId);
 
   const { data, error } = await supabase
@@ -206,7 +206,7 @@ export async function getVehicleMovementsByVehicleId(vehicleId: string) {
 }
 
 export async function getVehicleFormOptions() {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   if (!supabase) {
     return {
       locations: uniqueOptions(mockVehicles.map((vehicle) => vehicle.location)),
@@ -226,9 +226,9 @@ export async function getVehicleFormOptions() {
 }
 
 export async function createVehicle(input: CreateVehicleInput) {
-  const supabase = getSupabaseAdminClient() ?? getSupabaseServerClient();
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) {
-    throw new Error("Supabase no está configurado. Crea el proyecto y completa .env.local antes de guardar vehículos reales.");
+    throw new Error("Supabase no está configurado. Completa las variables de entorno antes de guardar vehículos reales.");
   }
 
   const status = input.status;
@@ -274,7 +274,7 @@ export async function createVehicle(input: CreateVehicleInput) {
   }
 
   const vehicleId = data.id as string;
-  const { error: movementError } = await supabase.from("vehicle_movements").insert({
+  await supabase.from("vehicle_movements").insert({
     vehicle_id: vehicleId,
     type: "Ingreso",
     title: "Vehículo ingresado al inventario",
@@ -284,10 +284,25 @@ export async function createVehicle(input: CreateVehicleInput) {
     metadata: { userName: "Sistema" },
   });
 
-  if (movementError) {
-    throw new Error(`Vehículo creado, pero no se pudo crear el movimiento inicial: ${movementError.message}`);
-  }
-
   return vehicleId;
 }
 
+export async function updateVehicleStatus(vehicleId: string, status: VehicleStatus, responsible: string) {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  await supabase.from("vehicles").update({
+    status,
+    separated: status === "Separado",
+    updated_at: new Date().toISOString(),
+  }).eq("id", vehicleId);
+
+  await supabase.from("vehicle_movements").insert({
+    vehicle_id: vehicleId,
+    type: status,
+    title: `Estado actualizado a: ${status}`,
+    description: `Cambio de estado registrado por ${responsible}.`,
+    new_status: status,
+    metadata: { userName: responsible },
+  });
+}
