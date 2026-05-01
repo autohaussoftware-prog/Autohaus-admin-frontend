@@ -15,7 +15,8 @@ type DashboardSeries = {
   month: string;
   ventas: number;
   utilidad: number;
-  gastos: number;
+  costos: number;
+  unidades?: number;
 };
 
 type CashBankSeries = {
@@ -63,7 +64,7 @@ export function ExecutiveDashboard({
         <Card>
           <CardHeader className="flex flex-col gap-3 border-b border-zinc-900 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle>Ventas, utilidad y gastos</CardTitle>
+              <CardTitle>Ventas, utilidad y costos</CardTitle>
               <CardDescription>Lectura ejecutiva mensual en millones COP.</CardDescription>
             </div>
             <div className="flex gap-2">
@@ -87,7 +88,7 @@ export function ExecutiveDashboard({
                 <Tooltip contentStyle={{ background: "#09090b", border: "1px solid #27272a", borderRadius: 16, color: "#fff" }} />
                 <Area type="monotone" dataKey="ventas" stroke="#D6A93D" fill="url(#ventas)" strokeWidth={2} />
                 <Area type="monotone" dataKey="utilidad" stroke="#ffffff" fill="transparent" strokeWidth={2} />
-                <Area type="monotone" dataKey="gastos" stroke="#71717a" fill="transparent" strokeWidth={2} />
+                <Area type="monotone" dataKey="costos" stroke="#71717a" fill="transparent" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>

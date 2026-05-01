@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { getVehicles } from "@/lib/data/vehicles";
+import { getCurrentUserName } from "@/lib/supabase/server";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -27,7 +28,7 @@ export default async function NewMovimientoPage({
 }) {
   const params = await searchParams;
   const error = params.error ? decodeURIComponent(params.error) : null;
-  const vehicles = await getVehicles();
+  const [vehicles, userName] = await Promise.all([getVehicles(), getCurrentUserName()]);
 
   return (
     <>
@@ -76,7 +77,7 @@ export default async function NewMovimientoPage({
               <Input name="date" type="date" defaultValue={today} required />
             </Field>
             <Field label="Responsable">
-              <Input name="responsibleName" required placeholder="Nombre del responsable" />
+              <Input name="responsibleName" required defaultValue={userName} placeholder="Nombre del responsable" />
             </Field>
             <Field label="Vehículo asociado (opcional)">
               <Select name="vehicleId" defaultValue="">

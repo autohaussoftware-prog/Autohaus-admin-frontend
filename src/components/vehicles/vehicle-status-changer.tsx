@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, Lock, Loader2 } from "lucide-react";
 import { updateVehicleStatusAction } from "@/app/(dashboard)/vehiculos/[id]/actions";
 import type { VehicleStatus } from "@/types/vehicle";
 
@@ -31,6 +31,15 @@ const STATUS_COLOR: Record<VehicleStatus, string> = {
   Entregado: "text-emerald-400",
 };
 
+const TERMINAL: VehicleStatus[] = ["Vendido", "Entregado"];
+const PRE_SALE: VehicleStatus[] = ["Disponible", "Publicado", "No publicado"];
+
+function isRestrictedTransition(from: VehicleStatus, to: VehicleStatus): boolean {
+  if (from === "Entregado" && to !== "Entregado") return true;
+  if (TERMINAL.includes(from) && PRE_SALE.includes(to)) return true;
+  return false;
+}
+
 export function VehicleStatusChanger({
   vehicleId,
   currentStatus,
@@ -41,17 +50,25 @@ export function VehicleStatusChanger({
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<VehicleStatus>(currentStatus);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handleSelect(newStatus: VehicleStatus) {
     if (newStatus === status) { setOpen(false); return; }
     setOpen(false);
     setSaved(false);
+    setError(null);
     setStatus(newStatus);
     startTransition(async () => {
-      await updateVehicleStatusAction(vehicleId, newStatus);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      const result = await updateVehicleStatusAction(vehicleId, newStatus);
+      if (result?.error) {
+        setStatus(status); // revert optimistic update
+        setError(result.error);
+        setTimeout(() => setError(null), 4000);
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
     });
   }
 
@@ -74,6 +91,12 @@ export function VehicleStatusChanger({
         <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />
       </button>
 
+      {error && (
+        <p className="absolute left-0 top-full mt-1 max-w-xs rounded-xl border border-red-800 bg-zinc-950 px-3 py-2 text-xs text-red-400 shadow-xl z-30">
+          {error}
+        </p>
+      )}
+
       {open && (
         <>
           <button
@@ -81,21 +104,25 @@ export function VehicleStatusChanger({
             onClick={() => setOpen(false)}
             aria-label="Cerrar"
           />
-          <div className="absolute left-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
-            {ALL_STATUSES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => handleSelect(s)}
-                className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-sm transition hover:bg-zinc-900 ${
-                  s === status ? "bg-zinc-900/60" : ""
-                }`}
-              >
-                <span className={`h-2 w-2 shrink-0 rounded-full bg-current ${STATUS_COLOR[s]}`} />
-                <span className={s === status ? STATUS_COLOR[s] : "text-zinc-300"}>{s}</span>
-                {s === status && <CheckCircle2 className="ml-auto h-3.5 w-3.5 text-zinc-600" />}
-              </button>
-            ))}
+          <div className="absolute left-0 top-full z-20 mt-1 w-60 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
+            {ALL_STATUSES.map((s) => {
+              const restricted = isRestrictedTransition(status, s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => handleSelect(s)}
+                  className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-sm transition hover:bg-zinc-900 ${
+                    s === status ? "bg-zinc-900/60" : ""
+                  } ${restricted ? "opacity-40" : ""}`}
+                >
+                  <span className={`h-2 w-2 shrink-0 rounded-full bg-current ${STATUS_COLOR[s]}`} />
+                  <span className={s === status ? STATUS_COLOR[s] : "text-zinc-300"}>{s}</span>
+                  {restricted && <Lock className="ml-auto h-3 w-3 text-zinc-600" />}
+                  {!restricted && s === status && <CheckCircle2 className="ml-auto h-3.5 w-3.5 text-zinc-600" />}
+                </button>
+              );
+            })}
           </div>
         </>
       )}

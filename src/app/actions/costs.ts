@@ -38,8 +38,10 @@ export async function deleteVehicleCostAction(costId: string, vehicleId: string)
   const role = await getUserRole();
   if (!["owner", "partner", "admin"].includes(role)) return { error: "Sin permisos para eliminar costos." };
 
+  const userName = await getCurrentUserName();
+
   try {
-    await deleteVehicleCost(costId);
+    await deleteVehicleCost(costId, vehicleId, userName);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Error eliminando costo." };
   }

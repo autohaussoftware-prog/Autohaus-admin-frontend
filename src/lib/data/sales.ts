@@ -74,6 +74,61 @@ export async function getSales(): Promise<Sale[]> {
   });
 }
 
+export type SaleDetail = Sale & {
+  closedAt: string | null;
+  vehicleBrand: string;
+  vehicleLine: string;
+  vehicleVersion: string;
+  customerDocument: string | null;
+};
+
+export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) return null;
+
+  const { data: s, error } = await supabase
+    .from("sales")
+    .select("*")
+    .eq("id", saleId)
+    .single();
+
+  if (error || !s) return null;
+
+  const [vehicleRes, customerRes, advisorRes] = await Promise.all([
+    s.vehicle_id ? supabase.from("vehicles").select("id,brand,line,version,plate").eq("id", s.vehicle_id).single() : Promise.resolve({ data: null }),
+    s.customer_id ? supabase.from("customers").select("id,full_name,phone,document_number").eq("id", s.customer_id).single() : Promise.resolve({ data: null }),
+    s.seller_id ? supabase.from("advisors").select("id,full_name").eq("id", s.seller_id).single() : Promise.resolve({ data: null }),
+  ]);
+
+  const v = vehicleRes.data;
+  const c = customerRes.data;
+  const a = advisorRes.data;
+
+  return {
+    id: s.id,
+    vehicleId: s.vehicle_id,
+    vehicleName: v ? `${v.brand} ${v.line}` : "Vehículo",
+    vehiclePlate: v?.plate ?? "",
+    vehicleBrand: v?.brand ?? "",
+    vehicleLine: v?.line ?? "",
+    vehicleVersion: v?.version ?? "",
+    customerName: c?.full_name ?? null,
+    customerPhone: c?.phone ?? null,
+    customerDocument: c?.document_number ?? null,
+    sellerName: a?.full_name ?? null,
+    agreedPrice: Number(s.agreed_price),
+    initialPayment: Number(s.initial_payment),
+    pendingBalance: Number(s.pending_balance),
+    paymentStatus: s.payment_status,
+    documentStatus: s.document_status,
+    deliveryStatus: s.delivery_status,
+    saleStatus: s.sale_status,
+    expiryDate: s.expiry_date ?? null,
+    closedAt: s.closed_at ?? null,
+    createdAt: s.created_at,
+  };
+}
+
 export type CreateSaleInput = {
   vehicleId: string;
   customerName: string;
@@ -86,6 +141,7 @@ export type CreateSaleInput = {
   documentStatus: string;
   deliveryStatus: string;
   saleStatus: string;
+  expiryDate?: string;
 };
 
 export async function createSale(input: CreateSaleInput): Promise<string> {
@@ -135,6 +191,7 @@ export async function createSale(input: CreateSaleInput): Promise<string> {
       document_status: input.documentStatus,
       delivery_status: input.deliveryStatus,
       sale_status: input.saleStatus,
+      expiry_date: input.expiryDate || null,
     })
     .select("id")
     .single();
@@ -173,7 +230,7 @@ export async function createSale(input: CreateSaleInput): Promise<string> {
   }
 
   // Auto-calcular comisiones si hay asesores asignados
-  await autoCreateCommissions(supabase, sale.id as string, input.vehicleId, input.sellerId ?? null);
+  await autoCreateCommissions(supabase, sale.id as string, input.vehicleId, input.sellerId ?? null, input.agreedPrice);
 
   return sale.id as string;
 }
@@ -182,12 +239,13 @@ async function autoCreateCommissions(
   supabase: NonNullable<Awaited<ReturnType<typeof getSupabaseServerClient>>>,
   saleId: string,
   vehicleId: string,
-  sellerId: string | null
+  sellerId: string | null,
+  agreedPrice: number
 ) {
   try {
     const [settings, vehicleRes] = await Promise.all([
       getSettings(),
-      supabase.from("vehicles").select("advisor_buyer_id, buy_price, target_price").eq("id", vehicleId).single(),
+      supabase.from("vehicles").select("advisor_buyer_id, buy_price, real_cost").eq("id", vehicleId).single(),
     ]);
 
     const vehicle = vehicleRes.data;
@@ -197,7 +255,7 @@ async function autoCreateCommissions(
     const pctCaptador = settingsMap["commission_captador"] ?? 20;
     const pctVendedor = settingsMap["commission_vendedor"] ?? 20;
 
-    const grossProfit = Math.max(0, Number(vehicle.target_price) - Number(vehicle.buy_price));
+    const grossProfit = Math.max(0, agreedPrice - Number(vehicle.buy_price) - Number(vehicle.real_cost ?? 0));
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 
     const commissionsToInsert: any[] = [];
@@ -238,6 +296,53 @@ async function autoCreateCommissions(
   } catch {
     // Comisiones son secundarias — no fallar la venta si hay error
   }
+}
+
+export async function updateSaleStatuses(
+  saleId: string,
+  updates: { paymentStatus?: string; documentStatus?: string; deliveryStatus?: string }
+): Promise<void> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  const patch: Record<string, string> = {};
+  if (updates.paymentStatus) patch.payment_status = updates.paymentStatus;
+  if (updates.documentStatus) patch.document_status = updates.documentStatus;
+  if (updates.deliveryStatus) patch.delivery_status = updates.deliveryStatus;
+  if (Object.keys(patch).length === 0) return;
+
+  const { error } = await supabase.from("sales").update(patch).eq("id", saleId);
+  if (error) throw new Error(error.message);
+}
+
+export async function markSaleDelivered(
+  saleId: string,
+  vehicleId: string,
+  userName: string,
+  checklist: string[]
+): Promise<void> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  await supabase.from("sales").update({
+    sale_status: "entregado",
+    delivery_status: "completada",
+    payment_status: "completo",
+  }).eq("id", saleId);
+
+  await supabase.from("vehicles").update({
+    status: "Entregado",
+    separated: false,
+  }).eq("id", vehicleId);
+
+  await supabase.from("vehicle_movements").insert({
+    vehicle_id: vehicleId,
+    type: "Entregado",
+    title: "Vehículo entregado al cliente",
+    description: `Acta de entrega firmada por ${userName}. Checklist: ${checklist.join(", ")}.`,
+    new_status: "Entregado",
+    metadata: { userName, saleId, checklist },
+  });
 }
 
 export async function confirmSaleFromReservation(saleId: string, vehicleId: string, userName: string): Promise<void> {

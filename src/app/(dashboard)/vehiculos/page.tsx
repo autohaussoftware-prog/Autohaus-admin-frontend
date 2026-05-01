@@ -8,7 +8,12 @@ import { compactCOP } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function VehiclesPage() {
+export default async function VehiclesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
   const vehicles = await getVehicles();
 
   const available = vehicles.filter((v) => v.status === "Disponible" || v.status === "Publicado").length;
@@ -37,7 +42,7 @@ export default async function VehiclesPage() {
         <StatCard label="Con alertas" value={`${risky}`} helper="Requieren atención" icon={ShieldAlert} tone="red" />
       </div>
 
-      <VehiclesInventory vehicles={vehicles} />
+      <VehiclesInventory vehicles={vehicles} initialQuery={q} />
     </>
   );
 }

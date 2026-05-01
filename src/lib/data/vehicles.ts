@@ -146,6 +146,7 @@ function mapVehicle(vehicle: DbVehicle, references: Awaited<ReturnType<typeof ge
     published: Boolean(vehicle.published),
     separated: Boolean(vehicle.separated),
     alert: vehicle.alert_summary ?? undefined,
+    createdAt: (vehicle as any).created_at ?? "",
   };
 }
 

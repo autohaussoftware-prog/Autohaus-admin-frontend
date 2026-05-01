@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createCommission } from "@/lib/data/commissions";
+import { createFinanceMovement } from "@/lib/data/finance";
+import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const commissionSchema = z.object({
   advisorId: z.string().trim().min(1),
@@ -34,4 +38,45 @@ export async function createCommissionAction(formData: FormData) {
 
   revalidatePath("/comisiones");
   redirect("/comisiones");
+}
+
+export async function markCommissionPaidAction(
+  commissionId: string,
+  advisorName: string,
+  amount: number,
+  vehicleName: string
+): Promise<{ error?: string }> {
+  const role = await getUserRole();
+  if (!["owner", "partner", "admin", "accounting"].includes(role)) {
+    return { error: "Sin permisos para marcar comisiones como pagadas." };
+  }
+
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) return { error: "Supabase no configurado." };
+
+  const { error } = await supabase
+    .from("commissions")
+    .update({ status: "Pagada", paid_at: new Date().toISOString() })
+    .eq("id", commissionId);
+
+  if (error) return { error: error.message };
+
+  const { name } = await getCurrentUserProfile();
+
+  try {
+    await createFinanceMovement({
+      type: "Egreso",
+      channel: "Banco",
+      category: "Comisiones",
+      concept: `Comisión pagada — ${advisorName} · ${vehicleName}`,
+      amount,
+      date: new Date().toISOString().split("T")[0],
+      responsibleName: name,
+    });
+  } catch {
+    // El movimiento financiero es secundario — no fallar si hay error
+  }
+
+  revalidatePath("/comisiones");
+  return {};
 }

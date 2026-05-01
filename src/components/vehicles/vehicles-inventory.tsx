@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Car, LayoutGrid, List, Search, TrendingUp } from "lucide-react";
+import { Car, Clock, Columns3, LayoutGrid, List, Search, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,9 @@ const ALL_STATUSES = [
   "En reparación", "En trámite", "Papeles pendientes", "Vendido", "Entregado", "No publicado",
 ];
 
-function daysInInventory(vehicle: Vehicle): number {
-  return 0; // Placeholder until created_at is exposed in Vehicle type
+function daysInInventory(vehicle: Vehicle): number | null {
+  if (!vehicle.createdAt) return null;
+  return Math.floor((Date.now() - new Date(vehicle.createdAt).getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function CardView({ vehicles }: { vehicles: Vehicle[] }) {
@@ -84,6 +85,74 @@ function CardView({ vehicles }: { vehicles: Vehicle[] }) {
   );
 }
 
+const KANBAN_COLUMNS = [
+  { status: "Disponible", color: "border-emerald-500/30 bg-emerald-500/5", label: "Disponible" },
+  { status: "Publicado", color: "border-blue-500/30 bg-blue-500/5", label: "Publicado" },
+  { status: "Separado", color: "border-amber-500/30 bg-amber-500/5", label: "Separado" },
+  { status: "En reparación", color: "border-purple-500/30 bg-purple-500/5", label: "En reparación" },
+  { status: "En trámite", color: "border-orange-500/30 bg-orange-500/5", label: "En trámite" },
+  { status: "Vendido", color: "border-zinc-700/30 bg-zinc-900/30", label: "Vendido" },
+];
+
+function KanbanView({ vehicles }: { vehicles: Vehicle[] }) {
+  const byStatus = useMemo(() => {
+    const map: Record<string, Vehicle[]> = {};
+    for (const col of KANBAN_COLUMNS) map[col.status] = [];
+    for (const v of vehicles) {
+      if (map[v.status]) map[v.status].push(v);
+    }
+    return map;
+  }, [vehicles]);
+
+  return (
+    <div className="overflow-x-auto pb-4">
+      <div className="flex gap-4 min-w-max">
+        {KANBAN_COLUMNS.map((col) => {
+          const colVehicles = byStatus[col.status] ?? [];
+          return (
+            <div key={col.status} className={`w-72 rounded-3xl border ${col.color} flex flex-col`}>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">{col.label}</p>
+                <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">{colVehicles.length}</span>
+              </div>
+              <div className="flex-1 space-y-3 p-3">
+                {colVehicles.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-zinc-800 py-6 text-center">
+                    <p className="text-xs text-zinc-600">Sin vehículos</p>
+                  </div>
+                ) : (
+                  colVehicles.map((vehicle) => {
+                    const margin = getVehicleProjectedMargin(vehicle);
+                    return (
+                      <Link
+                        key={vehicle.id}
+                        href={`/vehiculos/${vehicle.id}`}
+                        className="block rounded-2xl border border-zinc-800 bg-zinc-950/80 p-3.5 transition hover:border-[#D6A93D]/30"
+                      >
+                        <p className="text-sm font-medium text-white">{vehicle.brand} {vehicle.line}</p>
+                        <p className="mt-0.5 text-xs text-zinc-500">{vehicle.plate} · {vehicle.year}</p>
+                        <div className="mt-2 flex items-center justify-between">
+                          <p className="text-xs text-zinc-400">{compactCOP(vehicle.targetPrice)}</p>
+                          <p className={`text-xs font-medium ${margin < 3 ? "text-red-400" : "text-[#D6A93D]"}`}>
+                            {percentage(margin)}
+                          </p>
+                        </div>
+                        {vehicle.advisorBuyer !== "Sin asignar" && (
+                          <p className="mt-1.5 text-xs text-zinc-600">{vehicle.advisorBuyer}</p>
+                        )}
+                      </Link>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TableView({ vehicles }: { vehicles: Vehicle[] }) {
   return (
     <Card>
@@ -98,6 +167,7 @@ function TableView({ vehicles }: { vehicles: Vehicle[] }) {
                 <th className="px-5 py-4 font-medium">Precio obj.</th>
                 <th className="px-5 py-4 font-medium">Margen</th>
                 <th className="px-5 py-4 font-medium">Origen</th>
+                <th className="px-5 py-4 font-medium">Días inv.</th>
                 <th className="px-5 py-4 font-medium">SOAT vence</th>
                 <th className="px-5 py-4 font-medium">Alerta</th>
               </tr>
@@ -112,6 +182,7 @@ function TableView({ vehicles }: { vehicles: Vehicle[] }) {
               ) : (
                 vehicles.map((vehicle) => {
                   const margin = getVehicleProjectedMargin(vehicle);
+                  const days = daysInInventory(vehicle);
                   return (
                     <tr key={vehicle.id} className="border-b border-zinc-900/80 transition hover:bg-zinc-950/80">
                       <td className="px-5 py-3.5">
@@ -134,6 +205,13 @@ function TableView({ vehicles }: { vehicles: Vehicle[] }) {
                       <td className="px-5 py-3.5">
                         <Badge tone={vehicle.ownerType === "Propio" ? "gold" : "blue"}>{vehicle.ownerType}</Badge>
                       </td>
+                      <td className="px-5 py-3.5">
+                        {days !== null && !["Vendido", "Entregado"].includes(vehicle.status) ? (
+                          <span className={`flex items-center gap-1 text-xs ${days > 60 ? "text-red-400" : days > 30 ? "text-amber-400" : "text-zinc-400"}`}>
+                            <Clock className="h-3 w-3" />{days}d
+                          </span>
+                        ) : <span className="text-xs text-zinc-600">—</span>}
+                      </td>
                       <td className="px-5 py-3.5 text-zinc-400">{vehicle.soatDue || "—"}</td>
                       <td className="px-5 py-3.5">
                         {vehicle.alert
@@ -152,19 +230,28 @@ function TableView({ vehicles }: { vehicles: Vehicle[] }) {
   );
 }
 
-export function VehiclesInventory({ vehicles }: { vehicles: Vehicle[] }) {
-  const [query, setQuery] = useState("");
+export function VehiclesInventory({ vehicles, initialQuery }: { vehicles: Vehicle[]; initialQuery?: string }) {
+  const [query, setQuery] = useState(initialQuery ?? "");
   const [status, setStatus] = useState("Todos");
-  const [view, setView] = useState<"cards" | "table">("table");
+  const [brand, setBrand] = useState("Todas");
+  const [ownerType, setOwnerType] = useState("Todos");
+  const [view, setView] = useState<"cards" | "table" | "kanban">("table");
+
+  const brands = useMemo(() => ["Todas", ...Array.from(new Set(vehicles.map((v) => v.brand))).sort()], [vehicles]);
+  const ownerTypes = ["Todos", "Propio", "Comisión"];
 
   const filtered = useMemo(() => {
     return vehicles.filter((vehicle) => {
       const text = `${vehicle.plate} ${vehicle.brand} ${vehicle.line} ${vehicle.version} ${vehicle.color} ${vehicle.advisorBuyer}`.toLowerCase();
       const matchesQuery = text.includes(query.toLowerCase());
       const matchesStatus = status === "Todos" || vehicle.status === status;
-      return matchesQuery && matchesStatus;
+      const matchesBrand = brand === "Todas" || vehicle.brand === brand;
+      const matchesOwner = ownerType === "Todos" || vehicle.ownerType === ownerType;
+      return matchesQuery && matchesStatus && matchesBrand && matchesOwner;
     });
-  }, [query, status, vehicles]);
+  }, [query, status, brand, ownerType, vehicles]);
+
+  const hasFilters = status !== "Todos" || brand !== "Todas" || ownerType !== "Todos" || query;
 
   return (
     <>
@@ -178,8 +265,14 @@ export function VehiclesInventory({ vehicles }: { vehicles: Vehicle[] }) {
             className="pl-9"
           />
         </div>
-        <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:w-52">
+        <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:w-48">
           {ALL_STATUSES.map((s) => <option key={s}>{s}</option>)}
+        </Select>
+        <Select value={brand} onChange={(e) => setBrand(e.target.value)} className="sm:w-40">
+          {brands.map((b) => <option key={b}>{b}</option>)}
+        </Select>
+        <Select value={ownerType} onChange={(e) => setOwnerType(e.target.value)} className="sm:w-36">
+          {ownerTypes.map((o) => <option key={o}>{o}</option>)}
         </Select>
         <div className="flex overflow-hidden rounded-xl border border-zinc-800">
           <button
@@ -192,14 +285,33 @@ export function VehiclesInventory({ vehicles }: { vehicles: Vehicle[] }) {
             onClick={() => setView("cards")}
             className={`flex items-center gap-1.5 px-3 py-2 text-xs transition ${view === "cards" ? "bg-white text-black" : "text-zinc-500 hover:text-white"}`}
           >
-            <LayoutGrid className="h-3.5 w-3.5" /> Tarjetas
+            <LayoutGrid className="h-3.5 w-3.5" /> Cards
+          </button>
+          <button
+            onClick={() => setView("kanban")}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs transition ${view === "kanban" ? "bg-white text-black" : "text-zinc-500 hover:text-white"}`}
+          >
+            <Columns3 className="h-3.5 w-3.5" /> Kanban
           </button>
         </div>
       </div>
+      {hasFilters && (
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs text-zinc-500">{filtered.length} de {vehicles.length} vehículos</p>
+          <button
+            onClick={() => { setQuery(""); setStatus("Todos"); setBrand("Todas"); setOwnerType("Todos"); }}
+            className="text-xs text-zinc-500 hover:text-white transition"
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      )}
 
-      <p className="mb-3 text-xs text-zinc-600">{filtered.length} de {vehicles.length} vehículos</p>
+      {!hasFilters && <p className="mb-3 text-xs text-zinc-600">{filtered.length} de {vehicles.length} vehículos</p>}
 
-      {view === "table" ? <TableView vehicles={filtered} /> : <CardView vehicles={filtered} />}
+      {view === "table" && <TableView vehicles={filtered} />}
+      {view === "cards" && <CardView vehicles={filtered} />}
+      {view === "kanban" && <KanbanView vehicles={filtered} />}
     </>
   );
 }

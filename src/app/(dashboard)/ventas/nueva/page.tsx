@@ -104,6 +104,14 @@ export default async function NewSalePage({
                 <option value="vendido">Venta directa (pago completo)</option>
               </Select>
             </Field>
+            <Field label="Fecha límite separación">
+              <Input
+                name="expiryDate"
+                type="date"
+                defaultValue=""
+                title="Solo aplica para separaciones. Dejar vacío si es venta directa."
+              />
+            </Field>
             <Field label="Precio acordado (COP)" required>
               <Input name="agreedPrice" type="number" min="0" required placeholder="Ej: 350000000" />
             </Field>

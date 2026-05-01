@@ -1,7 +1,7 @@
 import { getAlerts } from "@/lib/data/alerts";
 import { getCommissions } from "@/lib/data/commissions";
 import { getFinanceMovements } from "@/lib/data/finance";
-import { buildMonthlyPerformance } from "@/lib/data/reports";
+import { getMonthlyPerformance } from "@/lib/data/reports";
 import { getVehicles } from "@/lib/data/vehicles";
 import type { FinanceMovement } from "@/types/finance";
 
@@ -53,11 +53,12 @@ function buildCashBankSeries(movements: FinanceMovement[]): CashBankPoint[] {
 }
 
 export async function getExecutiveDashboardData() {
-  const [vehicles, financeMovements, alerts, commissions] = await Promise.all([
+  const [vehicles, financeMovements, alerts, commissions, monthlyPerformance] = await Promise.all([
     getVehicles(),
     getFinanceMovements(),
     getAlerts(),
     getCommissions(),
+    getMonthlyPerformance(6),
   ]);
 
   return {
@@ -65,7 +66,7 @@ export async function getExecutiveDashboardData() {
     financeMovements,
     alerts,
     commissions,
-    monthlyPerformance: buildMonthlyPerformance(financeMovements),
+    monthlyPerformance,
     cashBankSeries: buildCashBankSeries(financeMovements),
   };
 }

@@ -13,7 +13,7 @@ export type Payment = {
   createdAt: string;
 };
 
-export const PAYMENT_CHANNELS = ["Banco", "Efectivo ubicación 1", "Efectivo ubicación 2"] as const;
+export { PAYMENT_CHANNELS, type PaymentChannel } from "@/lib/domain/payment-channels-config";
 
 export async function getPaymentsBySaleId(saleId: string): Promise<Payment[]> {
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());

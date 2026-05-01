@@ -20,12 +20,18 @@ function toAmount(value: number | string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export async function getFinanceMovements(): Promise<FinanceMovement[]> {
+export type DateRange = { from?: string; to?: string };
+
+export async function getFinanceMovements(dateRange?: DateRange): Promise<FinanceMovement[]> {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return mockFinanceMovements;
 
+  let query = supabase.from("finance_movements").select("*").order("date", { ascending: false });
+  if (dateRange?.from) query = query.gte("date", dateRange.from);
+  if (dateRange?.to) query = query.lte("date", dateRange.to);
+
   const [movementsResult, categoriesResult] = await Promise.all([
-    supabase.from("finance_movements").select("*").order("date", { ascending: false }),
+    query,
     supabase.from("finance_categories").select("id,name"),
   ]);
 
@@ -51,13 +57,13 @@ export async function getFinanceMovements(): Promise<FinanceMovement[]> {
   }));
 }
 
-export async function getBankMovements() {
-  const movements = await getFinanceMovements();
+export async function getBankMovements(dateRange?: DateRange) {
+  const movements = await getFinanceMovements(dateRange);
   return movements.filter((m) => m.channel === "Banco");
 }
 
-export async function getCashMovements() {
-  const movements = await getFinanceMovements();
+export async function getCashMovements(dateRange?: DateRange) {
+  const movements = await getFinanceMovements(dateRange);
   return movements.filter((m) => m.channel !== "Banco");
 }
 

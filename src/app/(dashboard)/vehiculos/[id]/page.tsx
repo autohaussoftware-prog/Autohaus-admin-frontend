@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
-import { VehicleDetail } from "@/components/vehicles/vehicle-detail";
-import { VehicleCosts } from "@/components/vehicles/vehicle-costs";
-import { VehiclePhotos } from "@/components/vehicles/vehicle-photos";
+import { VehicleDetailTabs } from "@/components/vehicles/vehicle-detail-tabs";
 import { VehicleStatusChanger } from "@/components/vehicles/vehicle-status-changer";
 import { getVehicleById, getVehicleMovementsByVehicleId, getVehiclePhotos } from "@/lib/data/vehicles";
 import { getVehicleCosts } from "@/lib/data/costs";
+import { getVehicleDocs } from "@/lib/data/docs";
 import { getUserRole } from "@/lib/supabase/server";
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -14,22 +13,24 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   if (!vehicle) notFound();
 
-  const [movements, photos, costs] = await Promise.all([
+  const [movements, photos, costs, legalDocs] = await Promise.all([
     getVehicleMovementsByVehicleId(vehicle.id),
     getVehiclePhotos(vehicle.id),
     getVehicleCosts(vehicle.id),
+    getVehicleDocs(vehicle.id),
   ]);
 
   const showFinancials = role !== "advisor";
   const canChangeStatus = role !== "viewer";
   const canDeleteCosts = ["owner", "partner", "admin"].includes(role);
+  const canDeleteDocs = ["owner", "partner", "admin"].includes(role);
 
   return (
     <>
       <PageHeader
         eyebrow="Ficha individual"
         title={`${vehicle.brand} ${vehicle.line}`}
-        description="Control completo del vehículo desde ingreso hasta venta, entrega y cierre documental."
+        description={`${vehicle.version} · ${vehicle.year} · Placa ${vehicle.plate}`}
         actionLabel="Editar vehículo"
         actionHref={`/vehiculos/${vehicle.id}/editar`}
       />
@@ -39,15 +40,16 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           <VehicleStatusChanger vehicleId={vehicle.id} currentStatus={vehicle.status} />
         </div>
       )}
-      <VehicleDetail vehicle={vehicle} movements={movements} showFinancials={showFinancials} />
-      {showFinancials && (
-        <div className="mt-6">
-          <VehicleCosts vehicleId={vehicle.id} costs={costs} canDelete={canDeleteCosts} />
-        </div>
-      )}
-      <div className="mt-6">
-        <VehiclePhotos vehicleId={vehicle.id} photos={photos} />
-      </div>
+      <VehicleDetailTabs
+        vehicle={vehicle}
+        movements={movements}
+        photos={photos}
+        costs={costs}
+        legalDocs={legalDocs}
+        showFinancials={showFinancials}
+        canDeleteCosts={canDeleteCosts}
+        canDeleteDocs={canDeleteDocs}
+      />
     </>
   );
 }

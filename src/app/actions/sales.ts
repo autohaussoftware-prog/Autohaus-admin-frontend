@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createSale, confirmSaleFromReservation } from "@/lib/data/sales";
+import { createSale, confirmSaleFromReservation, updateSaleStatuses, markSaleDelivered } from "@/lib/data/sales";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 
 const optionalText = z.preprocess(
@@ -23,6 +23,7 @@ const saleSchema = z.object({
   documentStatus: z.enum(["pendiente", "en_tramite", "completo"]),
   deliveryStatus: z.enum(["pendiente", "programada", "completada"]),
   saleStatus: z.enum(["separacion", "vendido"]),
+  expiryDate: optionalText,
 });
 
 export async function createSaleAction(formData: FormData) {
@@ -64,5 +65,49 @@ export async function confirmSaleAction(saleId: string, vehicleId: string) {
   revalidatePath("/ventas");
   revalidatePath("/vehiculos");
   revalidatePath(`/vehiculos/${vehicleId}`);
+  return { success: true };
+}
+
+export async function updateSaleStatusesAction(
+  saleId: string,
+  updates: { paymentStatus?: string; documentStatus?: string; deliveryStatus?: string }
+) {
+  const role = await getUserRole();
+  if (!["owner", "partner", "admin", "accounting", "advisor"].includes(role)) {
+    return { error: "Sin permisos para actualizar estados." };
+  }
+
+  try {
+    await updateSaleStatuses(saleId, updates);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Error actualizando estado." };
+  }
+
+  revalidatePath("/ventas");
+  return { success: true };
+}
+
+export async function markSaleDeliveredAction(
+  saleId: string,
+  vehicleId: string,
+  checklist: string[]
+) {
+  const role = await getUserRole();
+  if (!["owner", "partner", "admin", "accounting"].includes(role)) {
+    return { error: "Sin permisos para registrar entregas." };
+  }
+
+  const { name } = await getCurrentUserProfile();
+
+  try {
+    await markSaleDelivered(saleId, vehicleId, name, checklist);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Error registrando entrega." };
+  }
+
+  revalidatePath("/ventas");
+  revalidatePath("/vehiculos");
+  revalidatePath(`/vehiculos/${vehicleId}`);
+  revalidatePath(`/ventas/${saleId}`);
   return { success: true };
 }

@@ -8,6 +8,8 @@ export type AppAlert = {
   description: string;
   priority: "Alta" | "Media" | "Baja";
   module: string;
+  vehicleId?: string;
+  saleId?: string;
 };
 
 const MIN_MARGIN_PERCENT = 3;
@@ -42,6 +44,7 @@ type DbSale = {
   pending_balance: number | string;
   sale_status: string;
   payment_status: string;
+  expiry_date: string | null;
 };
 
 async function computeAutoAlerts(
@@ -66,6 +69,7 @@ async function computeAutoAlerts(
           description: `El SOAT venció hace ${Math.abs(days)} día(s). No puede circular ni venderse.`,
           priority: "Alta",
           module: "Documentos",
+          vehicleId: v.id,
         });
       } else if (days <= DAYS_BEFORE_EXPIRY_ALERT) {
         alerts.push({
@@ -74,6 +78,7 @@ async function computeAutoAlerts(
           description: `Vence en ${days} día(s). Renovar antes de continuar operaciones.`,
           priority: days <= 15 ? "Alta" : "Media",
           module: "Documentos",
+          vehicleId: v.id,
         });
       }
     }
@@ -88,6 +93,7 @@ async function computeAutoAlerts(
           description: `Venció hace ${Math.abs(days)} día(s). Impide circulación y transacción legal.`,
           priority: "Alta",
           module: "Documentos",
+          vehicleId: v.id,
         });
       } else if (days <= DAYS_BEFORE_EXPIRY_ALERT) {
         alerts.push({
@@ -96,6 +102,7 @@ async function computeAutoAlerts(
           description: `Vence en ${days} día(s). Programar revisión antes de fecha límite.`,
           priority: days <= 15 ? "Alta" : "Media",
           module: "Documentos",
+          vehicleId: v.id,
         });
       }
     }
@@ -114,6 +121,7 @@ async function computeAutoAlerts(
           description: `Margen proyectado ${margin.toFixed(1)}% está por debajo del mínimo esperado (${MIN_MARGIN_PERCENT}%).`,
           priority: margin < 0 ? "Alta" : "Media",
           module: "Rentabilidad",
+          vehicleId: v.id,
         });
       }
     }
@@ -129,15 +137,46 @@ async function computeAutoAlerts(
         description: `Costo real supera el estimado en ${excess.toFixed(0)}%. Revisar rentabilidad neta.`,
         priority: "Media",
         module: "Costos",
+        vehicleId: v.id,
       });
     }
   }
 
-  // Separaciones con saldo pendiente
+  // Separaciones con saldo pendiente y separaciones vencidas
   for (const s of sales) {
-    if (s.sale_status === "separacion" && Number(s.pending_balance) > 0 && s.payment_status !== "completo") {
-      const vehicle = vehicles.find((v) => v.id === s.vehicle_id);
-      const name = vehicle ? `${vehicle.brand} ${vehicle.line} (${vehicle.plate})` : `Vehículo ${s.vehicle_id.slice(0, 8)}`;
+    if (s.sale_status !== "separacion") continue;
+
+    const vehicle = vehicles.find((v) => v.id === s.vehicle_id);
+    const name = vehicle ? `${vehicle.brand} ${vehicle.line} (${vehicle.plate})` : `Vehículo ${s.vehicle_id.slice(0, 8)}`;
+
+    // Expiry alerts
+    if (s.expiry_date) {
+      const days = daysUntil(s.expiry_date);
+      if (days <= 0) {
+        alerts.push({
+          id: `auto-expiry-${s.id}`,
+          title: `Separación vencida — ${name}`,
+          description: `La separación venció hace ${Math.abs(days)} día(s). Confirmar venta o liberar el vehículo.`,
+          priority: "Alta",
+          module: "Ventas",
+          vehicleId: s.vehicle_id,
+          saleId: s.id,
+        });
+      } else if (days <= 3) {
+        alerts.push({
+          id: `auto-expiry-${s.id}`,
+          title: `Separación vence pronto — ${name}`,
+          description: `Vence en ${days} día(s). Confirmar cierre o contactar al cliente.`,
+          priority: "Media",
+          module: "Ventas",
+          vehicleId: s.vehicle_id,
+          saleId: s.id,
+        });
+      }
+    }
+
+    // Saldo pendiente (solo si no hay ya alerta de vencimiento)
+    if (Number(s.pending_balance) > 0 && s.payment_status !== "completo" && !s.expiry_date) {
       const balance = Number(s.pending_balance);
       alerts.push({
         id: `auto-sale-${s.id}`,
@@ -145,6 +184,8 @@ async function computeAutoAlerts(
         description: `Saldo pendiente: $${balance.toLocaleString("es-CO")} antes de entrega. Bloquear hasta pago completo.`,
         priority: "Alta",
         module: "Ventas",
+        vehicleId: s.vehicle_id,
+        saleId: s.id,
       });
     }
   }
@@ -158,7 +199,7 @@ export async function getAlerts(): Promise<AppAlert[]> {
 
   const [vehiclesResult, salesResult, dbAlertsResult] = await Promise.all([
     supabase.from("vehicles").select("id,plate,brand,line,status,soat_due,techno_due,buy_price,target_price,min_price,real_cost,estimated_cost"),
-    supabase.from("sales").select("id,vehicle_id,pending_balance,sale_status,payment_status"),
+    supabase.from("sales").select("id,vehicle_id,pending_balance,sale_status,payment_status,expiry_date"),
     supabase
       .from("alerts")
       .select("id,title,description,priority,module")
@@ -195,4 +236,20 @@ export async function getAlerts(): Promise<AppAlert[]> {
   }
 
   return merged;
+}
+
+export async function getResolvedAlertsCount(): Promise<number> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return 0;
+
+  const since = new Date();
+  since.setDate(since.getDate() - 30);
+
+  const { count } = await supabase
+    .from("alerts")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "resuelta")
+    .gte("updated_at", since.toISOString());
+
+  return count ?? 0;
 }

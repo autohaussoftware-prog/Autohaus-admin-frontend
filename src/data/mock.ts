@@ -31,6 +31,7 @@ export const vehicles: Vehicle[] = [
     published: true,
     separated: false,
     entryType: "Compra",
+    createdAt: "2025-01-15T10:00:00",
   },
   {
     id: "veh-002",
@@ -62,6 +63,7 @@ export const vehicles: Vehicle[] = [
     published: false,
     separated: true,
     entryType: "Compra",
+    createdAt: "2025-01-15T10:00:00",
     alert: "Separado con saldo pendiente",
   },
   {
@@ -94,6 +96,7 @@ export const vehicles: Vehicle[] = [
     published: false,
     separated: false,
     entryType: "Compra",
+    createdAt: "2025-01-15T10:00:00",
     alert: "Papeles pendientes",
   },
   {
@@ -125,6 +128,7 @@ export const vehicles: Vehicle[] = [
     published: true,
     separated: false,
     entryType: "Compra",
+    createdAt: "2025-01-15T10:00:00",
     alert: "Margen bajo",
   },
   {
@@ -156,6 +160,7 @@ export const vehicles: Vehicle[] = [
     published: false,
     separated: false,
     entryType: "Compra",
+    createdAt: "2025-01-15T10:00:00",
     alert: "Costo no previsto alto",
   },
   {
@@ -188,6 +193,7 @@ export const vehicles: Vehicle[] = [
     published: false,
     separated: false,
     entryType: "Compra",
+    createdAt: "2025-01-15T10:00:00",
   },
 ];
 

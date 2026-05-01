@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarX2, CircleDollarSign, CreditCard, FileClock, Plus, ShoppingBag } from "lucide-react";
+import { AlertTriangle, CalendarX2, CircleDollarSign, CreditCard, ExternalLink, FileClock, Plus, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -166,9 +166,18 @@ export default async function SalesPage() {
                           <Badge tone="neutral">{DOC_LABELS[sale.documentStatus] ?? sale.documentStatus}</Badge>
                           <Badge tone="neutral">{DELIVERY_LABELS[sale.deliveryStatus] ?? sale.deliveryStatus}</Badge>
                         </div>
-                        {canConfirmSale && (
-                          <ConfirmSaleButton saleId={sale.id} vehicleId={sale.vehicleId} />
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/ventas/${sale.id}`}
+                            className={buttonClassName({ variant: "outline", size: "sm" })}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Ver detalle
+                          </Link>
+                          {canConfirmSale && (
+                            <ConfirmSaleButton saleId={sale.id} vehicleId={sale.vehicleId} />
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -199,9 +208,17 @@ export default async function SalesPage() {
                           {sale.sellerName ? ` · ${sale.sellerName}` : ""}
                         </p>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-semibold text-[#D6A93D]">{compactCOP(sale.agreedPrice)}</p>
-                        <Badge tone="green">Vendido</Badge>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <p className="font-semibold text-[#D6A93D]">{compactCOP(sale.agreedPrice)}</p>
+                          <Badge tone="green">Vendido</Badge>
+                        </div>
+                        <Link
+                          href={`/ventas/${sale.id}`}
+                          className={buttonClassName({ variant: "outline", size: "sm" })}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
                       </div>
                     </div>
                   ))}

@@ -41,6 +41,7 @@ export type Vehicle = {
   published: boolean;
   separated: boolean;
   alert?: string;
+  createdAt: string;
 };
 
 export type VehicleMovement = {

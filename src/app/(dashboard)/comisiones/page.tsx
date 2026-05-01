@@ -2,12 +2,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
-import { getCommissions } from "@/lib/data/commissions";
+import { getCommissions, getAdvisors } from "@/lib/data/commissions";
+import { getUserRole } from "@/lib/supabase/server";
 import { compactCOP } from "@/lib/utils";
 import { CircleDollarSign, HandCoins, Percent, Users } from "lucide-react";
+import { MarkPaidButton } from "@/components/finance/mark-paid-button";
 
 export default async function CommissionsPage() {
-  const commissions = await getCommissions();
+  const [commissions, advisors, role] = await Promise.all([getCommissions(), getAdvisors(), getUserRole()]);
+  const canPay = ["owner", "partner", "admin", "accounting"].includes(role);
   const pending = commissions.filter((commission) => commission.status === "Pendiente");
   const totalPending = pending.reduce((sum, commission) => sum + commission.amount, 0);
   const totalPaid = commissions.filter((commission) => commission.status === "Pagada").reduce((sum, commission) => sum + commission.amount, 0);
@@ -24,7 +27,7 @@ export default async function CommissionsPage() {
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Comisiones pendientes" value={compactCOP(totalPending)} helper={`${pending.length} registros por validar`} icon={HandCoins} tone="red" />
         <StatCard label="Comisiones pagadas" value={compactCOP(totalPaid)} helper="Pagos del periodo" icon={CircleDollarSign} tone="green" />
-        <StatCard label="Asesores activos" value="5" helper="Captadores, vendedores y aliados" icon={Users} tone="blue" />
+        <StatCard label="Asesores activos" value={`${advisors.length}`} helper="Captadores, vendedores y aliados" icon={Users} tone="blue" />
         <StatCard label="Regla base" value="20 / 20 / 33" helper="Captador · vendedor · crédito" icon={Percent} tone="gold" />
       </div>
 
@@ -44,6 +47,7 @@ export default async function CommissionsPage() {
                   <th className="px-5 py-4 font-medium">Mes</th>
                   <th className="px-5 py-4 font-medium">Estado</th>
                   <th className="px-5 py-4 text-right font-medium">Monto</th>
+                  {canPay && <th className="px-5 py-4 font-medium" />}
                 </tr>
               </thead>
               <tbody>
@@ -55,6 +59,18 @@ export default async function CommissionsPage() {
                     <td className="px-5 py-4 text-zinc-400">{commission.month}</td>
                     <td className="px-5 py-4"><Badge tone={commission.status === "Pagada" ? "green" : "amber"}>{commission.status}</Badge></td>
                     <td className="px-5 py-4 text-right text-[#D6A93D]">{compactCOP(commission.amount)}</td>
+                    {canPay && (
+                      <td className="px-5 py-4">
+                        {commission.status === "Pendiente" && (
+                          <MarkPaidButton
+                            commissionId={commission.id}
+                            advisorName={commission.advisor}
+                            amount={commission.amount}
+                            vehicleName={commission.vehicle}
+                          />
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

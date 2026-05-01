@@ -4,9 +4,11 @@ import {
   Car,
   CircleDollarSign,
   ClipboardList,
+  HandCoins,
   Landmark,
   LayoutDashboard,
   Settings,
+  Users,
   Wallet,
 } from "lucide-react";
 import type { UserRole } from "@/types/auth";
@@ -27,6 +29,10 @@ export const navItems: NavItem[] = [
   { label: "Dashboard",      href: "/",              icon: LayoutDashboard,  roles: ALL },
   { label: "Vehículos",      href: "/vehiculos",     icon: Car,              roles: ALL },
   { label: "Ventas",         href: "/ventas",        icon: CircleDollarSign, roles: SALES_AND_UP },
+  { label: "Clientes",       href: "/clientes",      icon: Users,            roles: SALES_AND_UP },
+  { label: "Traspasos",      href: "/traspasos",     icon: ClipboardList,    roles: SALES_AND_UP },
+  { label: "Comisiones",     href: "/comisiones",    icon: HandCoins,        roles: FINANCE },
+  { label: "Asesores",       href: "/asesores",      icon: Users,            roles: FINANCE },
   { label: "Banco",          href: "/banco",         icon: Landmark,         roles: FINANCE },
   { label: "Efectivo",       href: "/efectivo",      icon: Wallet,           roles: FINANCE },
   { label: "Reportes",       href: "/reportes",      icon: BarChart3,        roles: FINANCE },

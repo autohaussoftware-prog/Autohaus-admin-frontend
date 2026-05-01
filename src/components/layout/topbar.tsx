@@ -41,10 +41,17 @@ export function Topbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
         </div>
 
         <div className="hidden flex-1 items-center justify-center px-6 xl:flex">
-          <div className="relative w-full max-w-xl">
+          <form
+            className="relative w-full max-w-xl"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const input = (e.currentTarget.elements.namedItem("q") as HTMLInputElement)?.value.trim();
+              if (input) router.push(`/inventario?q=${encodeURIComponent(input)}`);
+            }}
+          >
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-            <Input className="pl-9" placeholder="Buscar placa, vehículo, cliente, asesor o movimiento" />
-          </div>
+            <Input name="q" className="pl-9" placeholder="Buscar por placa, marca o modelo… (Enter)" />
+          </form>
         </div>
 
         <div className="flex items-center gap-2">

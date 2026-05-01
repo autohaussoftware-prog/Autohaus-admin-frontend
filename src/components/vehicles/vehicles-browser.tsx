@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Car, Search, TrendingUp } from "lucide-react";
+import { Car, Clock, Search, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -10,6 +10,12 @@ import { VehicleStatusBadge } from "@/components/vehicles/vehicle-status-badge";
 import { compactCOP, percentage } from "@/lib/utils";
 import { getVehicleProjectedMargin } from "@/lib/domain/vehicle-calculations";
 import type { Vehicle } from "@/types/vehicle";
+
+function daysInInventory(createdAt: string) {
+  if (!createdAt) return null;
+  const diff = Date.now() - new Date(createdAt).getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
 
 export function VehiclesBrowser({ vehicles }: { vehicles: Vehicle[] }) {
   const [query, setQuery] = useState("");
@@ -51,6 +57,7 @@ export function VehiclesBrowser({ vehicles }: { vehicles: Vehicle[] }) {
         {filtered.map((vehicle) => {
           const margin = getVehicleProjectedMargin(vehicle);
           const isLowMargin = margin < 3;
+          const days = daysInInventory(vehicle.createdAt);
 
           return (
             <Link
@@ -91,9 +98,17 @@ export function VehiclesBrowser({ vehicles }: { vehicles: Vehicle[] }) {
                   <Badge tone={vehicle.ownerType === "Propio" ? "gold" : "blue"}>{vehicle.ownerType}</Badge>
                   {vehicle.alert && <Badge tone="amber">Alerta</Badge>}
                 </div>
-                <div className="flex items-center gap-1 text-xs text-zinc-600 transition group-hover:text-[#D6A93D]">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>Ver ficha</span>
+                <div className="flex items-center gap-3">
+                  {days !== null && !["Vendido", "Entregado"].includes(vehicle.status) && (
+                    <div className={`flex items-center gap-1 text-xs ${days > 60 ? "text-red-400" : days > 30 ? "text-amber-400" : "text-zinc-500"}`}>
+                      <Clock className="h-3 w-3" />
+                      <span>{days}d</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1 text-xs text-zinc-600 transition group-hover:text-[#D6A93D]">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>Ver ficha</span>
+                  </div>
                 </div>
               </div>
             </Link>
