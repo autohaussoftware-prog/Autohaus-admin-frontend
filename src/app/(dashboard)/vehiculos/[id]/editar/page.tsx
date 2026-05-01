@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { getVehicleById, getVehicleFormOptions } from "@/lib/data/vehicles";
 import { getUserRole } from "@/lib/supabase/server";
+import { VehicleIdentificationFields } from "@/components/vehicles/vehicle-identification-fields";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -58,22 +59,22 @@ export default async function EditVehiclePage({
 
         <Card>
           <CardHeader className="border-b border-zinc-900">
-            <CardTitle>Identificación</CardTitle>
-            <CardDescription>Datos básicos del vehículo.</CardDescription>
+            <CardTitle>Identificación y especificaciones</CardTitle>
+            <CardDescription>Cambia la marca o línea para actualizar las especificaciones automáticamente.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Placa">
               <Input name="plate" required defaultValue={vehicle.plate} className="uppercase" />
             </Field>
-            <Field label="Marca">
-              <Input name="brand" required defaultValue={vehicle.brand} />
-            </Field>
-            <Field label="Línea">
-              <Input name="line" required defaultValue={vehicle.line} />
-            </Field>
-            <Field label="Versión">
-              <Input name="version" defaultValue={vehicle.version} />
-            </Field>
+            <VehicleIdentificationFields
+              defaultBrand={vehicle.brand}
+              defaultLine={vehicle.line}
+              defaultVersion={vehicle.version}
+              defaultMotor={vehicle.motor}
+              defaultFuel={vehicle.fuel}
+              defaultTransmission={vehicle.transmission}
+              defaultTraction={vehicle.traction}
+            />
             <Field label="Año">
               <Input name="year" type="number" defaultValue={vehicle.year || ""} />
             </Field>
@@ -88,26 +89,6 @@ export default async function EditVehiclePage({
             </Field>
             <Field label="Estado legal">
               <Input name="legalStatus" defaultValue={vehicle.legalStatus} />
-            </Field>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="border-b border-zinc-900">
-            <CardTitle>Especificaciones</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
-            <Field label="Motor">
-              <Input name="motor" defaultValue={vehicle.motor} />
-            </Field>
-            <Field label="Transmisión">
-              <Input name="transmission" defaultValue={vehicle.transmission} />
-            </Field>
-            <Field label="Combustible">
-              <Input name="fuel" defaultValue={vehicle.fuel} />
-            </Field>
-            <Field label="Tracción">
-              <Input name="traction" defaultValue={vehicle.traction} />
             </Field>
           </CardContent>
         </Card>

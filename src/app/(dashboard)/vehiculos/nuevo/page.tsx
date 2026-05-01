@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { getVehicleFormOptions } from "@/lib/data/vehicles";
 import { getUserRole } from "@/lib/supabase/server";
+import { VehicleIdentificationFields } from "@/components/vehicles/vehicle-identification-fields";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -49,22 +50,14 @@ export default async function NewVehiclePage({
 
         <Card>
           <CardHeader className="border-b border-zinc-900">
-            <CardTitle>Identificación</CardTitle>
-            <CardDescription>Datos básicos del vehículo. Luego podrán venir desde documentos con IA.</CardDescription>
+            <CardTitle>Identificación y especificaciones</CardTitle>
+            <CardDescription>Selecciona la marca y línea para auto-completar motor, transmisión, combustible y tracción.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Placa">
               <Input name="plate" required placeholder="KMQ918" className="uppercase" />
             </Field>
-            <Field label="Marca">
-              <Input name="brand" required placeholder="BMW" />
-            </Field>
-            <Field label="Línea">
-              <Input name="line" required placeholder="X6" />
-            </Field>
-            <Field label="Versión">
-              <Input name="version" placeholder="xDrive40i M Sport" />
-            </Field>
+            <VehicleIdentificationFields />
             <Field label="Año">
               <Input name="year" type="number" min="1900" max="2100" placeholder="2022" />
             </Field>
@@ -79,27 +72,6 @@ export default async function NewVehiclePage({
             </Field>
             <Field label="Estado legal">
               <Input name="legalStatus" placeholder="Sin restricciones" />
-            </Field>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="border-b border-zinc-900">
-            <CardTitle>Especificaciones</CardTitle>
-            <CardDescription>Campos técnicos visibles en la ficha individual.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
-            <Field label="Motor">
-              <Input name="motor" placeholder="3.0L TwinPower Turbo" />
-            </Field>
-            <Field label="Transmisión">
-              <Input name="transmission" placeholder="Automática" />
-            </Field>
-            <Field label="Combustible">
-              <Input name="fuel" placeholder="Gasolina" />
-            </Field>
-            <Field label="Tracción">
-              <Input name="traction" placeholder="AWD" />
             </Field>
           </CardContent>
         </Card>
