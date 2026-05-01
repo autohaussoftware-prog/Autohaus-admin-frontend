@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.1",
+    "browser-image-compression": "^2.0.2",
     "class-variance-authority": "latest",
     "clsx": "latest",
     "framer-motion": "^12.38.0",
@@ -18,6 +19,7 @@
     "next": "^16.2.4",
     "react": "latest",
     "react-dom": "latest",
+    "react-dropzone": "^15.0.0",
     "recharts": "^3.8.1",
     "tailwind-merge": "latest",
     "zod": "^4.4.1"

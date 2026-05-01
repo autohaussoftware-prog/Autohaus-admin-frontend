@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { VehicleDetail } from "@/components/vehicles/vehicle-detail";
 import { VehiclePhotos } from "@/components/vehicles/vehicle-photos";
+import { VehicleStatusChanger } from "@/components/vehicles/vehicle-status-changer";
 import { getVehicleById, getVehicleMovementsByVehicleId, getVehiclePhotos } from "@/lib/data/vehicles";
 import { getUserRole } from "@/lib/supabase/server";
 
@@ -17,6 +18,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   ]);
 
   const showFinancials = role !== "advisor";
+  const canChangeStatus = role !== "viewer";
 
   return (
     <>
@@ -27,6 +29,12 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         actionLabel="Editar vehículo"
         actionHref={`/vehiculos/${vehicle.id}/editar`}
       />
+      {canChangeStatus && (
+        <div className="mb-5 flex items-center gap-3">
+          <span className="text-xs uppercase tracking-[0.18em] text-zinc-500">Estado actual</span>
+          <VehicleStatusChanger vehicleId={vehicle.id} currentStatus={vehicle.status} />
+        </div>
+      )}
       <VehicleDetail vehicle={vehicle} movements={movements} showFinancials={showFinancials} />
       <div className="mt-6">
         <VehiclePhotos vehicleId={vehicle.id} photos={photos} />
