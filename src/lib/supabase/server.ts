@@ -33,7 +33,8 @@ export async function getSupabaseServerClient() {
   return createClient();
 }
 
-export type UserRole = "owner" | "partner" | "admin" | "advisor" | "accounting" | "viewer";
+export type { UserRole } from "@/types/auth";
+import type { UserRole } from "@/types/auth";
 
 export async function getUserRole(): Promise<UserRole> {
   const supabase = await getSupabaseServerClient();

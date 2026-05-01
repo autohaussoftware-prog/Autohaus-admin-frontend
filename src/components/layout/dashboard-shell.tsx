@@ -3,14 +3,25 @@
 import { useState } from "react";
 import { AppSidebar } from "./app-sidebar";
 import { Topbar } from "./topbar";
+import type { UserRole } from "@/types/auth";
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export function DashboardShell({
+  children,
+  role,
+}: {
+  children: React.ReactNode;
+  role: UserRole;
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-100">
       <div className="flex min-h-screen">
-        <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <AppSidebar
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          role={role}
+        />
 
         {sidebarOpen && (
           <button

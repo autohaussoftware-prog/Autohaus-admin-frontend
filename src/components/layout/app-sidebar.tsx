@@ -7,9 +7,19 @@ import { LogOut, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/actions/auth";
 import { navItems } from "./nav-items";
+import type { UserRole } from "@/types/auth";
 
-export function AppSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AppSidebar({
+  open,
+  onClose,
+  role,
+}: {
+  open: boolean;
+  onClose: () => void;
+  role: UserRole;
+}) {
   const pathname = usePathname();
+  const visibleItems = navItems.filter((item) => item.roles.includes(role));
 
   return (
     <aside
@@ -36,7 +46,7 @@ export function AppSidebar({ open, onClose }: { open: boolean; onClose: () => vo
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 
@@ -60,14 +70,17 @@ export function AppSidebar({ open, onClose }: { open: boolean; onClose: () => vo
       </nav>
 
       <div className="mt-4 space-y-2">
-        <Link
-          href="/movimientos/nuevo"
-          onClick={onClose}
-          className="flex w-full items-center gap-3 rounded-2xl bg-[#D6A93D]/10 px-3 py-2.5 text-sm text-[#D6A93D] transition hover:bg-[#D6A93D]/20"
-        >
-          <span className="text-lg leading-none">+</span>
-          <span>Registrar movimiento</span>
-        </Link>
+        {/* Registrar movimiento solo para roles con acceso financiero */}
+        {(["owner", "partner", "admin", "accounting"] as UserRole[]).includes(role) && (
+          <Link
+            href="/movimientos/nuevo"
+            onClick={onClose}
+            className="flex w-full items-center gap-3 rounded-2xl bg-[#D6A93D]/10 px-3 py-2.5 text-sm text-[#D6A93D] transition hover:bg-[#D6A93D]/20"
+          >
+            <span className="text-lg leading-none">+</span>
+            <span>Registrar movimiento</span>
+          </Link>
+        )}
 
         <form action={logoutAction}>
           <button
