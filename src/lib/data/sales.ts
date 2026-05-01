@@ -1,5 +1,6 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/data/settings";
 
 export type Sale = {
   id: string;
@@ -16,6 +17,7 @@ export type Sale = {
   documentStatus: string;
   deliveryStatus: string;
   saleStatus: string;
+  expiryDate: string | null;
   createdAt: string;
 };
 
@@ -25,7 +27,7 @@ export async function getSales(): Promise<Sale[]> {
 
   const { data, error } = await supabase
     .from("sales")
-    .select("id,vehicle_id,customer_id,seller_id,agreed_price,initial_payment,pending_balance,payment_status,document_status,delivery_status,sale_status,created_at")
+    .select("id,vehicle_id,customer_id,seller_id,agreed_price,initial_payment,pending_balance,payment_status,document_status,delivery_status,sale_status,expiry_date,created_at")
     .order("created_at", { ascending: false });
 
   if (error || !data) {
@@ -66,6 +68,7 @@ export async function getSales(): Promise<Sale[]> {
       documentStatus: s.document_status,
       deliveryStatus: s.delivery_status,
       saleStatus: s.sale_status,
+      expiryDate: s.expiry_date ?? null,
       createdAt: s.created_at,
     };
   });
@@ -169,5 +172,96 @@ export async function createSale(input: CreateSaleInput): Promise<string> {
     });
   }
 
+  // Auto-calcular comisiones si hay asesores asignados
+  await autoCreateCommissions(supabase, sale.id as string, input.vehicleId, input.sellerId ?? null);
+
   return sale.id as string;
+}
+
+async function autoCreateCommissions(
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabaseServerClient>>>,
+  saleId: string,
+  vehicleId: string,
+  sellerId: string | null
+) {
+  try {
+    const [settings, vehicleRes] = await Promise.all([
+      getSettings(),
+      supabase.from("vehicles").select("advisor_buyer_id, buy_price, target_price").eq("id", vehicleId).single(),
+    ]);
+
+    const vehicle = vehicleRes.data;
+    if (!vehicle) return;
+
+    const settingsMap = Object.fromEntries(settings.map((s) => [s.key, Number(s.value)]));
+    const pctCaptador = settingsMap["commission_captador"] ?? 20;
+    const pctVendedor = settingsMap["commission_vendedor"] ?? 20;
+
+    const grossProfit = Math.max(0, Number(vehicle.target_price) - Number(vehicle.buy_price));
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+    const commissionsToInsert: any[] = [];
+
+    if (vehicle.advisor_buyer_id) {
+      const baseAmount = grossProfit;
+      commissionsToInsert.push({
+        advisor_id: vehicle.advisor_buyer_id,
+        role: "Captador",
+        vehicle_id: vehicleId,
+        sale_id: saleId,
+        base_amount: baseAmount,
+        percentage: pctCaptador,
+        amount: Math.round((baseAmount * pctCaptador) / 100),
+        status: "Pendiente",
+        month: currentMonth,
+      });
+    }
+
+    if (sellerId) {
+      const baseAmount = grossProfit;
+      commissionsToInsert.push({
+        advisor_id: sellerId,
+        role: "Vendedor",
+        vehicle_id: vehicleId,
+        sale_id: saleId,
+        base_amount: baseAmount,
+        percentage: pctVendedor,
+        amount: Math.round((baseAmount * pctVendedor) / 100),
+        status: "Pendiente",
+        month: currentMonth,
+      });
+    }
+
+    if (commissionsToInsert.length > 0) {
+      await supabase.from("commissions").insert(commissionsToInsert);
+    }
+  } catch {
+    // Comisiones son secundarias — no fallar la venta si hay error
+  }
+}
+
+export async function confirmSaleFromReservation(saleId: string, vehicleId: string, userName: string): Promise<void> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  const { error: saleError } = await supabase
+    .from("sales")
+    .update({ sale_status: "vendido", closed_at: new Date().toISOString() })
+    .eq("id", saleId);
+
+  if (saleError) throw new Error(saleError.message);
+
+  await supabase
+    .from("vehicles")
+    .update({ status: "Vendido", separated: false })
+    .eq("id", vehicleId);
+
+  await supabase.from("vehicle_movements").insert({
+    vehicle_id: vehicleId,
+    type: "Vendido",
+    title: "Separación convertida a venta",
+    description: `Cierre comercial confirmado por ${userName}.`,
+    new_status: "Vendido",
+    metadata: { userName, saleId },
+  });
 }

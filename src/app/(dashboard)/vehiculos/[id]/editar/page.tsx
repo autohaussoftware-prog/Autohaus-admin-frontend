@@ -123,6 +123,16 @@ export default async function EditVehiclePage({
                 <option>Comisión</option>
               </Select>
             </Field>
+            <Field label="Tipo de entrada">
+              <Select name="entryType" defaultValue={vehicle.entryType ?? "Compra"}>
+                <option>Compra</option>
+                <option>Consignación</option>
+                <option>Permuta</option>
+                <option>Propio</option>
+                <option>Socio</option>
+                <option>Otro</option>
+              </Select>
+            </Field>
             <Field label="Ubicación">
               <Select name="locationId" defaultValue={locations.find((l) => l.name === vehicle.location)?.id ?? ""}>
                 <option value="">Sin ubicación</option>

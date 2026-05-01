@@ -34,6 +34,7 @@ export type CreateVehicleInput = {
   advisorSellerId?: string;
   soatDue?: string;
   technoDue?: string;
+  entryType?: string;
   published?: boolean;
   separated?: boolean;
 };
@@ -132,6 +133,7 @@ function mapVehicle(vehicle: DbVehicle, references: Awaited<ReturnType<typeof ge
     status: vehicle.status,
     location: vehicle.location_id ? references.locations.get(vehicle.location_id) ?? "Sin ubicación" : "Sin ubicación",
     ownerType: vehicle.owner_type,
+    entryType: (vehicle as any).entry_type ?? "Compra",
     buyPrice: toNumber(vehicle.buy_price),
     targetPrice: toNumber(vehicle.target_price),
     minPrice: toNumber(vehicle.min_price),
@@ -263,6 +265,7 @@ export async function createVehicle(input: CreateVehicleInput) {
       advisor_seller_id: input.advisorSellerId || null,
       soat_due: input.soatDue || null,
       techno_due: input.technoDue || null,
+      entry_type: input.entryType || "Compra",
       published,
       separated,
     })
@@ -323,6 +326,7 @@ export async function updateVehicle(vehicleId: string, input: CreateVehicleInput
       advisor_seller_id: input.advisorSellerId || null,
       soat_due: input.soatDue || null,
       techno_due: input.technoDue || null,
+      entry_type: input.entryType || "Compra",
       published,
       separated,
       updated_at: new Date().toISOString(),

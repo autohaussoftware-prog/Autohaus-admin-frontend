@@ -30,6 +30,7 @@ export const vehicles: Vehicle[] = [
     technoDue: "2026-11-02",
     published: true,
     separated: false,
+    entryType: "Compra",
   },
   {
     id: "veh-002",
@@ -60,6 +61,7 @@ export const vehicles: Vehicle[] = [
     technoDue: "2026-06-18",
     published: false,
     separated: true,
+    entryType: "Compra",
     alert: "Separado con saldo pendiente",
   },
   {
@@ -91,6 +93,7 @@ export const vehicles: Vehicle[] = [
     technoDue: "2026-08-12",
     published: false,
     separated: false,
+    entryType: "Compra",
     alert: "Papeles pendientes",
   },
   {
@@ -121,6 +124,7 @@ export const vehicles: Vehicle[] = [
     technoDue: "2026-09-01",
     published: true,
     separated: false,
+    entryType: "Compra",
     alert: "Margen bajo",
   },
   {
@@ -151,6 +155,7 @@ export const vehicles: Vehicle[] = [
     technoDue: "2026-12-20",
     published: false,
     separated: false,
+    entryType: "Compra",
     alert: "Costo no previsto alto",
   },
   {
@@ -182,6 +187,7 @@ export const vehicles: Vehicle[] = [
     technoDue: "2027-01-14",
     published: false,
     separated: false,
+    entryType: "Compra",
   },
 ];
 

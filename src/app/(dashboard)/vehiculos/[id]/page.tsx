@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { VehicleDetail } from "@/components/vehicles/vehicle-detail";
+import { VehicleCosts } from "@/components/vehicles/vehicle-costs";
 import { VehiclePhotos } from "@/components/vehicles/vehicle-photos";
 import { VehicleStatusChanger } from "@/components/vehicles/vehicle-status-changer";
 import { getVehicleById, getVehicleMovementsByVehicleId, getVehiclePhotos } from "@/lib/data/vehicles";
+import { getVehicleCosts } from "@/lib/data/costs";
 import { getUserRole } from "@/lib/supabase/server";
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -12,13 +14,15 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   if (!vehicle) notFound();
 
-  const [movements, photos] = await Promise.all([
+  const [movements, photos, costs] = await Promise.all([
     getVehicleMovementsByVehicleId(vehicle.id),
     getVehiclePhotos(vehicle.id),
+    getVehicleCosts(vehicle.id),
   ]);
 
   const showFinancials = role !== "advisor";
   const canChangeStatus = role !== "viewer";
+  const canDeleteCosts = ["owner", "partner", "admin"].includes(role);
 
   return (
     <>
@@ -36,6 +40,11 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         </div>
       )}
       <VehicleDetail vehicle={vehicle} movements={movements} showFinancials={showFinancials} />
+      {showFinancials && (
+        <div className="mt-6">
+          <VehicleCosts vehicleId={vehicle.id} costs={costs} canDelete={canDeleteCosts} />
+        </div>
+      )}
       <div className="mt-6">
         <VehiclePhotos vehicleId={vehicle.id} photos={photos} />
       </div>

@@ -60,6 +60,7 @@ export function VehicleDetail({
               <InfoItem label="Tracción" value={vehicle.traction} />
               <InfoItem label="Ciudad matrícula" value={vehicle.cityRegistration} />
               <InfoItem label="Estado legal" value={vehicle.legalStatus} />
+              <InfoItem label="Tipo de entrada" value={vehicle.entryType} />
               <InfoItem label="Ubicación" value={vehicle.location} />
               <InfoItem label="SOAT vence" value={vehicle.soatDue} />
               <InfoItem label="Tecnomecánica vence" value={vehicle.technoDue} />

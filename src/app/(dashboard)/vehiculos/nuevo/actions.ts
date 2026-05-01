@@ -32,6 +32,10 @@ const vehicleSchema = z.object({
   status: z.enum(["Disponible", "Separado", "Vendido", "En comisión", "En reparación", "En trámite", "Entregado", "Publicado", "No publicado", "Papeles pendientes"]),
   locationId: optionalText,
   ownerType: z.enum(["Propio", "Comisión"]),
+  entryType: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().trim().optional()
+  ),
   buyPrice: optionalNumber,
   targetPrice: optionalNumber,
   minPrice: optionalNumber,

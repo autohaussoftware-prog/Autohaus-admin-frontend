@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createSale } from "@/lib/data/sales";
+import { createSale, confirmSaleFromReservation } from "@/lib/data/sales";
+import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 
 const optionalText = z.preprocess(
   (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
@@ -44,4 +45,24 @@ export async function createSaleAction(formData: FormData) {
   revalidatePath("/inventario");
   revalidatePath("/vehiculos");
   redirect("/ventas");
+}
+
+export async function confirmSaleAction(saleId: string, vehicleId: string) {
+  const role = await getUserRole();
+  if (!["owner", "partner", "admin", "accounting"].includes(role)) {
+    return { error: "Sin permisos para confirmar ventas." };
+  }
+
+  const { name } = await getCurrentUserProfile();
+
+  try {
+    await confirmSaleFromReservation(saleId, vehicleId, name);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Error confirmando venta." };
+  }
+
+  revalidatePath("/ventas");
+  revalidatePath("/vehiculos");
+  revalidatePath(`/vehiculos/${vehicleId}`);
+  return { success: true };
 }

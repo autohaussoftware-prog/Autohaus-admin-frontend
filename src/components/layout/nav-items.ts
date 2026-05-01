@@ -25,8 +25,7 @@ const ADMIN_ONLY: UserRole[] = ["owner", "admin"];
 
 export const navItems: NavItem[] = [
   { label: "Dashboard",      href: "/",              icon: LayoutDashboard,  roles: ALL },
-  { label: "Inventario",     href: "/inventario",    icon: Car,              roles: ALL },
-  { label: "Vehículos",      href: "/vehiculos",     icon: ClipboardList,    roles: ALL },
+  { label: "Vehículos",      href: "/vehiculos",     icon: Car,              roles: ALL },
   { label: "Ventas",         href: "/ventas",        icon: CircleDollarSign, roles: SALES_AND_UP },
   { label: "Banco",          href: "/banco",         icon: Landmark,         roles: FINANCE },
   { label: "Efectivo",       href: "/efectivo",      icon: Wallet,           roles: FINANCE },

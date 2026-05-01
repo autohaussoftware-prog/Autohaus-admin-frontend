@@ -28,6 +28,7 @@ export type Vehicle = {
   status: VehicleStatus;
   location: string;
   ownerType: "Propio" | "Comisión";
+  entryType: string;
   buyPrice: number;
   targetPrice: number;
   minPrice: number;

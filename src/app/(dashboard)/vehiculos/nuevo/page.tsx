@@ -106,6 +106,16 @@ export default async function NewVehiclePage({
                 <option>Comisión</option>
               </Select>
             </Field>
+            <Field label="Tipo de entrada">
+              <Select name="entryType" defaultValue="Compra">
+                <option>Compra</option>
+                <option>Consignación</option>
+                <option>Permuta</option>
+                <option>Propio</option>
+                <option>Socio</option>
+                <option>Otro</option>
+              </Select>
+            </Field>
             <Field label="Ubicación">
               <Select name="locationId" defaultValue="">
                 <option value="">Sin ubicación</option>

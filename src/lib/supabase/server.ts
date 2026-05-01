@@ -38,7 +38,7 @@ import type { UserRole } from "@/types/auth";
 
 export async function getUserRole(): Promise<UserRole> {
   const supabase = await getSupabaseServerClient();
-  if (!supabase) return "owner"; // dev fallback: full access when no Supabase
+  if (!supabase) return "owner";
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return "viewer";
@@ -50,4 +50,39 @@ export async function getUserRole(): Promise<UserRole> {
     .single();
 
   return (profile?.role as UserRole) ?? "viewer";
+}
+
+export async function getCurrentUserName(): Promise<string> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return "Sistema";
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return "Sistema";
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email")
+    .eq("id", user.id)
+    .single();
+
+  return profile?.full_name || profile?.email || user.email || "Usuario";
+}
+
+export async function getCurrentUserProfile(): Promise<{ name: string; role: UserRole }> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { name: "Sistema", role: "owner" };
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { name: "Sistema", role: "viewer" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email, role")
+    .eq("id", user.id)
+    .single();
+
+  return {
+    name: profile?.full_name || profile?.email || user.email || "Usuario",
+    role: (profile?.role as UserRole) ?? "viewer",
+  };
 }
