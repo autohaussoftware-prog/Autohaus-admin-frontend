@@ -5,11 +5,15 @@ import { VehicleStatusChanger } from "@/components/vehicles/vehicle-status-chang
 import { getVehicleById, getVehicleMovementsByVehicleId } from "@/lib/data/vehicles";
 import { getVehicleCosts } from "@/lib/data/costs";
 import { getVehicleDocs } from "@/lib/data/docs";
-import { getUserRole } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/supabase/server";
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [vehicle, role] = await Promise.all([getVehicleById(id), getUserRole()]);
+  const profile = await getCurrentUserProfile();
+  const [vehicle, role] = await Promise.all([
+    getVehicleById(id, { userId: profile.id, role: profile.role }),
+    Promise.resolve(profile.role),
+  ]);
 
   if (!vehicle) notFound();
 

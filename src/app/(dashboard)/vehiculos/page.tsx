@@ -5,6 +5,7 @@ import { VehiclesInventory } from "@/components/vehicles/vehicles-inventory";
 import { getVehicles } from "@/lib/data/vehicles";
 import { getVehicleProjectedMargin } from "@/lib/domain/vehicle-calculations";
 import { compactCOP } from "@/lib/utils";
+import { getCurrentUserProfile } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,8 @@ export default async function VehiclesPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const vehicles = await getVehicles();
+  const profile = await getCurrentUserProfile();
+  const vehicles = await getVehicles({ userId: profile.id, role: profile.role });
 
   const available = vehicles.filter((v) => v.status === "Disponible" || v.status === "Publicado").length;
   const totalCapital = vehicles

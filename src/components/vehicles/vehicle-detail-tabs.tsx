@@ -169,6 +169,22 @@ export function VehicleDetailTabs({
                     <InfoItem label="Asesor vendedor" value={vehicle.advisorSeller} />
                   )}
                 </div>
+
+                {vehicle.ownerType === "Comisión" && (
+                  <div className="mt-5 border-t border-zinc-800 pt-5">
+                    <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">Propietario en comisión</p>
+                    {vehicle.ownerContactVisible !== false ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <InfoItem label="Nombre" value={vehicle.ownerName ?? "—"} />
+                        <InfoItem label="Teléfono" value={vehicle.ownerPhone ?? "—"} />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+                        <span className="text-sm text-zinc-500">Datos de contacto restringidos — solo visible para quien registró el vehículo.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

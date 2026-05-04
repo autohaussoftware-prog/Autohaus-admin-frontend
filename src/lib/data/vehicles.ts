@@ -40,6 +40,7 @@ export type CreateVehicleInput = {
   separated?: boolean;
   ownerName?: string;
   ownerPhone?: string;
+  createdByUserId?: string;
 };
 
 type DbVehicle = {
@@ -75,6 +76,7 @@ type DbVehicle = {
   alert_summary: string | null;
   owner_name: string | null;
   owner_phone: string | null;
+  created_by_user_id: string | null;
 };
 
 type DbVehicleMovement = {
@@ -120,7 +122,19 @@ async function getReferenceMaps() {
   };
 }
 
-function mapVehicle(vehicle: DbVehicle, references: Awaited<ReturnType<typeof getReferenceMaps>>): Vehicle {
+// Roles that can always see owner contact info regardless of who created the vehicle
+const FULL_ACCESS_ROLES = ["owner", "partner", "admin", "gerente", "accounting"];
+
+function mapVehicle(
+  vehicle: DbVehicle,
+  references: Awaited<ReturnType<typeof getReferenceMaps>>,
+  viewer?: { userId: string; role: string }
+): Vehicle {
+  // Determine if the viewer can see owner contact info
+  const canSeeContact = !viewer
+    || FULL_ACCESS_ROLES.includes(viewer.role)
+    || vehicle.created_by_user_id === viewer.userId;
+
   return {
     id: vehicle.id,
     plate: vehicle.plate,
@@ -154,8 +168,10 @@ function mapVehicle(vehicle: DbVehicle, references: Awaited<ReturnType<typeof ge
     separated: Boolean(vehicle.separated),
     alert: vehicle.alert_summary ?? undefined,
     createdAt: (vehicle as any).created_at ?? "",
-    ownerName: vehicle.owner_name ?? undefined,
-    ownerPhone: vehicle.owner_phone ?? undefined,
+    createdByUserId: vehicle.created_by_user_id ?? undefined,
+    ownerContactVisible: canSeeContact,
+    ownerName: canSeeContact ? (vehicle.owner_name ?? undefined) : undefined,
+    ownerPhone: canSeeContact ? (vehicle.owner_phone ?? undefined) : undefined,
   };
 }
 
@@ -171,7 +187,7 @@ function mapMovement(movement: DbVehicleMovement): VehicleMovement {
   };
 }
 
-export async function getVehicles() {
+export async function getVehicles(viewer?: { userId: string; role: string }) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return mockVehicles;
 
@@ -182,10 +198,10 @@ export async function getVehicles() {
   }
 
   const references = await getReferenceMaps();
-  return (data as DbVehicle[]).map((vehicle) => mapVehicle(vehicle, references));
+  return (data as DbVehicle[]).map((vehicle) => mapVehicle(vehicle, references, viewer));
 }
 
-export async function getVehicleById(id: string) {
+export async function getVehicleById(id: string, viewer?: { userId: string; role: string }) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return mockVehicles.find((vehicle) => vehicle.id === id) ?? null;
 
@@ -196,7 +212,7 @@ export async function getVehicleById(id: string) {
   }
 
   const references = await getReferenceMaps();
-  return mapVehicle(data as DbVehicle, references);
+  return mapVehicle(data as DbVehicle, references, viewer);
 }
 
 export async function getVehicleMovementsByVehicleId(vehicleId: string) {
@@ -281,6 +297,7 @@ export async function createVehicle(input: CreateVehicleInput) {
       separated,
       owner_name: input.ownerName?.trim() || null,
       owner_phone: input.ownerPhone?.trim() || null,
+      created_by_user_id: input.createdByUserId || null,
     })
     .select("id")
     .single();

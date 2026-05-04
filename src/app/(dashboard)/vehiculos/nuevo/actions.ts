@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createVehicle } from "@/lib/data/vehicles";
+import { getCurrentUserProfile } from "@/lib/supabase/server";
 
 const optionalNumber = z.preprocess(
   (value) => (value === "" || value === null ? undefined : Number(value)),
@@ -80,10 +81,11 @@ export async function createVehicleAction(formData: FormData) {
     redirect(`/vehiculos/nuevo?error=${encodeURIComponent(firstError)}`);
   }
 
+  const profile = await getCurrentUserProfile();
   let vehicleId: string;
 
   try {
-    vehicleId = await createVehicle(parsed.data);
+    vehicleId = await createVehicle({ ...parsed.data, createdByUserId: profile.id });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo crear el vehículo.";
     redirect(`/vehiculos/nuevo?error=${encodeURIComponent(message)}`);

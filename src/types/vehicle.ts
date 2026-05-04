@@ -43,8 +43,10 @@ export type Vehicle = {
   separated: boolean;
   alert?: string;
   createdAt: string;
+  createdByUserId?: string;
   ownerName?: string;
   ownerPhone?: string;
+  ownerContactVisible?: boolean; // false = masked for this viewer (undefined = visible by default)
 };
 
 export type VehicleMovement = {

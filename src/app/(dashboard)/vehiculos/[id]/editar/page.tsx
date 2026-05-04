@@ -8,7 +8,7 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getVehicleById, getVehicleFormOptions } from "@/lib/data/vehicles";
-import { getUserRole } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { canAccessRoute } from "@/lib/permissions";
 import { VehicleIdentificationFields } from "@/components/vehicles/vehicle-identification-fields";
 import { VehicleBusinessFields } from "@/components/vehicles/vehicle-business-fields";
@@ -32,11 +32,12 @@ export default async function EditVehiclePage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { id } = await params;
-  const [vehicle, { locations, advisors }, sp, role] = await Promise.all([
-    getVehicleById(id),
+  const profile = await getCurrentUserProfile();
+  const role = profile.role;
+  const [vehicle, { locations, advisors }, sp] = await Promise.all([
+    getVehicleById(id, { userId: profile.id, role }),
     getVehicleFormOptions(),
     searchParams,
-    getUserRole(),
   ]);
 
   if (!vehicle) notFound();
