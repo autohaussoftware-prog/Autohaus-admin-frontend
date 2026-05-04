@@ -12,7 +12,7 @@ export default async function TraspasosPage() {
     getUserRole(),
   ]);
 
-  const canManage = ["owner", "partner", "admin", "gerente"].includes(role);
+  const canManage = ["owner", "partner", "admin", "gerente", "advisor"].includes(role);
 
   const inProgress = transfers.filter((t) => t.status === "En proceso").length;
   const docsReady = transfers.filter((t) => t.status === "Documentos listos").length;

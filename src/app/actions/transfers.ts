@@ -17,7 +17,7 @@ const transferSchema = z.object({
 
 export async function createTransferAction(formData: FormData) {
   const role = await getUserRole();
-  if (!["owner", "partner", "admin", "gerente"].includes(role)) {
+  if (!["owner", "partner", "admin", "gerente", "advisor"].includes(role)) {
     return { error: "Sin permisos para registrar traspasos." };
   }
 

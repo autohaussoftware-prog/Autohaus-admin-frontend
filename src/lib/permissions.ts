@@ -17,7 +17,7 @@ const ROUTE_PERMISSIONS: { prefix: string; allowed: UserRole[] }[] = [
   { prefix: "/asesores",         allowed: [...FINANCE] },
   { prefix: "/ventas",           allowed: ["owner", "partner", "admin", "gerente", "advisor", "accounting"] },
   { prefix: "/clientes",         allowed: [...FINANCE] },
-  { prefix: "/traspasos",        allowed: [...MGMT, "accounting"] },
+  { prefix: "/traspasos",        allowed: ["owner", "partner", "admin", "gerente", "advisor", "accounting"] },
 ];
 
 const EDIT_VEHICLE_ROLES: UserRole[] = ["owner", "partner", "admin", "gerente", "accounting"];

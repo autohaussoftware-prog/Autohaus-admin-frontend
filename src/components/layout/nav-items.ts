@@ -31,7 +31,7 @@ export const navItems: NavItem[] = [
   { label: "Vehículos",      href: "/vehiculos",     icon: Car,              roles: ALL },
   { label: "Ventas",         href: "/ventas",        icon: CircleDollarSign, roles: [...ADVISOR_AND_UP] },
   { label: "Clientes",       href: "/clientes",      icon: Users,            roles: SALES_AND_UP },
-  { label: "Traspasos",      href: "/traspasos",     icon: ClipboardList,    roles: SALES_AND_UP },
+  { label: "Traspasos",      href: "/traspasos",     icon: ClipboardList,    roles: ADVISOR_AND_UP },
   { label: "Comisiones",     href: "/comisiones",    icon: HandCoins,        roles: FINANCE },
   { label: "Asesores",       href: "/asesores",      icon: Users,            roles: FINANCE },
   { label: "Banco",          href: "/banco",         icon: Landmark,         roles: FINANCE },
