@@ -69,7 +69,7 @@ export async function getCashMovements(dateRange?: DateRange) {
 
 export type CreateFinanceMovementInput = {
   type: "Ingreso" | "Egreso";
-  channel: "Banco" | "Efectivo ubicación 1" | "Efectivo ubicación 2";
+  channel: "Banco" | "Efectivo José" | "Efectivo Tomás";
   category?: string;
   concept: string;
   amount: number;

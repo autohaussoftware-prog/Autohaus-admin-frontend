@@ -38,7 +38,7 @@ function buildCashBankSeries(movements: FinanceMovement[]): CashBankPoint[] {
     const day = m.date.split("-")[2];
     const sign = m.type === "Ingreso" ? 1 : -1;
     if (m.channel === "Banco") banco += sign * m.amount;
-    else if (m.channel === "Efectivo ubicación 1") efectivo1 += sign * m.amount;
+    else if (m.channel === "Efectivo José") efectivo1 += sign * m.amount;
     else efectivo2 += sign * m.amount;
 
     pointsByDay.set(day, {

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { getVehicleById, getVehicleFormOptions } from "@/lib/data/vehicles";
 import { getUserRole } from "@/lib/supabase/server";
+import { canAccessRoute } from "@/lib/permissions";
 import { VehicleIdentificationFields } from "@/components/vehicles/vehicle-identification-fields";
 import { VehicleBusinessFields } from "@/components/vehicles/vehicle-business-fields";
 import { TransitAuthoritySelect } from "@/components/vehicles/transit-authority-select";
@@ -38,6 +39,7 @@ export default async function EditVehiclePage({
   ]);
 
   if (!vehicle) notFound();
+  if (!canAccessRoute(role, `/vehiculos/${id}/editar`)) redirect("/vehiculos");
 
   const error = sp.error ? decodeURIComponent(sp.error) : null;
   const action = updateVehicleAction.bind(null, id);

@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createVehicle } from "@/lib/data/vehicles";
-import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const optionalNumber = z.preprocess(
   (value) => (value === "" || value === null ? undefined : Number(value)),
@@ -65,42 +64,6 @@ const vehicleSchema = z.object({
   }
 });
 
-function sanitizeFileName(name: string) {
-  return name.replace(/[^a-zA-Z0-9._\-]/g, "_");
-}
-
-async function uploadPhotos(vehicleId: string, files: File[]) {
-  const supabase = getSupabaseAdminClient();
-  if (!supabase || !files.length) return;
-
-  for (const file of files) {
-    if (!file.size) continue;
-    try {
-      const ext = file.name.split(".").pop() ?? "jpg";
-      const path = `${vehicleId}/${Date.now()}-${sanitizeFileName(file.name.replace(/\.[^/.]+$/, ""))}.${ext}`;
-      const buffer = new Uint8Array(await file.arrayBuffer());
-
-      const { error: uploadError } = await supabase.storage
-        .from("vehicle-photos")
-        .upload(path, buffer, { contentType: file.type, upsert: false });
-
-      if (uploadError) continue;
-
-      const { data: { publicUrl } } = supabase.storage.from("vehicle-photos").getPublicUrl(path);
-
-      await supabase.from("vehicle_documents").insert({
-        vehicle_id: vehicleId,
-        document_type: "foto_vehiculo",
-        file_url: publicUrl,
-        file_name: file.name,
-        status: "aprobado",
-      });
-    } catch {
-      // Foto fallida no debe cancelar el registro del vehículo
-    }
-  }
-}
-
 export async function createVehicleAction(formData: FormData) {
   const rawData = Object.fromEntries(
     [...formData.entries()].filter(([, v]) => !(v instanceof File))
@@ -120,11 +83,6 @@ export async function createVehicleAction(formData: FormData) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo crear el vehículo.";
     redirect(`/vehiculos/nuevo?error=${encodeURIComponent(message)}`);
-  }
-
-  const photoFiles = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
-  if (photoFiles.length > 0) {
-    await uploadPhotos(vehicleId, photoFiles);
   }
 
   revalidatePath("/inventario");

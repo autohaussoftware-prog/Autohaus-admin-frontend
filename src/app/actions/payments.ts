@@ -9,7 +9,7 @@ const paymentSchema = z.object({
   saleId: z.string().uuid(),
   amount: z.preprocess((v) => Number(v), z.number().positive("El monto debe ser mayor a cero")),
   date: z.string().min(1),
-  channel: z.enum(["Banco", "Efectivo ubicación 1", "Efectivo ubicación 2"]),
+  channel: z.enum(["Banco", "Efectivo José", "Efectivo Tomás"]),
   reference: z.string().optional(),
   notes: z.string().optional(),
 });

@@ -8,7 +8,6 @@ import {
   DollarSign,
   FileText,
   Gauge,
-  Image,
   MapPin,
   ShieldCheck,
   UserRound,
@@ -18,14 +17,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { VehicleCosts } from "@/components/vehicles/vehicle-costs";
 import { VehicleDocuments } from "@/components/vehicles/vehicle-documents";
-import { VehiclePhotos } from "@/components/vehicles/vehicle-photos";
 import { VehicleStatusBadge } from "@/components/vehicles/vehicle-status-badge";
 import { compactCOP, currencyCOP, percentage } from "@/lib/utils";
-import type { Vehicle, VehicleMovement, VehiclePhoto } from "@/types/vehicle";
+import type { Vehicle, VehicleMovement } from "@/types/vehicle";
 import type { VehicleCost } from "@/lib/data/costs";
 import type { VehicleDoc } from "@/lib/data/docs";
 
-type Tab = "info" | "costos" | "documentos" | "fotos" | "historial";
+type Tab = "info" | "costos" | "documentos" | "historial";
 
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
@@ -77,7 +75,6 @@ function TabButton({
 export function VehicleDetailTabs({
   vehicle,
   movements,
-  photos,
   costs,
   legalDocs,
   showFinancials,
@@ -86,7 +83,6 @@ export function VehicleDetailTabs({
 }: {
   vehicle: Vehicle;
   movements: VehicleMovement[];
-  photos: VehiclePhoto[];
   costs: VehicleCost[];
   legalDocs: VehicleDoc[];
   showFinancials: boolean;
@@ -120,13 +116,6 @@ export function VehicleDetailTabs({
           icon={FileText}
           label="Documentos"
           count={legalDocs.length}
-        />
-        <TabButton
-          active={tab === "fotos"}
-          onClick={() => setTab("fotos")}
-          icon={Image}
-          label="Fotos"
-          count={photos.length}
         />
         <TabButton
           active={tab === "historial"}
@@ -230,7 +219,7 @@ export function VehicleDetailTabs({
                   { icon: ShieldCheck, label: "Documentos", value: vehicle.alert?.includes("Papeles") ? "Revisión requerida" : "Sin bloqueo" },
                   { icon: CalendarDays, label: "Vencimientos", value: `SOAT ${vehicle.soatDue || "Sin fecha"}` },
                   { icon: Gauge, label: "Publicación", value: vehicle.published ? "Activa" : "Inactiva" },
-                  { icon: FileText, label: "Archivos", value: `${photos.length} fotos · ${legalDocs.length} docs` },
+                  { icon: FileText, label: "Archivos", value: `${legalDocs.length} docs` },
                 ].map((item) => {
                   const Icon = item.icon;
                   return (
@@ -259,11 +248,6 @@ export function VehicleDetailTabs({
       {/* Tab: Documentos */}
       {tab === "documentos" && (
         <VehicleDocuments vehicleId={vehicle.id} docs={legalDocs} canDelete={canDeleteDocs} />
-      )}
-
-      {/* Tab: Fotos */}
-      {tab === "fotos" && (
-        <VehiclePhotos vehicleId={vehicle.id} photos={photos} />
       )}
 
       {/* Tab: Historial */}

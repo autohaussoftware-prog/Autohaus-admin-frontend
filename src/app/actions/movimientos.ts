@@ -7,7 +7,7 @@ import { createFinanceMovement } from "@/lib/data/finance";
 
 const movimientoSchema = z.object({
   type: z.enum(["Ingreso", "Egreso"]),
-  channel: z.enum(["Banco", "Efectivo ubicación 1", "Efectivo ubicación 2"]),
+  channel: z.enum(["Banco", "Efectivo José", "Efectivo Tomás"]),
   category: z.string().trim().optional(),
   concept: z.string().trim().min(3),
   amount: z.preprocess((v) => Number(v), z.number().positive()),

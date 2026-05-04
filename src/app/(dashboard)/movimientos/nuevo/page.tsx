@@ -60,8 +60,8 @@ export default async function NewMovimientoPage({
             <Field label="Canal">
               <Select name="channel" defaultValue="Banco">
                 <option value="Banco">Banco</option>
-                <option value="Efectivo ubicación 1">Efectivo ubicación 1</option>
-                <option value="Efectivo ubicación 2">Efectivo ubicación 2</option>
+                <option value="Efectivo José">Efectivo José</option>
+                <option value="Efectivo Tomás">Efectivo Tomás</option>
               </Select>
             </Field>
             <Field label="Categoría">

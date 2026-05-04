@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { VehicleDetailTabs } from "@/components/vehicles/vehicle-detail-tabs";
 import { VehicleStatusChanger } from "@/components/vehicles/vehicle-status-changer";
-import { getVehicleById, getVehicleMovementsByVehicleId, getVehiclePhotos } from "@/lib/data/vehicles";
+import { getVehicleById, getVehicleMovementsByVehicleId } from "@/lib/data/vehicles";
 import { getVehicleCosts } from "@/lib/data/costs";
 import { getVehicleDocs } from "@/lib/data/docs";
 import { getUserRole } from "@/lib/supabase/server";
@@ -13,15 +13,15 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   if (!vehicle) notFound();
 
-  const [movements, photos, costs, legalDocs] = await Promise.all([
+  const [movements, costs, legalDocs] = await Promise.all([
     getVehicleMovementsByVehicleId(vehicle.id),
-    getVehiclePhotos(vehicle.id),
     getVehicleCosts(vehicle.id),
     getVehicleDocs(vehicle.id),
   ]);
 
   const showFinancials = role !== "advisor";
   const canChangeStatus = role !== "viewer";
+  const canEdit = !["advisor", "viewer"].includes(role);
   const canDeleteCosts = ["owner", "partner", "admin"].includes(role);
   const canDeleteDocs = ["owner", "partner", "admin"].includes(role);
 
@@ -31,8 +31,8 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         eyebrow="Ficha individual"
         title={`${vehicle.brand} ${vehicle.line}`}
         description={`${vehicle.version} · ${vehicle.year} · Placa ${vehicle.plate}`}
-        actionLabel="Editar vehículo"
-        actionHref={`/vehiculos/${vehicle.id}/editar`}
+        actionLabel={canEdit ? "Editar vehículo" : undefined}
+        actionHref={canEdit ? `/vehiculos/${vehicle.id}/editar` : undefined}
       />
       {canChangeStatus && (
         <div className="mb-5 flex items-center gap-3">
@@ -43,7 +43,6 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       <VehicleDetailTabs
         vehicle={vehicle}
         movements={movements}
-        photos={photos}
         costs={costs}
         legalDocs={legalDocs}
         showFinancials={showFinancials}

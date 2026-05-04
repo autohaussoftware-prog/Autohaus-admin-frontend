@@ -16,8 +16,8 @@ function formatDate(iso: string) {
 
 const CHANNEL_COLORS: Record<string, string> = {
   "Banco": "text-blue-300 border-blue-500/30 bg-blue-500/10",
-  "Efectivo ubicación 1": "text-emerald-300 border-emerald-500/30 bg-emerald-500/10",
-  "Efectivo ubicación 2": "text-amber-300 border-amber-500/30 bg-amber-500/10",
+  "Efectivo José": "text-emerald-300 border-emerald-500/30 bg-emerald-500/10",
+  "Efectivo Tomás": "text-amber-300 border-amber-500/30 bg-amber-500/10",
 };
 
 export function SalePayments({

@@ -22,11 +22,12 @@ export type NavItem = {
 
 const ALL: UserRole[] = ["owner", "partner", "admin", "advisor", "accounting", "viewer"];
 const FINANCE: UserRole[] = ["owner", "partner", "admin", "accounting"];
-const SALES_AND_UP: UserRole[] = ["owner", "partner", "admin", "advisor", "accounting"];
+const SALES_AND_UP: UserRole[] = ["owner", "partner", "admin", "accounting"];
+const ADVISOR_AND_UP: UserRole[] = ["owner", "partner", "admin", "advisor", "accounting"];
 const ADMIN_ONLY: UserRole[] = ["owner", "admin"];
 
 export const navItems: NavItem[] = [
-  { label: "Dashboard",      href: "/",              icon: LayoutDashboard,  roles: ALL },
+  { label: "Dashboard",      href: "/",              icon: LayoutDashboard,  roles: ADVISOR_AND_UP },
   { label: "Vehículos",      href: "/vehiculos",     icon: Car,              roles: ALL },
   { label: "Ventas",         href: "/ventas",        icon: CircleDollarSign, roles: SALES_AND_UP },
   { label: "Clientes",       href: "/clientes",      icon: Users,            roles: SALES_AND_UP },

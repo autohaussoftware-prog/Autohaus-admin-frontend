@@ -11,7 +11,6 @@ import { getUserRole } from "@/lib/supabase/server";
 import { VehicleIdentificationFields } from "@/components/vehicles/vehicle-identification-fields";
 import { VehicleBusinessFields } from "@/components/vehicles/vehicle-business-fields";
 import { TransitAuthoritySelect } from "@/components/vehicles/transit-authority-select";
-import { VehicleFormImages } from "@/components/vehicles/vehicle-form-images";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -43,7 +42,7 @@ export default async function NewVehiclePage({
         description="Completa la ficha del vehículo. Los campos marcados con * son obligatorios."
       />
 
-      <form action={createVehicleAction} encType="multipart/form-data" className="space-y-6">
+      <form action={createVehicleAction} className="space-y-6">
         {error && (
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
             {error === "validation"
@@ -97,19 +96,6 @@ export default async function NewVehiclePage({
               locations={locations}
               advisors={advisors}
             />
-          </CardContent>
-        </Card>
-
-        {/* ── Fotos del vehículo ─────────────────────────────────── */}
-        <Card>
-          <CardHeader className="border-b border-zinc-900">
-            <CardTitle>Fotos del vehículo</CardTitle>
-            <CardDescription>
-              Agrega fotos del vehículo. Se guardan automáticamente al registrar.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-5">
-            <VehicleFormImages />
           </CardContent>
         </Card>
 

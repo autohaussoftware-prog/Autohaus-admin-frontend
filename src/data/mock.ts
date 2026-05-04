@@ -262,7 +262,7 @@ export const financeMovements: FinanceMovement[] = [
   {
     id: "fin-003",
     type: "Ingreso",
-    channel: "Efectivo ubicación 1",
+    channel: "Efectivo José",
     category: "Venta de vehículo",
     concept: "Pago parcial Range Rover Sport",
     amount: 42000000,
@@ -273,7 +273,7 @@ export const financeMovements: FinanceMovement[] = [
   {
     id: "fin-004",
     type: "Egreso",
-    channel: "Efectivo ubicación 2",
+    channel: "Efectivo Tomás",
     category: "Trámite",
     concept: "Gestoría Porsche Macan S",
     amount: 3600000,

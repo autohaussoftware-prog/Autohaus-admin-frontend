@@ -1,7 +1,7 @@
 export const PAYMENT_CHANNELS = [
   "Banco",
-  "Efectivo ubicación 1",
-  "Efectivo ubicación 2",
+  "Efectivo José",
+  "Efectivo Tomás",
 ] as const;
 
 export type PaymentChannel = (typeof PAYMENT_CHANNELS)[number];

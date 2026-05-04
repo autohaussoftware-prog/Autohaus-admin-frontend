@@ -1,5 +1,5 @@
 export type FinanceMovementType = "Ingreso" | "Egreso";
-export type FinanceChannel = "Banco" | "Efectivo ubicación 1" | "Efectivo ubicación 2";
+export type FinanceChannel = "Banco" | "Efectivo José" | "Efectivo Tomás";
 
 export type FinanceMovement = {
   id: string;
