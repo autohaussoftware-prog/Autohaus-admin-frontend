@@ -77,6 +77,7 @@ type DbVehicle = {
   owner_name: string | null;
   owner_phone: string | null;
   created_by_user_id: string | null;
+  created_by: string | null; // existing column in schema, references profiles(id)
 };
 
 type DbVehicleMovement = {
@@ -131,9 +132,10 @@ function mapVehicle(
   viewer?: { userId: string; role: string }
 ): Vehicle {
   // Determine if the viewer can see owner contact info
+  const creatorId = vehicle.created_by_user_id ?? vehicle.created_by ?? null;
   const canSeeContact = !viewer
     || FULL_ACCESS_ROLES.includes(viewer.role)
-    || vehicle.created_by_user_id === viewer.userId;
+    || (creatorId !== null && creatorId === viewer.userId);
 
   return {
     id: vehicle.id,
@@ -168,7 +170,7 @@ function mapVehicle(
     separated: Boolean(vehicle.separated),
     alert: vehicle.alert_summary ?? undefined,
     createdAt: (vehicle as any).created_at ?? "",
-    createdByUserId: vehicle.created_by_user_id ?? undefined,
+    createdByUserId: vehicle.created_by_user_id ?? vehicle.created_by ?? undefined,
     ownerContactVisible: canSeeContact,
     ownerName: canSeeContact ? (vehicle.owner_name ?? undefined) : undefined,
     ownerPhone: canSeeContact ? (vehicle.owner_phone ?? undefined) : undefined,
@@ -297,7 +299,8 @@ export async function createVehicle(input: CreateVehicleInput) {
       separated,
       owner_name: input.ownerName?.trim() || null,
       owner_phone: input.ownerPhone?.trim() || null,
-      created_by_user_id: input.createdByUserId || null,
+      created_by: input.createdByUserId || null,       // references profiles(id) = auth.uid()
+      created_by_user_id: input.createdByUserId || null, // references auth.users(id)
     })
     .select("id")
     .single();
