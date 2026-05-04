@@ -224,3 +224,23 @@ export function getSpecsForLine(brand: string, line: string): LineSpec | null {
 export function getVersionsForLine(brand: string, line: string): string[] {
   return CAR_CATALOG[brand]?.[line]?.versions ?? [];
 }
+
+export function normalizeTransmission(catalogValue: string): "Manual" | "Automática" | "" {
+  const v = catalogValue.toLowerCase();
+  const hasManual = v.includes("manual");
+  const hasAuto =
+    v.includes("automática") ||
+    v.includes("automatica") ||
+    v.includes("tiptronic") ||
+    v.includes("dsg") ||
+    v.includes("pdk") ||
+    v.includes("cvt") ||
+    v.includes("dct") ||
+    /\d+at\b/.test(v);
+
+  if (hasManual && hasAuto) return "";
+  if (hasAuto) return "Automática";
+  if (hasManual) return "Manual";
+  if (catalogValue === "Automática" || catalogValue === "Manual") return catalogValue as "Manual" | "Automática";
+  return "";
+}

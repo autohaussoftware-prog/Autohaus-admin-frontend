@@ -42,6 +42,8 @@ export type Vehicle = {
   separated: boolean;
   alert?: string;
   createdAt: string;
+  ownerName?: string;
+  ownerPhone?: string;
 };
 
 export type VehicleMovement = {

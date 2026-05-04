@@ -7,10 +7,11 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { getVehicleById, getVehicleFormOptions } from "@/lib/data/vehicles";
 import { getUserRole } from "@/lib/supabase/server";
 import { VehicleIdentificationFields } from "@/components/vehicles/vehicle-identification-fields";
+import { VehicleBusinessFields } from "@/components/vehicles/vehicle-business-fields";
+import { TransitAuthoritySelect } from "@/components/vehicles/transit-authority-select";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -42,6 +43,10 @@ export default async function EditVehiclePage({
   const action = updateVehicleAction.bind(null, id);
   const isAdvisor = role === "advisor";
 
+  const advisorBuyerId = advisors.find((a) => a.name === vehicle.advisorBuyer)?.id ?? "";
+  const advisorSellerId = advisors.find((a) => a.name === vehicle.advisorSeller)?.id ?? "";
+  const locationId = locations.find((l) => l.name === vehicle.location)?.id ?? "";
+
   return (
     <>
       <PageHeader
@@ -53,17 +58,22 @@ export default async function EditVehiclePage({
       <form action={action} className="space-y-6">
         {error && (
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {error === "validation" ? "Revisa placa, marca y línea. Son campos obligatorios." : error}
+            {error === "validation"
+              ? "Revisa placa, marca, línea y transmisión. Son campos obligatorios."
+              : error}
           </div>
         )}
 
+        {/* ── Identificación y especificaciones ──────────────────── */}
         <Card>
           <CardHeader className="border-b border-zinc-900">
             <CardTitle>Identificación y especificaciones</CardTitle>
-            <CardDescription>Cambia la marca o línea para actualizar las especificaciones automáticamente.</CardDescription>
+            <CardDescription>
+              Cambia la marca o línea para actualizar las especificaciones automáticamente.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="Placa">
+            <Field label="Placa *">
               <Input name="plate" required defaultValue={vehicle.plate} className="uppercase" />
             </Field>
             <VehicleIdentificationFields
@@ -74,6 +84,7 @@ export default async function EditVehiclePage({
               defaultFuel={vehicle.fuel}
               defaultTransmission={vehicle.transmission}
               defaultTraction={vehicle.traction}
+              defaultColor={vehicle.color}
             />
             <Field label="Año">
               <Input name="year" type="number" defaultValue={vehicle.year || ""} />
@@ -81,18 +92,17 @@ export default async function EditVehiclePage({
             <Field label="Kilometraje">
               <Input name="mileage" type="number" defaultValue={vehicle.mileage || ""} />
             </Field>
-            <Field label="Color">
-              <Input name="color" defaultValue={vehicle.color} />
-            </Field>
-            <Field label="Ciudad matrícula">
-              <Input name="cityRegistration" defaultValue={vehicle.cityRegistration} />
-            </Field>
+            <label className="block">
+              <span className="mb-2 block text-sm text-zinc-400">Organismo de tránsito</span>
+              <TransitAuthoritySelect defaultValue={vehicle.cityRegistration} />
+            </label>
             <Field label="Estado legal">
               <Input name="legalStatus" defaultValue={vehicle.legalStatus} />
             </Field>
           </CardContent>
         </Card>
 
+        {/* ── Negocio ────────────────────────────────────────────── */}
         <Card>
           <CardHeader className="border-b border-zinc-900">
             <CardTitle>Negocio</CardTitle>
@@ -103,97 +113,26 @@ export default async function EditVehiclePage({
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="Estado">
-              <Select name="status" defaultValue={vehicle.status}>
-                <option>Disponible</option>
-                <option>Publicado</option>
-                <option>Separado</option>
-                <option>Vendido</option>
-                <option>En comisión</option>
-                <option>En reparación</option>
-                <option>En trámite</option>
-                <option>Entregado</option>
-                <option>No publicado</option>
-                <option>Papeles pendientes</option>
-              </Select>
-            </Field>
-            <Field label="Origen">
-              <Select name="ownerType" defaultValue={vehicle.ownerType}>
-                <option>Propio</option>
-                <option>Comisión</option>
-              </Select>
-            </Field>
-            <Field label="Tipo de entrada">
-              <Select name="entryType" defaultValue={vehicle.entryType ?? "Compra"}>
-                <option>Compra</option>
-                <option>Consignación</option>
-                <option>Permuta</option>
-                <option>Propio</option>
-                <option>Socio</option>
-                <option>Otro</option>
-              </Select>
-            </Field>
-            <Field label="Ubicación">
-              <Select name="locationId" defaultValue={locations.find((l) => l.name === vehicle.location)?.id ?? ""}>
-                <option value="">Sin ubicación</option>
-                {locations.map((l) => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
-                ))}
-              </Select>
-            </Field>
-
-            {/* Campos financieros — solo owners, partners y admins */}
-            {!isAdvisor && (
-              <Field label="Precio compra">
-                <Input name="buyPrice" type="number" min="0" defaultValue={vehicle.buyPrice || ""} />
-              </Field>
-            )}
-
-            <Field label="Precio publicación">
-              <Input name="targetPrice" type="number" min="0" defaultValue={vehicle.targetPrice || ""} />
-            </Field>
-            <Field label="Precio mínimo">
-              <Input name="minPrice" type="number" min="0" defaultValue={vehicle.minPrice || ""} />
-            </Field>
-
-            {!isAdvisor && (
-              <>
-                <Field label="Costo estimado">
-                  <Input name="estimatedCost" type="number" min="0" defaultValue={vehicle.estimatedCost || ""} />
-                </Field>
-                <Field label="Costo real acumulado">
-                  <Input name="realCost" type="number" min="0" defaultValue={vehicle.realCost || ""} />
-                </Field>
-              </>
-            )}
-
-            <Field label="Asesor captador">
-              <Select name="advisorBuyerId" defaultValue={advisors.find((a) => a.name === vehicle.advisorBuyer)?.id ?? ""}>
-                <option value="">Sin asignar</option>
-                {advisors.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </Select>
-            </Field>
-
-            {/* Asesor vendedor solo para owners/admins */}
-            {!isAdvisor && (
-              <Field label="Asesor vendedor">
-                <Select name="advisorSellerId" defaultValue={advisors.find((a) => a.name === vehicle.advisorSeller)?.id ?? ""}>
-                  <option value="">Sin asignar</option>
-                  {advisors.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-                </Select>
-              </Field>
-            )}
-
-            <Field label="SOAT vence">
-              <Input name="soatDue" type="date" defaultValue={vehicle.soatDue} />
-            </Field>
-            <Field label="Tecnomecánica vence">
-              <Input name="technoDue" type="date" defaultValue={vehicle.technoDue} />
-            </Field>
+            <VehicleBusinessFields
+              isAdvisor={isAdvisor}
+              locations={locations}
+              advisors={advisors}
+              defaultOwnerType={vehicle.ownerType}
+              defaultEntryType={vehicle.entryType ?? "Compra"}
+              defaultLocationId={locationId}
+              defaultStatus={vehicle.status}
+              defaultBuyPrice={vehicle.buyPrice || ""}
+              defaultTargetPrice={vehicle.targetPrice || ""}
+              defaultMinPrice={vehicle.minPrice || ""}
+              defaultEstimatedCost={vehicle.estimatedCost || ""}
+              defaultRealCost={vehicle.realCost || ""}
+              defaultAdvisorBuyerId={advisorBuyerId}
+              defaultAdvisorSellerId={advisorSellerId}
+              defaultSoatDue={vehicle.soatDue}
+              defaultTechnoDue={vehicle.technoDue}
+              defaultOwnerName={vehicle.ownerName ?? ""}
+              defaultOwnerPhone={vehicle.ownerPhone ?? ""}
+            />
           </CardContent>
         </Card>
 

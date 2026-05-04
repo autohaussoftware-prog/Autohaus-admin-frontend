@@ -8,7 +8,9 @@ import {
   getLinesForBrand,
   getSpecsForLine,
   getVersionsForLine,
+  normalizeTransmission,
 } from "@/data/car-catalog";
+import { getColorsForBrand } from "@/data/vehicle-colors";
 
 type Props = {
   defaultBrand?: string;
@@ -18,6 +20,7 @@ type Props = {
   defaultFuel?: string;
   defaultTransmission?: string;
   defaultTraction?: string;
+  defaultColor?: string;
 };
 
 const OTHER = "__other__";
@@ -30,6 +33,7 @@ export function VehicleIdentificationFields({
   defaultFuel = "",
   defaultTransmission = "",
   defaultTraction = "",
+  defaultColor = "",
 }: Props) {
   const knownBrand = BRAND_NAMES.includes(defaultBrand);
   const [selectedBrand, setSelectedBrand] = useState(knownBrand ? defaultBrand : defaultBrand ? OTHER : "");
@@ -43,11 +47,26 @@ export function VehicleIdentificationFields({
 
   const activeLine = selectedLine === OTHER ? customLine : selectedLine;
   const versions = getVersionsForLine(activeBrand, activeLine);
+  const colors = getColorsForBrand(activeBrand);
 
   const [motor, setMotor] = useState(defaultMotor);
   const [fuel, setFuel] = useState(defaultFuel);
-  const [transmission, setTransmission] = useState(defaultTransmission);
+
+  const initTransmission = (): "Manual" | "Automática" | "" => {
+    if (defaultTransmission === "Manual" || defaultTransmission === "Automática") return defaultTransmission;
+    if (!defaultTransmission) return "";
+    return normalizeTransmission(defaultTransmission);
+  };
+  const [transmission, setTransmission] = useState<"Manual" | "Automática" | "">(initTransmission);
   const [traction, setTraction] = useState(defaultTraction);
+
+  const initColor = (): string => {
+    if (!defaultColor) return "";
+    const knownColor = colors.find((c) => c.name === defaultColor);
+    return knownColor ? defaultColor : OTHER;
+  };
+  const [selectedColor, setSelectedColor] = useState<string>(initColor);
+  const [customColor, setCustomColor] = useState(selectedColor === OTHER ? defaultColor : "");
 
   function handleBrandChange(value: string) {
     setSelectedBrand(value);
@@ -58,6 +77,8 @@ export function VehicleIdentificationFields({
     setFuel("");
     setTransmission("");
     setTraction("");
+    setSelectedColor("");
+    setCustomColor("");
   }
 
   function handleLineChange(value: string) {
@@ -68,15 +89,19 @@ export function VehicleIdentificationFields({
       if (specs) {
         setMotor(specs.motor);
         setFuel(specs.fuel);
-        setTransmission(specs.transmission);
+        setTransmission(normalizeTransmission(specs.transmission));
         setTraction(specs.traction);
       }
     }
+    setSelectedColor("");
+    setCustomColor("");
   }
+
+  const activeColorName = selectedColor === OTHER ? customColor : selectedColor;
 
   return (
     <>
-      {/* ── Marca ─────────────────────────────────────────────── */}
+      {/* ── Marca ───────────────────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">Marca <span className="text-red-400">*</span></span>
         <Select
@@ -106,7 +131,7 @@ export function VehicleIdentificationFields({
         </label>
       )}
 
-      {/* ── Línea ─────────────────────────────────────────────── */}
+      {/* ── Línea ───────────────────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">Línea <span className="text-red-400">*</span></span>
         {lines.length > 0 ? (
@@ -149,7 +174,7 @@ export function VehicleIdentificationFields({
         </label>
       )}
 
-      {/* ── Versión ───────────────────────────────────────────── */}
+      {/* ── Versión ─────────────────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">Versión</span>
         {versions.length > 0 ? (
@@ -161,9 +186,7 @@ export function VehicleIdentificationFields({
               list="version-suggestions"
             />
             <datalist id="version-suggestions">
-              {versions.map((v) => (
-                <option key={v} value={v} />
-              ))}
+              {versions.map((v) => <option key={v} value={v} />)}
             </datalist>
           </>
         ) : (
@@ -175,7 +198,7 @@ export function VehicleIdentificationFields({
         )}
       </label>
 
-      {/* ── Especificaciones (auto-llenadas, editables) ───────── */}
+      {/* ── Motor ───────────────────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">Motor</span>
         <Input
@@ -186,23 +209,30 @@ export function VehicleIdentificationFields({
         />
       </label>
 
+      {/* ── Transmisión (exclusiva: Manual o Automática) ─────────── */}
       <label className="block">
-        <span className="mb-2 block text-sm text-zinc-400">Transmisión</span>
-        <Input
+        <span className="mb-2 block text-sm text-zinc-400">
+          Transmisión <span className="text-red-400">*</span>
+        </span>
+        <Select
           name="transmission"
-          placeholder="Ej: Automática 8AT"
           value={transmission}
-          onChange={(e) => setTransmission(e.target.value)}
-        />
+          onChange={(e) => setTransmission(e.target.value as "Manual" | "Automática" | "")}
+          required
+        >
+          <option value="" disabled>Selecciona transmisión</option>
+          <option value="Manual">Manual</option>
+          <option value="Automática">Automática</option>
+        </Select>
+        {!transmission && (
+          <p className="mt-1 text-xs text-zinc-500">Selecciona Manual o Automática.</p>
+        )}
       </label>
 
+      {/* ── Combustible ─────────────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">Combustible</span>
-        <Select
-          name="fuel"
-          value={fuel}
-          onChange={(e) => setFuel(e.target.value)}
-        >
+        <Select name="fuel" value={fuel} onChange={(e) => setFuel(e.target.value)}>
           <option value="">Selecciona o deja en blanco</option>
           <option value="Gasolina">Gasolina</option>
           <option value="Diésel">Diésel</option>
@@ -212,13 +242,10 @@ export function VehicleIdentificationFields({
         </Select>
       </label>
 
+      {/* ── Tracción ────────────────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">Tracción</span>
-        <Select
-          name="traction"
-          value={traction}
-          onChange={(e) => setTraction(e.target.value)}
-        >
+        <Select name="traction" value={traction} onChange={(e) => setTraction(e.target.value)}>
           <option value="">Selecciona o deja en blanco</option>
           <option value="FWD">FWD (delantera)</option>
           <option value="RWD">RWD (trasera)</option>
@@ -232,6 +259,43 @@ export function VehicleIdentificationFields({
           <option value="S-AWC AWD">S-AWC AWD (Mitsubishi)</option>
         </Select>
       </label>
+
+      {/* ── Color (dinámico por marca) ───────────────────────────── */}
+      <label className="block">
+        <span className="mb-2 block text-sm text-zinc-400">Color</span>
+        {!activeBrand ? (
+          <Select name="color" disabled value="">
+            <option value="" disabled>Selecciona marca primero</option>
+          </Select>
+        ) : (
+          <Select
+            name={selectedColor === OTHER ? undefined : "color"}
+            value={selectedColor}
+            onChange={(e) => {
+              setSelectedColor(e.target.value);
+              if (e.target.value !== OTHER) setCustomColor("");
+            }}
+          >
+            <option value="">Selecciona color</option>
+            {colors.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+            <option value={OTHER}>Otro color…</option>
+          </Select>
+        )}
+        <input type="hidden" name="color" value={activeColorName} />
+      </label>
+
+      {selectedColor === OTHER && (
+        <label className="block">
+          <span className="mb-2 block text-sm text-zinc-400">Color (escribir)</span>
+          <Input
+            placeholder="Ej: Gris carbono metálico"
+            value={customColor}
+            onChange={(e) => setCustomColor(e.target.value)}
+          />
+        </label>
+      )}
     </>
   );
 }

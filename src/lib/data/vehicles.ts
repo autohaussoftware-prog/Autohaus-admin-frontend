@@ -37,6 +37,8 @@ export type CreateVehicleInput = {
   entryType?: string;
   published?: boolean;
   separated?: boolean;
+  ownerName?: string;
+  ownerPhone?: string;
 };
 
 type DbVehicle = {
@@ -69,6 +71,8 @@ type DbVehicle = {
   published: boolean | null;
   separated: boolean | null;
   alert_summary: string | null;
+  owner_name: string | null;
+  owner_phone: string | null;
 };
 
 type DbVehicleMovement = {
@@ -147,6 +151,8 @@ function mapVehicle(vehicle: DbVehicle, references: Awaited<ReturnType<typeof ge
     separated: Boolean(vehicle.separated),
     alert: vehicle.alert_summary ?? undefined,
     createdAt: (vehicle as any).created_at ?? "",
+    ownerName: vehicle.owner_name ?? undefined,
+    ownerPhone: vehicle.owner_phone ?? undefined,
   };
 }
 
@@ -269,6 +275,8 @@ export async function createVehicle(input: CreateVehicleInput) {
       entry_type: input.entryType || "Compra",
       published,
       separated,
+      owner_name: input.ownerName?.trim() || null,
+      owner_phone: input.ownerPhone?.trim() || null,
     })
     .select("id")
     .single();
@@ -330,6 +338,8 @@ export async function updateVehicle(vehicleId: string, input: CreateVehicleInput
       entry_type: input.entryType || "Compra",
       published,
       separated,
+      owner_name: input.ownerName?.trim() || null,
+      owner_phone: input.ownerPhone?.trim() || null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", vehicleId);

@@ -6,10 +6,12 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { getVehicleFormOptions } from "@/lib/data/vehicles";
 import { getUserRole } from "@/lib/supabase/server";
 import { VehicleIdentificationFields } from "@/components/vehicles/vehicle-identification-fields";
+import { VehicleBusinessFields } from "@/components/vehicles/vehicle-business-fields";
+import { TransitAuthoritySelect } from "@/components/vehicles/transit-authority-select";
+import { VehicleFormImages } from "@/components/vehicles/vehicle-form-images";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -38,23 +40,28 @@ export default async function NewVehiclePage({
       <PageHeader
         eyebrow="Ingreso de inventario"
         title="Nuevo vehículo"
-        description="Registro operativo mínimo para alimentar inventario, ficha individual y trazabilidad inicial."
+        description="Completa la ficha del vehículo. Los campos marcados con * son obligatorios."
       />
 
       <form action={createVehicleAction} className="space-y-6">
         {error && (
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {error === "validation" ? "Revisa placa, marca y línea. Son campos obligatorios." : error}
+            {error === "validation"
+              ? "Revisa placa, marca, línea y transmisión. Son campos obligatorios."
+              : error}
           </div>
         )}
 
+        {/* ── Identificación y especificaciones ──────────────────── */}
         <Card>
           <CardHeader className="border-b border-zinc-900">
             <CardTitle>Identificación y especificaciones</CardTitle>
-            <CardDescription>Selecciona la marca y línea para auto-completar motor, transmisión, combustible y tracción.</CardDescription>
+            <CardDescription>
+              Selecciona la marca y línea para auto-completar transmisión, combustible y tracción.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="Placa">
+            <Field label="Placa *">
               <Input name="plate" required placeholder="KMQ918" className="uppercase" />
             </Field>
             <VehicleIdentificationFields />
@@ -64,18 +71,17 @@ export default async function NewVehiclePage({
             <Field label="Kilometraje">
               <Input name="mileage" type="number" min="0" placeholder="28500" />
             </Field>
-            <Field label="Color">
-              <Input name="color" placeholder="Negro" />
-            </Field>
-            <Field label="Ciudad matrícula">
-              <Input name="cityRegistration" placeholder="Medellín" />
-            </Field>
+            <label className="block">
+              <span className="mb-2 block text-sm text-zinc-400">Organismo de tránsito</span>
+              <TransitAuthoritySelect />
+            </label>
             <Field label="Estado legal">
               <Input name="legalStatus" placeholder="Sin restricciones" />
             </Field>
           </CardContent>
         </Card>
 
+        {/* ── Negocio ────────────────────────────────────────────── */}
         <Card>
           <CardHeader className="border-b border-zinc-900">
             <CardTitle>Negocio</CardTitle>
@@ -86,99 +92,24 @@ export default async function NewVehiclePage({
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="Estado">
-              <Select name="status" defaultValue="Disponible">
-                <option>Disponible</option>
-                <option>Publicado</option>
-                <option>Separado</option>
-                <option>Vendido</option>
-                <option>En comisión</option>
-                <option>En reparación</option>
-                <option>En trámite</option>
-                <option>Entregado</option>
-                <option>No publicado</option>
-                <option>Papeles pendientes</option>
-              </Select>
-            </Field>
-            <Field label="Origen">
-              <Select name="ownerType" defaultValue="Propio">
-                <option>Propio</option>
-                <option>Comisión</option>
-              </Select>
-            </Field>
-            <Field label="Tipo de entrada">
-              <Select name="entryType" defaultValue="Compra">
-                <option>Compra</option>
-                <option>Consignación</option>
-                <option>Permuta</option>
-                <option>Propio</option>
-                <option>Socio</option>
-                <option>Otro</option>
-              </Select>
-            </Field>
-            <Field label="Ubicación">
-              <Select name="locationId" defaultValue="">
-                <option value="">Sin ubicación</option>
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>{location.name}</option>
-                ))}
-              </Select>
-            </Field>
+            <VehicleBusinessFields
+              isAdvisor={isAdvisor}
+              locations={locations}
+              advisors={advisors}
+            />
+          </CardContent>
+        </Card>
 
-            {/* Campos financieros — solo visibles para owners, partners y admins */}
-            {!isAdvisor && (
-              <>
-                <Field label="Precio compra">
-                  <Input name="buyPrice" type="number" min="0" placeholder="315000000" />
-                </Field>
-              </>
-            )}
-
-            <Field label="Precio publicación">
-              <Input name="targetPrice" type="number" min="0" placeholder="369000000" />
-            </Field>
-            <Field label="Precio mínimo">
-              <Input name="minPrice" type="number" min="0" placeholder="354000000" />
-            </Field>
-
-            {!isAdvisor && (
-              <>
-                <Field label="Costo estimado">
-                  <Input name="estimatedCost" type="number" min="0" placeholder="14500000" />
-                </Field>
-                <Field label="Costo real inicial">
-                  <Input name="realCost" type="number" min="0" placeholder="0" />
-                </Field>
-              </>
-            )}
-
-            <Field label="Asesor captador">
-              <Select name="advisorBuyerId" defaultValue="">
-                <option value="">Sin asignar</option>
-                {advisors.map((advisor) => (
-                  <option key={advisor.id} value={advisor.id}>{advisor.name}</option>
-                ))}
-              </Select>
-            </Field>
-
-            {/* Asesor vendedor solo para owners/admins — en ventas se asigna en el formulario de venta */}
-            {!isAdvisor && (
-              <Field label="Asesor vendedor">
-                <Select name="advisorSellerId" defaultValue="">
-                  <option value="">Sin asignar</option>
-                  {advisors.map((advisor) => (
-                    <option key={advisor.id} value={advisor.id}>{advisor.name}</option>
-                  ))}
-                </Select>
-              </Field>
-            )}
-
-            <Field label="SOAT vence">
-              <Input name="soatDue" type="date" />
-            </Field>
-            <Field label="Tecnomecánica vence">
-              <Input name="technoDue" type="date" />
-            </Field>
+        {/* ── Fotos del vehículo ─────────────────────────────────── */}
+        <Card>
+          <CardHeader className="border-b border-zinc-900">
+            <CardTitle>Fotos del vehículo</CardTitle>
+            <CardDescription>
+              Agrega fotos del vehículo. Se guardan automáticamente al registrar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-5">
+            <VehicleFormImages />
           </CardContent>
         </Card>
 
