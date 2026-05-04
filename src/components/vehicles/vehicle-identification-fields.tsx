@@ -231,9 +231,11 @@ export function VehicleIdentificationFields({
 
       {/* ── Combustible ─────────────────────────────────────────── */}
       <label className="block">
-        <span className="mb-2 block text-sm text-zinc-400">Combustible</span>
-        <Select name="fuel" value={fuel} onChange={(e) => setFuel(e.target.value)}>
-          <option value="">Selecciona o deja en blanco</option>
+        <span className="mb-2 block text-sm text-zinc-400">
+          Combustible <span className="text-red-400">*</span>
+        </span>
+        <Select name="fuel" value={fuel} onChange={(e) => setFuel(e.target.value)} required>
+          <option value="" disabled>Selecciona combustible</option>
           <option value="Gasolina">Gasolina</option>
           <option value="Diésel">Diésel</option>
           <option value="Híbrido">Híbrido</option>
@@ -262,7 +264,9 @@ export function VehicleIdentificationFields({
 
       {/* ── Color (dinámico por marca) ───────────────────────────── */}
       <label className="block">
-        <span className="mb-2 block text-sm text-zinc-400">Color</span>
+        <span className="mb-2 block text-sm text-zinc-400">
+          Color <span className="text-red-400">*</span>
+        </span>
         {!activeBrand ? (
           <Select name="color" disabled value="">
             <option value="" disabled>Selecciona marca primero</option>

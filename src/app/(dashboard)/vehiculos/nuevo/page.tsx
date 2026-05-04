@@ -11,6 +11,7 @@ import { getUserRole } from "@/lib/supabase/server";
 import { VehicleIdentificationFields } from "@/components/vehicles/vehicle-identification-fields";
 import { VehicleBusinessFields } from "@/components/vehicles/vehicle-business-fields";
 import { TransitAuthoritySelect } from "@/components/vehicles/transit-authority-select";
+import { PrendaFields } from "@/components/vehicles/prenda-fields";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -64,9 +65,12 @@ export default async function NewVehiclePage({
               <Input name="plate" required placeholder="KMQ918" className="uppercase" />
             </Field>
             <VehicleIdentificationFields />
-            <Field label="Año">
-              <Input name="year" type="number" min="1900" max="2100" placeholder="2022" />
-            </Field>
+            <label className="block">
+              <span className="mb-2 block text-sm text-zinc-400">
+                Modelo (año) <span className="text-red-400">*</span>
+              </span>
+              <Input name="year" type="number" min="1900" max="2100" required placeholder="2022" />
+            </label>
             <Field label="Kilometraje">
               <Input name="mileage" type="number" min="0" placeholder="28500" />
             </Field>
@@ -74,9 +78,7 @@ export default async function NewVehiclePage({
               <span className="mb-2 block text-sm text-zinc-400">Organismo de tránsito</span>
               <TransitAuthoritySelect />
             </label>
-            <Field label="Estado legal">
-              <Input name="legalStatus" placeholder="Sin restricciones" />
-            </Field>
+            <PrendaFields />
           </CardContent>
         </Card>
 

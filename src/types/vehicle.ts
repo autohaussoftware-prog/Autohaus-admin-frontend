@@ -25,6 +25,7 @@ export type Vehicle = {
   traction: string;
   cityRegistration: string;
   legalStatus: string;
+  lienValue?: number;
   status: VehicleStatus;
   location: string;
   ownerType: "Propio" | "Comisión";

@@ -1,28 +1,26 @@
 import type { UserRole } from "@/types/auth";
 
-// Rutas que requieren roles específicos (orden importa: más específico primero).
-// Si una ruta no está aquí, todos los usuarios autenticados pueden acceder.
+const FINANCE: UserRole[] = ["owner", "partner", "admin", "gerente", "accounting"];
+const MGMT: UserRole[] = ["owner", "partner", "admin", "gerente"];
+
 const ROUTE_PERMISSIONS: { prefix: string; allowed: UserRole[] }[] = [
-  // Editar vehículo: no permitido a asesores
-  { prefix: "/vehiculos/nuevo",         allowed: ["owner", "partner", "admin", "advisor", "accounting"] },
-  { prefix: "/vehiculos",               allowed: ["owner", "partner", "admin", "advisor", "accounting", "viewer"] },
-  // Rutas de administración y finanzas: solo roles superiores
-  { prefix: "/configuracion",           allowed: ["owner", "admin"] },
-  { prefix: "/usuarios",                allowed: ["owner", "partner", "admin"] },
-  { prefix: "/reportes",                allowed: ["owner", "partner", "admin", "accounting"] },
-  { prefix: "/banco",                   allowed: ["owner", "partner", "admin", "accounting"] },
-  { prefix: "/efectivo",                allowed: ["owner", "partner", "admin", "accounting"] },
-  { prefix: "/movimientos",             allowed: ["owner", "partner", "admin", "accounting"] },
-  { prefix: "/comisiones",              allowed: ["owner", "partner", "admin", "accounting"] },
-  { prefix: "/alertas",                 allowed: ["owner", "partner", "admin", "accounting"] },
-  { prefix: "/asesores",                allowed: ["owner", "partner", "admin", "accounting"] },
-  // Ventas, clientes, traspasos: no asesores
-  { prefix: "/ventas",                  allowed: ["owner", "partner", "admin", "accounting"] },
-  { prefix: "/clientes",                allowed: ["owner", "partner", "admin", "accounting"] },
-  { prefix: "/traspasos",               allowed: ["owner", "partner", "admin", "accounting"] },
+  { prefix: "/vehiculos/nuevo",  allowed: ["owner", "partner", "admin", "gerente", "advisor", "accounting"] },
+  { prefix: "/vehiculos",        allowed: ["owner", "partner", "admin", "gerente", "advisor", "accounting", "viewer"] },
+  { prefix: "/configuracion",    allowed: ["owner", "admin"] },
+  { prefix: "/usuarios",         allowed: [...MGMT] },
+  { prefix: "/reportes",         allowed: [...FINANCE] },
+  { prefix: "/banco",            allowed: [...FINANCE] },
+  { prefix: "/efectivo",         allowed: [...FINANCE] },
+  { prefix: "/movimientos",      allowed: [...FINANCE] },
+  { prefix: "/comisiones",       allowed: [...FINANCE] },
+  { prefix: "/alertas",          allowed: [...FINANCE] },
+  { prefix: "/asesores",         allowed: [...FINANCE] },
+  { prefix: "/ventas",           allowed: ["owner", "partner", "admin", "gerente", "advisor", "accounting"] },
+  { prefix: "/clientes",         allowed: [...FINANCE] },
+  { prefix: "/traspasos",        allowed: [...MGMT, "accounting"] },
 ];
 
-const EDIT_VEHICLE_ROLES: UserRole[] = ["owner", "partner", "admin", "accounting"];
+const EDIT_VEHICLE_ROLES: UserRole[] = ["owner", "partner", "admin", "gerente", "accounting"];
 
 export function canAccessRoute(role: UserRole, pathname: string): boolean {
   // Editar vehículo: ruta dinámica /vehiculos/[id]/editar — solo roles superiores
@@ -39,7 +37,6 @@ export function canAccessRoute(role: UserRole, pathname: string): boolean {
   return true;
 }
 
-// Ruta de fallback para redirigir a usuarios con acceso denegado
 export function getDefaultRedirect(role: UserRole): string {
   if (role === "advisor" || role === "viewer") return "/vehiculos";
   return "/";

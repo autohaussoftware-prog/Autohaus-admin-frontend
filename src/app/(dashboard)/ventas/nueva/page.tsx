@@ -83,8 +83,8 @@ export default async function NewSalePage({
             <Field label="Nombre completo" required>
               <Input name="customerName" required placeholder="Juan García López" />
             </Field>
-            <Field label="Teléfono">
-              <Input name="customerPhone" type="tel" placeholder="3001234567" />
+            <Field label="Teléfono" required>
+              <Input name="customerPhone" type="tel" required placeholder="3001234567" />
             </Field>
             <Field label="Documento (CC / NIT)">
               <Input name="customerDocument" placeholder="1234567890" />

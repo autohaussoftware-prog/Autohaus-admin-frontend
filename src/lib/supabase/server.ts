@@ -68,12 +68,12 @@ export async function getCurrentUserName(): Promise<string> {
   return profile?.full_name || profile?.email || user.email || "Usuario";
 }
 
-export async function getCurrentUserProfile(): Promise<{ name: string; role: UserRole }> {
+export async function getCurrentUserProfile(): Promise<{ id: string; name: string; role: UserRole }> {
   const supabase = await getSupabaseServerClient();
-  if (!supabase) return { name: "Sistema", role: "owner" };
+  if (!supabase) return { id: "", name: "Sistema", role: "owner" };
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { name: "Sistema", role: "viewer" };
+  if (!user) return { id: "", name: "Sistema", role: "viewer" };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -82,6 +82,7 @@ export async function getCurrentUserProfile(): Promise<{ name: string; role: Use
     .single();
 
   return {
+    id: user.id,
     name: profile?.full_name || profile?.email || user.email || "Usuario",
     role: (profile?.role as UserRole) ?? "viewer",
   };

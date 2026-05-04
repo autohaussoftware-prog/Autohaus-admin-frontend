@@ -41,7 +41,7 @@ export default async function AdvisorsPage({
 
   const active = advisors.filter((a) => a.active).length;
   const inactive = advisors.filter((a) => !a.active).length;
-  const canManage = ["owner", "partner", "admin"].includes(role);
+  const canManage = ["owner", "partner", "admin", "gerente"].includes(role);
 
   return (
     <>
@@ -110,7 +110,6 @@ export default async function AdvisorsPage({
                       <option value="Captador">Captador</option>
                       <option value="Vendedor">Vendedor</option>
                       <option value="Captador/Vendedor">Captador / Vendedor</option>
-                      <option value="Crédito">Crédito</option>
                       <option value="Aliado">Aliado</option>
                     </Select>
                   </div>

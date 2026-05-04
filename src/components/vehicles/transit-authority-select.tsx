@@ -83,7 +83,7 @@ export function TransitAuthoritySelect({
         <div className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-2xl border border-zinc-800 bg-zinc-900 py-1 shadow-xl">
           {results.map((auth) => (
             <button
-              key={`${auth.city}-${auth.name}`}
+              key={`${auth.department}-${auth.name}`}
               type="button"
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -94,7 +94,7 @@ export function TransitAuthoritySelect({
               }`}
             >
               <span className="text-sm text-white">{auth.name}</span>
-              <span className="text-xs text-zinc-500">{auth.city} · {auth.department}</span>
+              <span className="text-xs text-zinc-500">{auth.department}</span>
             </button>
           ))}
         </div>

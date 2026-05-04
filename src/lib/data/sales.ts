@@ -21,14 +21,20 @@ export type Sale = {
   createdAt: string;
 };
 
-export async function getSales(): Promise<Sale[]> {
+export async function getSales(filterByUserId?: string): Promise<Sale[]> {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return [];
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("sales")
-    .select("id,vehicle_id,customer_id,seller_id,agreed_price,initial_payment,pending_balance,payment_status,document_status,delivery_status,sale_status,expiry_date,created_at")
+    .select("id,vehicle_id,customer_id,seller_id,agreed_price,initial_payment,pending_balance,payment_status,document_status,delivery_status,sale_status,expiry_date,created_at,created_by_user_id")
     .order("created_at", { ascending: false });
+
+  if (filterByUserId) {
+    query = query.eq("created_by_user_id", filterByUserId);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data) {
     console.error("No se pudieron cargar ventas:", error?.message);
@@ -132,7 +138,7 @@ export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
 export type CreateSaleInput = {
   vehicleId: string;
   customerName: string;
-  customerPhone?: string;
+  customerPhone: string;
   customerDocument?: string;
   sellerId?: string;
   agreedPrice: number;
@@ -142,6 +148,7 @@ export type CreateSaleInput = {
   deliveryStatus: string;
   saleStatus: string;
   expiryDate?: string;
+  createdByUserId?: string;
 };
 
 export async function createSale(input: CreateSaleInput): Promise<string> {
@@ -192,6 +199,7 @@ export async function createSale(input: CreateSaleInput): Promise<string> {
       delivery_status: input.deliveryStatus,
       sale_status: input.saleStatus,
       expiry_date: input.expiryDate || null,
+      created_by_user_id: input.createdByUserId || null,
     })
     .select("id")
     .single();

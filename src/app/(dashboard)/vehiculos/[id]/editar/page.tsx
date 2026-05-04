@@ -13,6 +13,7 @@ import { canAccessRoute } from "@/lib/permissions";
 import { VehicleIdentificationFields } from "@/components/vehicles/vehicle-identification-fields";
 import { VehicleBusinessFields } from "@/components/vehicles/vehicle-business-fields";
 import { TransitAuthoritySelect } from "@/components/vehicles/transit-authority-select";
+import { PrendaFields } from "@/components/vehicles/prenda-fields";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -88,9 +89,12 @@ export default async function EditVehiclePage({
               defaultTraction={vehicle.traction}
               defaultColor={vehicle.color}
             />
-            <Field label="Año">
-              <Input name="year" type="number" defaultValue={vehicle.year || ""} />
-            </Field>
+            <label className="block">
+              <span className="mb-2 block text-sm text-zinc-400">
+                Modelo (año) <span className="text-red-400">*</span>
+              </span>
+              <Input name="year" type="number" min="1900" max="2100" required defaultValue={vehicle.year || ""} />
+            </label>
             <Field label="Kilometraje">
               <Input name="mileage" type="number" defaultValue={vehicle.mileage || ""} />
             </Field>
@@ -98,9 +102,10 @@ export default async function EditVehiclePage({
               <span className="mb-2 block text-sm text-zinc-400">Organismo de tránsito</span>
               <TransitAuthoritySelect defaultValue={vehicle.cityRegistration} />
             </label>
-            <Field label="Estado legal">
-              <Input name="legalStatus" defaultValue={vehicle.legalStatus} />
-            </Field>
+            <PrendaFields
+              defaultLien={vehicle.legalStatus === "Sí" ? "Sí" : "No"}
+              defaultLienValue={vehicle.lienValue ?? ""}
+            />
           </CardContent>
         </Card>
 

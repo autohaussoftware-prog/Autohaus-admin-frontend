@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSale, confirmSaleFromReservation, updateSaleStatuses, markSaleDelivered } from "@/lib/data/sales";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
+import { sendSaleNotification } from "@/lib/email";
 
 const optionalText = z.preprocess(
   (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
@@ -13,8 +14,8 @@ const optionalText = z.preprocess(
 
 const saleSchema = z.object({
   vehicleId: z.string().trim().min(1),
-  customerName: z.string().trim().min(2),
-  customerPhone: optionalText,
+  customerName: z.string().trim().min(2, "El nombre del cliente es obligatorio."),
+  customerPhone: z.string().trim().min(7, "El teléfono del cliente es obligatorio."),
   customerDocument: optionalText,
   sellerId: optionalText,
   agreedPrice: z.preprocess((v) => Number(v), z.number().positive()),
@@ -34,13 +35,17 @@ export async function createSaleAction(formData: FormData) {
     redirect("/ventas/nueva?error=" + encodeURIComponent(msg));
   }
 
+  const { id: userId } = await getCurrentUserProfile();
+
   let saleId: string;
   try {
-    saleId = await createSale(parsed.data);
+    saleId = await createSale({ ...parsed.data, createdByUserId: userId });
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se pudo registrar la venta.";
     redirect("/ventas/nueva?error=" + encodeURIComponent(message));
   }
+
+  sendSaleNotification(saleId).catch(() => {});
 
   revalidatePath("/ventas");
   revalidatePath("/inventario");

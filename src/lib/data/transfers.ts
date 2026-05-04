@@ -9,6 +9,7 @@ export type Transfer = {
   status: string;
   fromOwner: string | null;
   toOwner: string | null;
+  tramitador: string | null;
   requestedAt: string;
   completedAt: string | null;
   notes: string | null;
@@ -18,6 +19,7 @@ export type CreateTransferInput = {
   vehicleId: string;
   fromOwner?: string;
   toOwner?: string;
+  tramitador?: string;
   notes?: string;
 };
 
@@ -49,6 +51,7 @@ export async function getTransfers(): Promise<Transfer[]> {
       status: (t.status as string) ?? "En proceso",
       fromOwner: t.from_owner ?? null,
       toOwner: t.to_owner ?? null,
+      tramitador: t.tramitador ?? "Titi",
       requestedAt: t.requested_at as string,
       completedAt: t.completed_at ?? null,
       notes: t.notes ?? null,
@@ -66,6 +69,7 @@ export async function createTransfer(input: CreateTransferInput): Promise<string
       vehicle_id: input.vehicleId,
       from_owner: input.fromOwner?.trim() || null,
       to_owner: input.toOwner?.trim() || null,
+      tramitador: input.tramitador?.trim() || "Titi",
       notes: input.notes?.trim() || null,
       status: "En proceso",
       requested_at: new Date().toISOString(),

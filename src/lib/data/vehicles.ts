@@ -22,6 +22,7 @@ export type CreateVehicleInput = {
   traction?: string;
   cityRegistration?: string;
   legalStatus?: string;
+  lienValue?: number;
   status: VehicleStatus;
   locationId?: string;
   ownerType: Vehicle["ownerType"];
@@ -56,6 +57,7 @@ type DbVehicle = {
   traction: string | null;
   city_registration: string | null;
   legal_status: string | null;
+  lien_value: number | null;
   status: VehicleStatus;
   location_id: string | null;
   owner_type: Vehicle["ownerType"];
@@ -133,7 +135,8 @@ function mapVehicle(vehicle: DbVehicle, references: Awaited<ReturnType<typeof ge
     fuel: vehicle.fuel ?? "",
     traction: vehicle.traction ?? "",
     cityRegistration: vehicle.city_registration ?? "",
-    legalStatus: vehicle.legal_status ?? "",
+    legalStatus: vehicle.legal_status ?? "No",
+    lienValue: vehicle.lien_value ?? undefined,
     status: vehicle.status,
     location: vehicle.location_id ? references.locations.get(vehicle.location_id) ?? "Sin ubicación" : "Sin ubicación",
     ownerType: vehicle.owner_type,
@@ -259,7 +262,8 @@ export async function createVehicle(input: CreateVehicleInput) {
       fuel: input.fuel?.trim() || null,
       traction: input.traction?.trim() || null,
       city_registration: input.cityRegistration?.trim() || null,
-      legal_status: input.legalStatus?.trim() || "Sin restricciones",
+      legal_status: input.legalStatus?.trim() || "No",
+      lien_value: input.lienValue ?? null,
       status,
       location_id: input.locationId || null,
       owner_type: input.ownerType,
@@ -322,7 +326,8 @@ export async function updateVehicle(vehicleId: string, input: CreateVehicleInput
       fuel: input.fuel?.trim() || null,
       traction: input.traction?.trim() || null,
       city_registration: input.cityRegistration?.trim() || null,
-      legal_status: input.legalStatus?.trim() || "Sin restricciones",
+      legal_status: input.legalStatus?.trim() || "No",
+      lien_value: input.lienValue ?? null,
       status,
       location_id: input.locationId || null,
       owner_type: input.ownerType,

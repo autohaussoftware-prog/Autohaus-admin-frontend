@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { ConfirmSaleButton } from "@/components/sales/confirm-sale-button";
 import { getSales } from "@/lib/data/sales";
-import { getUserRole } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { compactCOP, currencyCOP } from "@/lib/utils";
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -38,14 +38,17 @@ function isExpired(dateStr: string | null): boolean {
 }
 
 export default async function SalesPage() {
-  const [sales, role] = await Promise.all([getSales(), getUserRole()]);
+  const profile = await getCurrentUserProfile();
+  const role = profile.role;
+  const isAdvisor = role === "advisor";
+  const sales = await getSales(isAdvisor ? profile.id : undefined);
 
   const separated = sales.filter((s) => s.saleStatus === "separacion");
   const sold = sales.filter((s) => s.saleStatus === "vendido");
   const totalPending = separated.reduce((sum, s) => sum + s.pendingBalance, 0);
   const totalSoldValue = sold.reduce((sum, s) => sum + s.agreedPrice, 0);
   const expiredCount = separated.filter((s) => isExpired(s.expiryDate)).length;
-  const canConfirmSale = ["owner", "partner", "admin", "accounting"].includes(role);
+  const canConfirmSale = ["owner", "partner", "admin", "gerente", "accounting"].includes(role);
 
   return (
     <>

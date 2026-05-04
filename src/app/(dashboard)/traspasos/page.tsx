@@ -4,21 +4,15 @@ import { StatCard } from "@/components/shared/stat-card";
 import { TransfersList } from "@/components/transfers/transfers-list";
 import { NewTransferForm } from "@/components/transfers/new-transfer-form";
 import { getTransfers } from "@/lib/data/transfers";
-import { getVehicles } from "@/lib/data/vehicles";
 import { getUserRole } from "@/lib/supabase/server";
 
 export default async function TraspasosPage() {
-  const [transfers, vehicles, role] = await Promise.all([
+  const [transfers, role] = await Promise.all([
     getTransfers(),
-    getVehicles(),
     getUserRole(),
   ]);
 
-  const vehicleOptions = vehicles
-    .filter((v) => !["Vendido", "Entregado"].includes(v.status))
-    .map((v) => ({ id: v.id, name: `${v.brand} ${v.line} — ${v.plate}` }));
-
-  const canManage = ["owner", "partner", "admin"].includes(role);
+  const canManage = ["owner", "partner", "admin", "gerente"].includes(role);
 
   const inProgress = transfers.filter((t) => t.status === "En proceso").length;
   const docsReady = transfers.filter((t) => t.status === "Documentos listos").length;
@@ -40,7 +34,7 @@ export default async function TraspasosPage() {
 
       {canManage && (
         <div className="mb-6">
-          <NewTransferForm vehicles={vehicleOptions} />
+          <NewTransferForm />
         </div>
       )}
 

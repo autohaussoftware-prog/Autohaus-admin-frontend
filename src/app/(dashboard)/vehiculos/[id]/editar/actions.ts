@@ -20,18 +20,22 @@ const vehicleSchema = z.object({
   brand: z.string().trim().min(2, "La marca es obligatoria."),
   line: z.string().trim().min(1, "La línea es obligatoria."),
   version: optionalText,
-  year: optionalNumber,
+  year: z.preprocess(
+    (v) => (v === "" || v === null ? undefined : Number(v)),
+    z.number({ message: "El modelo (año) es obligatorio." }).positive("El modelo (año) debe ser positivo.")
+  ),
   mileage: optionalNumber,
-  color: optionalText,
+  color: z.string().trim().min(1, "El color es obligatorio."),
   motor: optionalText,
   transmission: z.preprocess(
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
     z.enum(["Manual", "Automática"] as const, { message: "Selecciona Manual o Automática." })
   ),
-  fuel: optionalText,
+  fuel: z.string().trim().min(1, "El combustible es obligatorio."),
   traction: optionalText,
   cityRegistration: optionalText,
-  legalStatus: optionalText,
+  legalStatus: z.enum(["Sí", "No"], { message: "Selecciona si tiene prenda." }),
+  lienValue: optionalNumber,
   status: z.enum([
     "Disponible", "Separado", "Vendido", "En comisión", "En reparación",
     "En trámite", "Entregado", "Publicado", "No publicado", "Papeles pendientes",

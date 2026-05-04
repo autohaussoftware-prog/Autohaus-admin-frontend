@@ -13,6 +13,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   owner: "Dueño",
   partner: "Socio",
   admin: "Administrador",
+  gerente: "Gerente",
   advisor: "Asesor",
   accounting: "Contabilidad",
   viewer: "Solo lectura",
