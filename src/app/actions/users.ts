@@ -9,6 +9,8 @@ export async function inviteUserAction(formData: FormData) {
   const email = (formData.get("email") as string)?.trim();
   const fullName = (formData.get("fullName") as string)?.trim();
   const role = (formData.get("role") as UserRole) ?? "viewer";
+  const advisorRole = (formData.get("advisorRole") as string)?.trim() || "Captador/Vendedor";
+  const phone = (formData.get("phone") as string)?.trim() || null;
 
   if (!email) return { error: "El email es requerido." };
 
@@ -16,22 +18,44 @@ export async function inviteUserAction(formData: FormData) {
   if (!admin) return { error: "Servicio de invitación no disponible (falta SUPABASE_SERVICE_ROLE_KEY)." };
 
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
-  const { error } = await admin.auth.admin.inviteUserByEmail(email, {
+  const { data: inviteData, error } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: fullName },
     redirectTo: siteUrl ? `${siteUrl}/update-password` : undefined,
   });
 
   if (error) return { error: error.message };
 
-  // Pre-insert profile with the desired role so when trigger fires it's already there
+  const name = fullName || email.split("@")[0];
+
+  // Upsert profile with desired role
   await admin.from("profiles").upsert({
     email,
-    full_name: fullName || email.split("@")[0],
+    full_name: name,
     role,
     active: true,
   }, { onConflict: "email", ignoreDuplicates: false });
 
+  // If advisor role, auto-create their advisor record so they appear in /asesores
+  if (role === "advisor") {
+    const { data: existing } = await admin
+      .from("advisors")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (!existing) {
+      await admin.from("advisors").insert({
+        full_name: name,
+        role: advisorRole,
+        email,
+        phone,
+        active: true,
+      });
+    }
+  }
+
   revalidatePath("/usuarios");
+  revalidatePath("/asesores");
   return { success: true };
 }
 

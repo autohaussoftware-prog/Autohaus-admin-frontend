@@ -78,10 +78,13 @@ function ToggleActive({ userId, active }: { userId: string; active: boolean }) {
   );
 }
 
+const ADVISOR_ROLE_LABELS = ["Captador", "Vendedor", "Captador/Vendedor", "Aliado"] as const;
+
 function InviteForm() {
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: "ok" | "error"; msg: string } | null>(null);
   const [open, setOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole>("advisor");
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -92,9 +95,10 @@ function InviteForm() {
       if (result?.error) {
         setFeedback({ type: "error", msg: result.error });
       } else {
-        setFeedback({ type: "ok", msg: "Invitación enviada. El usuario recibirá un email para activar su cuenta." });
+        setFeedback({ type: "ok", msg: "Invitación enviada. El usuario recibirá un email para crear su contraseña." });
         (e.target as HTMLFormElement).reset();
-        setTimeout(() => setOpen(false), 2000);
+        setSelectedRole("advisor");
+        setTimeout(() => setOpen(false), 2500);
       }
     });
   }
@@ -113,18 +117,39 @@ function InviteForm() {
       <p className="mb-4 text-sm font-medium text-white">Invitar nuevo usuario</p>
       <form onSubmit={handleSubmit} className="space-y-3">
         <Input name="email" type="email" placeholder="correo@empresa.com" required className="h-9 text-sm" />
-        <Input name="fullName" type="text" placeholder="Nombre completo" className="h-9 text-sm" />
-        <select
-          name="role"
-          className="w-full appearance-none rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-200 focus:border-[#D6A93D] focus:outline-none"
-        >
-          {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
-            <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-          ))}
-        </select>
+        <Input name="fullName" type="text" placeholder="Nombre completo" required className="h-9 text-sm" />
+        <div>
+          <p className="mb-1 text-xs text-zinc-500">Rol del sistema</p>
+          <select
+            name="role"
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value as UserRole)}
+            className="w-full appearance-none rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-200 focus:border-[#D6A93D] focus:outline-none"
+          >
+            {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
+              <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+            ))}
+          </select>
+        </div>
+
+        {selectedRole === "advisor" && (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 space-y-2">
+            <p className="text-xs text-zinc-400">Datos del asesor (aparecerá en /Asesores)</p>
+            <select
+              name="advisorRole"
+              defaultValue="Captador/Vendedor"
+              className="w-full appearance-none rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 focus:border-[#D6A93D] focus:outline-none"
+            >
+              {ADVISOR_ROLE_LABELS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <Input name="phone" type="tel" placeholder="Teléfono (opcional)" className="h-8 text-sm" />
+          </div>
+        )}
 
         {feedback && (
-          <p className={`text-xs ${feedback.type === "ok" ? "text-green-400" : "text-red-400"}`}>
+          <p className={`text-xs ${feedback.type === "ok" ? "text-emerald-400" : "text-red-400"}`}>
             {feedback.msg}
           </p>
         )}
