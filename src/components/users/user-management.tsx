@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, MailPlus, UserX, UserCheck } from "lucide-react";
+import { Loader2, MailPlus, UserX, UserCheck, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { inviteUserAction, updateUserRoleAction, toggleUserActiveAction } from "@/app/actions/users";
+import { inviteUserAction, updateUserRoleAction, toggleUserActiveAction, resendInviteAction } from "@/app/actions/users";
 import type { AppUser } from "@/lib/data/users";
 import type { UserRole } from "@/types/auth";
 
@@ -167,14 +167,46 @@ function InviteForm() {
   );
 }
 
+function ResendInvite({ userId }: { userId: string }) {
+  const [pending, startTransition] = useTransition();
+  const [sent, setSent] = useState(false);
+
+  function handleResend() {
+    startTransition(async () => {
+      await resendInviteAction(userId);
+      setSent(true);
+      setTimeout(() => setSent(false), 4000);
+    });
+  }
+
+  return (
+    <button
+      onClick={handleResend}
+      disabled={pending || sent}
+      title="Reenviar invitación"
+      className="flex items-center gap-1.5 rounded-xl border border-amber-700/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
+    >
+      {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+      {sent ? "Enviado" : "Reenviar"}
+    </button>
+  );
+}
+
 export function UserManagement({ users }: { users: AppUser[] }) {
+  const pending = users.filter((u) => !u.confirmed);
+  const active = users.filter((u) => u.confirmed);
+
   return (
     <Card>
       <CardHeader className="border-b border-zinc-900">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle>Usuarios del sistema</CardTitle>
-            <CardDescription>Gestiona roles y accesos del equipo desde aquí.</CardDescription>
+            <CardDescription>
+              {pending.length > 0
+                ? `${active.length} activos · ${pending.length} con invitación pendiente`
+                : `${active.length} usuarios activos`}
+            </CardDescription>
           </div>
           <InviteForm />
         </div>
@@ -187,7 +219,7 @@ export function UserManagement({ users }: { users: AppUser[] }) {
                 <th className="px-5 py-4 font-medium">Usuario</th>
                 <th className="px-5 py-4 font-medium">Rol</th>
                 <th className="px-5 py-4 font-medium">Estado</th>
-                <th className="px-5 py-4 font-medium">Registrado</th>
+                <th className="px-5 py-4 font-medium">Invitado</th>
                 <th className="px-5 py-4 font-medium"></th>
               </tr>
             </thead>
@@ -202,19 +234,28 @@ export function UserManagement({ users }: { users: AppUser[] }) {
                     <RoleSelect userId={user.id} current={user.role} />
                   </td>
                   <td className="px-5 py-4">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      user.active
-                        ? "bg-green-500/10 text-green-400"
-                        : "bg-zinc-800 text-zinc-500"
-                    }`}>
-                      {user.active ? "Activo" : "Inactivo"}
-                    </span>
+                    {!user.confirmed ? (
+                      <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+                        Pendiente
+                      </span>
+                    ) : user.active ? (
+                      <span className="inline-flex items-center rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-400">
+                        Activo
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-500">
+                        Inactivo
+                      </span>
+                    )}
                   </td>
                   <td className="px-5 py-4 text-zinc-400">
                     {new Date(user.createdAt).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
                   </td>
                   <td className="px-5 py-4">
-                    <ToggleActive userId={user.id} active={user.active} />
+                    <div className="flex items-center gap-2">
+                      {!user.confirmed && <ResendInvite userId={user.id} />}
+                      <ToggleActive userId={user.id} active={user.active} />
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -8,31 +8,40 @@ export type AppUser = {
   email: string;
   role: UserRole;
   active: boolean;
+  confirmed: boolean;  // false = invite sent but user hasn't set password yet
   createdAt: string;
 };
 
 export async function getUsers(): Promise<AppUser[]> {
-  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
-  if (!supabase) {
-    return [
-      { id: "1", fullName: "Dueño principal", email: "dueno@autohaus.co", role: "owner", active: true, createdAt: new Date().toISOString() },
-      { id: "2", fullName: "Administrador", email: "admin@autohaus.co", role: "admin", active: true, createdAt: new Date().toISOString() },
-    ];
-  }
+  const admin = getSupabaseAdminClient();
+  const supabase = admin ?? (await getSupabaseServerClient());
+  if (!supabase) return [];
 
-  const { data, error } = await supabase
+  const { data: profiles, error } = await supabase
     .from("profiles")
     .select("id, full_name, email, role, active, created_at")
     .order("created_at", { ascending: true });
 
-  if (error || !data) return [];
+  if (error || !profiles) return [];
 
-  return data.map((p) => ({
+  // Use admin API to get confirmation status for each user
+  let confirmedIds = new Set<string>();
+  if (admin) {
+    const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    if (authData?.users) {
+      for (const u of authData.users) {
+        if (u.email_confirmed_at) confirmedIds.add(u.id);
+      }
+    }
+  }
+
+  return profiles.map((p: any) => ({
     id: p.id,
     fullName: p.full_name ?? p.email,
     email: p.email,
     role: p.role as UserRole,
     active: p.active ?? true,
+    confirmed: confirmedIds.size > 0 ? confirmedIds.has(p.id) : true,
     createdAt: p.created_at,
   }));
 }
