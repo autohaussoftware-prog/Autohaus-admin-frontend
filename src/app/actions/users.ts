@@ -15,8 +15,10 @@ export async function inviteUserAction(formData: FormData) {
   const admin = getSupabaseAdminClient();
   if (!admin) return { error: "Servicio de invitación no disponible (falta SUPABASE_SERVICE_ROLE_KEY)." };
 
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
   const { error } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: fullName },
+    redirectTo: siteUrl ? `${siteUrl}/update-password` : undefined,
   });
 
   if (error) return { error: error.message };

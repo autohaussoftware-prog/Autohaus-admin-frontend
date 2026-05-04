@@ -1,0 +1,19 @@
+
+> autohaus-admin-frontend@1.0.0 dev
+> next dev
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.14:3000
+✓ Ready in 1096ms
+
+○ Compiling /vehiculos/nuevo ...
+ GET /vehiculos/nuevo 200 in 7.7s (next.js: 6.3s, proxy.ts: 394ms, application-code: 1041ms)
+⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.14:3000
+✓ Ready in 744ms
+- Experiments (use with caution):
+  · serverActions
+
