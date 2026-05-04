@@ -1,4 +1,4 @@
-export type TransitAuthority = {
+﻿export type TransitAuthority = {
   name: string;
   city: string;
   department: string;
@@ -104,14 +104,16 @@ export const TRANSIT_AUTHORITIES: TransitAuthority[] = [
   { name: "Secretaría de Tránsito de Mocoa", city: "Mocoa", department: "Putumayo" },
 ];
 
+// Normaliza texto removiendo tildes para búsqueda flexible
+const STRIP_DIACRITICS = /[\u0300-\u036f]/g;
+function norm(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(STRIP_DIACRITICS, "");
+}
+
 export function searchTransitAuthorities(query: string): TransitAuthority[] {
   if (!query.trim()) return TRANSIT_AUTHORITIES;
-  const q = query.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  return TRANSIT_AUTHORITIES.filter((a) => {
-    const haystack = `${a.name} ${a.city} ${a.department}`
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "");
-    return haystack.includes(q);
-  });
+  const q = norm(query);
+  return TRANSIT_AUTHORITIES.filter((a) =>
+    norm(`${a.name} ${a.city} ${a.department}`).includes(q)
+  );
 }

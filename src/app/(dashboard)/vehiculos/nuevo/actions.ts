@@ -54,13 +54,13 @@ const vehicleSchema = z.object({
 }).superRefine((data, ctx) => {
   if (data.ownerType === "Comisión") {
     if (!data.ownerName?.trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "El nombre del propietario es obligatorio en consignación.", path: ["ownerName"] });
+      ctx.addIssue({ code: "custom", message: "El nombre del propietario es obligatorio en consignación.", path: ["ownerName"] });
     }
     if (!data.ownerPhone?.trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "El contacto del propietario es obligatorio en consignación.", path: ["ownerPhone"] });
+      ctx.addIssue({ code: "custom", message: "El contacto del propietario es obligatorio en consignación.", path: ["ownerPhone"] });
     }
     if (!data.targetPrice) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "El precio de publicación es obligatorio en consignación.", path: ["targetPrice"] });
+      ctx.addIssue({ code: "custom", message: "El precio de publicación es obligatorio en consignación.", path: ["targetPrice"] });
     }
   }
 });
