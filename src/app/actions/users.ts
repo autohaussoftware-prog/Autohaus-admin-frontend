@@ -15,43 +15,48 @@ const ROLE_LABELS: Record<UserRole, string> = {
   viewer: "Solo lectura",
 };
 
-async function sendInviteEmail(to: string, name: string, link: string) {
+async function sendInviteEmail(to: string, name: string, link: string): Promise<boolean> {
   const resendKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM ?? "noreply@autohaus.co";
 
-  if (!resendKey) return; // no-op if not configured
+  if (!resendKey) return false;
 
-  await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to,
-      subject: "Invitación al sistema Autohaus Admin",
-      html: `
-        <div style="font-family:sans-serif;max-width:520px;margin:auto;background:#111;color:#fff;padding:40px;border-radius:16px;">
-          <h2 style="color:#D6A93D;margin:0 0 4px;">Autohaus</h2>
-          <p style="color:#666;margin:0 0 32px;font-size:13px;text-transform:uppercase;letter-spacing:2px;">Sistema Administrativo</p>
-          <p style="margin:0 0 8px;">Hola <strong>${name}</strong>,</p>
-          <p style="color:#aaa;line-height:1.6;margin:0 0 28px;">
-            Has sido invitado al sistema administrativo de Autohaus.<br/>
-            Haz clic en el botón para crear tu contraseña y activar tu cuenta.
-          </p>
-          <a href="${link}"
-            style="display:inline-block;background:#D6A93D;color:#000;font-weight:700;padding:14px 32px;border-radius:10px;text-decoration:none;font-size:15px;">
-            Crear contraseña →
-          </a>
-          <p style="color:#555;font-size:12px;margin-top:32px;line-height:1.6;">
-            Este enlace es válido por <strong style="color:#888;">24 horas</strong>.<br/>
-            Si no esperabas esta invitación, puedes ignorar este correo.
-          </p>
-        </div>
-      `,
-    }),
-  });
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to,
+        subject: "Invitación al sistema Autohaus Admin",
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:auto;background:#111;color:#fff;padding:40px;border-radius:16px;">
+            <h2 style="color:#D6A93D;margin:0 0 4px;">Autohaus</h2>
+            <p style="color:#666;margin:0 0 32px;font-size:13px;text-transform:uppercase;letter-spacing:2px;">Sistema Administrativo</p>
+            <p style="margin:0 0 8px;">Hola <strong>${name}</strong>,</p>
+            <p style="color:#aaa;line-height:1.6;margin:0 0 28px;">
+              Has sido invitado al sistema administrativo de Autohaus.<br/>
+              Haz clic en el botón para crear tu contraseña y activar tu cuenta.
+            </p>
+            <a href="${link}"
+              style="display:inline-block;background:#D6A93D;color:#000;font-weight:700;padding:14px 32px;border-radius:10px;text-decoration:none;font-size:15px;">
+              Crear contraseña →
+            </a>
+            <p style="color:#555;font-size:12px;margin-top:32px;line-height:1.6;">
+              Este enlace es válido por <strong style="color:#888;">24 horas</strong>.<br/>
+              Si no esperabas esta invitación, puedes ignorar este correo.
+            </p>
+          </div>
+        `,
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function inviteUserAction(formData: FormData) {
@@ -89,8 +94,8 @@ export async function inviteUserAction(formData: FormData) {
   const link = linkData?.properties?.action_link;
   if (!link) return { error: "No se pudo generar el link de invitación." };
 
-  // Send branded email via Resend
-  await sendInviteEmail(email, fullName, link);
+  // Try to send via Resend — returns false if email not configured or fails
+  const emailSent = await sendInviteEmail(email, fullName, link);
 
   // Upsert profile with desired role
   await admin.from("profiles").upsert({
@@ -121,7 +126,8 @@ export async function inviteUserAction(formData: FormData) {
 
   revalidatePath("/usuarios");
   revalidatePath("/asesores");
-  return { success: true };
+  // Always return the link so admin can share it manually if email fails
+  return { success: true, emailSent, inviteLink: link };
 }
 
 export async function resendInviteAction(userId: string) {
@@ -147,12 +153,13 @@ export async function resendInviteAction(userId: string) {
   if (error) return { error: error.message };
 
   const link = data?.properties?.action_link;
+  let emailSent = false;
   if (link) {
-    await sendInviteEmail(profile.email, profile.full_name ?? profile.email, link);
+    emailSent = await sendInviteEmail(profile.email, profile.full_name ?? profile.email, link);
   }
 
   revalidatePath("/usuarios");
-  return { success: true };
+  return { success: true, emailSent, inviteLink: link ?? null };
 }
 
 export async function updateUserRoleAction(userId: string, role: UserRole) {
