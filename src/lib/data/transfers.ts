@@ -18,7 +18,15 @@ export type Transfer = {
 export type CreateTransferInput = {
   vehicleId: string;
   fromOwner?: string;
+  fromDocType?: string;
+  fromDocNumber?: string;
+  fromPhone?: string;
+  fromCompany?: string;
   toOwner?: string;
+  toDocType?: string;
+  toDocNumber?: string;
+  toPhone?: string;
+  toCompany?: string;
   tramitador?: string;
   notes?: string;
 };
@@ -67,9 +75,17 @@ export async function createTransfer(input: CreateTransferInput): Promise<string
     .from("transfer_processes")
     .insert({
       vehicle_id: input.vehicleId,
-      from_owner: input.fromOwner?.trim() || null,
-      to_owner: input.toOwner?.trim() || null,
-      tramitador: input.tramitador?.trim() || "Titi",
+      from_owner:       input.fromOwner?.trim() || null,
+      from_doc_type:    input.fromDocType?.trim() || null,
+      from_doc_number:  input.fromDocNumber?.trim() || null,
+      from_phone:       input.fromPhone?.trim() || null,
+      from_company:     input.fromCompany?.trim() || null,
+      to_owner:         input.toOwner?.trim() || null,
+      to_doc_type:      input.toDocType?.trim() || null,
+      to_doc_number:    input.toDocNumber?.trim() || null,
+      to_phone:         input.toPhone?.trim() || null,
+      to_company:       input.toCompany?.trim() || null,
+      tramitador: input.tramitador?.trim() || null,
       notes: input.notes?.trim() || null,
       status: "En proceso",
       requested_at: new Date().toISOString(),
