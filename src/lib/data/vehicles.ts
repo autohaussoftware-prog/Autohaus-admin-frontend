@@ -355,7 +355,7 @@ export async function updateVehicle(vehicleId: string, input: CreateVehicleInput
       target_price: input.targetPrice || 0,
       min_price: input.minPrice || 0,
       estimated_cost: input.estimatedCost || 0,
-      real_cost: input.realCost || 0,
+      // real_cost is managed by Supabase trigger (vehicle_costs) — never overwrite here
       advisor_buyer_id: input.advisorBuyerId || null,
       advisor_seller_id: input.advisorSellerId || null,
       soat_due: input.soatDue || null,

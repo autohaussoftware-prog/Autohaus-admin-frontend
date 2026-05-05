@@ -28,11 +28,13 @@ function FormFields({
   locations,
   advisors,
   isAdvisor,
+  fieldErrors = {},
 }: {
   values?: Record<string, string>;
   locations: Option[];
   advisors: Option[];
   isAdvisor: boolean;
+  fieldErrors?: Record<string, string[]>;
 }) {
   return (
     <>
@@ -44,9 +46,13 @@ function FormFields({
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
-          <Field label="Placa *">
+          <label className="block">
+            <span className="mb-2 block text-sm text-zinc-400">
+              Placa <span className="text-red-400">*</span>
+            </span>
             <Input name="plate" required placeholder="KMQ918" className="uppercase" defaultValue={values?.plate} />
-          </Field>
+            {fieldErrors.plate && <p className="mt-1 text-xs text-red-400">{fieldErrors.plate[0]}</p>}
+          </label>
           <VehicleIdentificationFields
             defaultBrand={values?.brand}
             defaultLine={values?.line}
@@ -56,6 +62,7 @@ function FormFields({
             defaultTransmission={values?.transmission}
             defaultTraction={values?.traction}
             defaultColor={values?.color}
+            fieldErrors={fieldErrors}
           />
           <label className="block">
             <span className="mb-2 block text-sm text-zinc-400">
@@ -99,13 +106,13 @@ function FormFields({
             defaultTargetPrice={values?.targetPrice}
             defaultMinPrice={values?.minPrice}
             defaultEstimatedCost={values?.estimatedCost}
-            defaultRealCost={values?.realCost}
             defaultAdvisorBuyerId={values?.advisorBuyerId}
             defaultAdvisorSellerId={values?.advisorSellerId}
             defaultSoatDue={values?.soatDue}
             defaultTechnoDue={values?.technoDue}
             defaultOwnerName={values?.ownerName}
             defaultOwnerPhone={values?.ownerPhone}
+            fieldErrors={fieldErrors}
           />
         </CardContent>
       </Card>
@@ -138,6 +145,7 @@ export function NewVehicleForm({
         locations={locations}
         advisors={advisors}
         isAdvisor={isAdvisor}
+        fieldErrors={state.fieldErrors}
       />
 
       <div className="flex justify-end">

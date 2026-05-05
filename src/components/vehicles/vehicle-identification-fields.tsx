@@ -21,6 +21,7 @@ type Props = {
   defaultTransmission?: string;
   defaultTraction?: string;
   defaultColor?: string;
+  fieldErrors?: Record<string, string[]>;
 };
 
 const OTHER = "__other__";
@@ -34,6 +35,7 @@ export function VehicleIdentificationFields({
   defaultTransmission = "",
   defaultTraction = "",
   defaultColor = "",
+  fieldErrors = {},
 }: Props) {
   const knownBrand = BRAND_NAMES.includes(defaultBrand);
   const [selectedBrand, setSelectedBrand] = useState(knownBrand ? defaultBrand : defaultBrand ? OTHER : "");
@@ -224,9 +226,10 @@ export function VehicleIdentificationFields({
           <option value="Manual">Manual</option>
           <option value="Automática">Automática</option>
         </Select>
-        {!transmission && (
-          <p className="mt-1 text-xs text-zinc-500">Selecciona Manual o Automática.</p>
-        )}
+        {fieldErrors.transmission
+          ? <p className="mt-1 text-xs text-red-400">{fieldErrors.transmission[0]}</p>
+          : !transmission && <p className="mt-1 text-xs text-zinc-500">Selecciona Manual o Automática.</p>
+        }
       </label>
 
       {/* ── Combustible ─────────────────────────────────────────── */}

@@ -2,89 +2,38 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { updateVehicle } from "@/lib/data/vehicles";
+import { vehicleSchema, type VehicleActionState } from "@/lib/schemas/vehicle-schema";
 
-const optionalNumber = z.preprocess(
-  (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
-  z.number().nonnegative().optional()
-).optional();
-
-const optionalText = z.preprocess(
-  (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
-  z.string().trim().optional()
-).optional();
-
-const vehicleSchema = z.object({
-  plate: z.string().trim().min(3, "La placa debe tener al menos 3 caracteres."),
-  brand: z.string().trim().min(2, "La marca es obligatoria."),
-  line: z.string().trim().min(1, "La línea es obligatoria."),
-  version: optionalText,
-  year: z.preprocess(
-    (v) => (v === "" || v === null ? undefined : Number(v)),
-    z.number({ message: "El modelo (año) es obligatorio." }).positive("El modelo (año) debe ser positivo.")
-  ),
-  mileage: optionalNumber,
-  color: z.string().trim().min(1, "El color es obligatorio."),
-  motor: optionalText,
-  transmission: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
-    z.enum(["Manual", "Automática"] as const, { message: "Selecciona Manual o Automática." })
-  ),
-  fuel: z.string().trim().min(1, "El combustible es obligatorio."),
-  traction: optionalText,
-  cityRegistration: optionalText,
-  legalStatus: z.enum(["Sí", "No"], { message: "Selecciona si tiene prenda." }),
-  lienValue: optionalNumber,
-  status: z.enum([
-    "Disponible", "Separado", "Vendido", "En comisión", "En reparación",
-    "En trámite", "Entregado", "Publicado", "No publicado", "Papeles pendientes",
-  ]),
-  locationId: optionalText,
-  ownerType: z.enum(["Propio", "Comisión"]),
-  ownerName: optionalText,
-  ownerPhone: optionalText,
-  entryType: optionalText,
-  buyPrice: optionalNumber,
-  targetPrice: optionalNumber,
-  minPrice: optionalNumber,
-  estimatedCost: optionalNumber,
-  realCost: optionalNumber,
-  advisorBuyerId: optionalText,
-  advisorSellerId: optionalText,
-  soatDue: optionalText,
-  technoDue: optionalText,
-}).superRefine((data, ctx) => {
-  if (data.ownerType === "Comisión") {
-    if (!data.ownerName?.trim()) {
-      ctx.addIssue({ code: "custom", message: "El nombre del propietario es obligatorio en consignación.", path: ["ownerName"] });
-    }
-    if (!data.ownerPhone?.trim()) {
-      ctx.addIssue({ code: "custom", message: "El contacto del propietario es obligatorio en consignación.", path: ["ownerPhone"] });
-    }
-    if (!data.targetPrice) {
-      ctx.addIssue({ code: "custom", message: "El precio de publicación es obligatorio en consignación.", path: ["targetPrice"] });
-    }
-  }
-});
-
-export async function updateVehicleAction(vehicleId: string, formData: FormData) {
+export async function updateVehicleAction(
+  vehicleId: string,
+  _prev: VehicleActionState,
+  formData: FormData
+): Promise<VehicleActionState> {
   const rawData = Object.fromEntries(
     [...formData.entries()].filter(([, v]) => !(v instanceof File))
-  );
+  ) as Record<string, string>;
 
   const parsed = vehicleSchema.safeParse(rawData);
 
   if (!parsed.success) {
-    const firstError = parsed.error.issues[0]?.message ?? "Revisa los campos obligatorios.";
-    redirect(`/vehiculos/${vehicleId}/editar?error=${encodeURIComponent(firstError)}`);
+    const flat = parsed.error.flatten();
+    return {
+      error: parsed.error.issues[0]?.message ?? "Revisa los campos obligatorios.",
+      fieldErrors: flat.fieldErrors as Record<string, string[]>,
+      attempt: _prev.attempt + 1,
+      values: rawData,
+    };
   }
 
   try {
     await updateVehicle(vehicleId, parsed.data);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "No se pudo actualizar el vehículo.";
-    redirect(`/vehiculos/${vehicleId}/editar?error=${encodeURIComponent(message)}`);
+    return {
+      error: err instanceof Error ? err.message : "No se pudo actualizar el vehículo.",
+      attempt: _prev.attempt + 1,
+      values: rawData,
+    };
   }
 
   revalidatePath(`/vehiculos/${vehicleId}`);

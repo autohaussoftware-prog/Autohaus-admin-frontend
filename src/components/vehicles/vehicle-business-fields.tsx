@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, User } from "lucide-react";
+import { Building2, Lock, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 
@@ -9,8 +9,10 @@ type Option = { id: string; name: string };
 
 type Props = {
   isAdvisor: boolean;
+  isEditMode?: boolean;
   locations: Option[];
   advisors: Option[];
+  currentRealCost?: number | string;
   defaultOwnerType?: string;
   defaultEntryType?: string;
   defaultLocationId?: string;
@@ -19,13 +21,13 @@ type Props = {
   defaultTargetPrice?: number | string;
   defaultMinPrice?: number | string;
   defaultEstimatedCost?: number | string;
-  defaultRealCost?: number | string;
   defaultAdvisorBuyerId?: string;
   defaultAdvisorSellerId?: string;
   defaultSoatDue?: string;
   defaultTechnoDue?: string;
   defaultOwnerName?: string;
   defaultOwnerPhone?: string;
+  fieldErrors?: Record<string, string[]>;
 };
 
 const STATUSES = [
@@ -36,10 +38,18 @@ const STATUSES = [
 
 const ENTRY_TYPES = ["Compra", "Consignación", "Permuta", "Propio", "Socio", "Otro"];
 
+function formatCOP(value: number | string | undefined): string {
+  const n = Number(value ?? 0);
+  if (!n) return "$0";
+  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
+}
+
 export function VehicleBusinessFields({
   isAdvisor,
+  isEditMode = false,
   locations,
   advisors,
+  currentRealCost,
   defaultOwnerType = "Propio",
   defaultEntryType = "Compra",
   defaultLocationId = "",
@@ -48,22 +58,24 @@ export function VehicleBusinessFields({
   defaultTargetPrice,
   defaultMinPrice,
   defaultEstimatedCost,
-  defaultRealCost,
   defaultAdvisorBuyerId = "",
   defaultAdvisorSellerId = "",
   defaultSoatDue = "",
   defaultTechnoDue = "",
   defaultOwnerName = "",
   defaultOwnerPhone = "",
+  fieldErrors = {},
 }: Props) {
   const [ownerType, setOwnerType] = useState(defaultOwnerType);
   const isConsignment = ownerType === "Comisión";
 
   return (
     <>
-      {/* ── Toggle: tipo de vehículo ──────────────────────────── */}
+      {/* ── Toggle: tipo de vehículo ──────────────────────────────── */}
       <div className="col-span-full">
-        <span className="mb-2 block text-sm text-zinc-400">¿Cómo ingresa este vehículo? <span className="text-red-400">*</span></span>
+        <span className="mb-2 block text-sm text-zinc-400">
+          ¿Cómo ingresa este vehículo? <span className="text-red-400">*</span>
+        </span>
         <input type="hidden" name="ownerType" value={ownerType} />
         <div className="grid grid-cols-2 gap-3">
           <button
@@ -99,7 +111,7 @@ export function VehicleBusinessFields({
         </div>
       </div>
 
-      {/* ── Datos del propietario (solo consignación) ──────────── */}
+      {/* ── Datos del propietario (solo consignación) ─────────────── */}
       {isConsignment && (
         <>
           <label className="block">
@@ -112,6 +124,9 @@ export function VehicleBusinessFields({
               placeholder="Nombre completo del dueño"
               defaultValue={defaultOwnerName}
             />
+            {fieldErrors.ownerName && (
+              <p className="mt-1 text-xs text-red-400">{fieldErrors.ownerName[0]}</p>
+            )}
           </label>
           <label className="block">
             <span className="mb-2 block text-sm text-zinc-400">
@@ -123,11 +138,14 @@ export function VehicleBusinessFields({
               placeholder="Ej: 3001234567"
               defaultValue={defaultOwnerPhone}
             />
+            {fieldErrors.ownerPhone && (
+              <p className="mt-1 text-xs text-red-400">{fieldErrors.ownerPhone[0]}</p>
+            )}
           </label>
         </>
       )}
 
-      {/* ── Estado del vehículo ──────────────────────────────── */}
+      {/* ── Estado del vehículo ──────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">Estado</span>
         <Select name="status" defaultValue={defaultStatus}>
@@ -152,9 +170,8 @@ export function VehicleBusinessFields({
         </Select>
       </label>
 
-      {/* ── Campos financieros ─────────────────────────────────── */}
+      {/* ── Campos financieros ───────────────────────────────────── */}
       {isConsignment ? (
-        /* Consignación: solo precio de publicación */
         <label className="block">
           <span className="mb-2 block text-sm text-zinc-400">
             Precio de publicación <span className="text-red-400">*</span>
@@ -167,9 +184,11 @@ export function VehicleBusinessFields({
             placeholder="369000000"
             defaultValue={defaultTargetPrice ?? ""}
           />
+          {fieldErrors.targetPrice && (
+            <p className="mt-1 text-xs text-red-400">{fieldErrors.targetPrice[0]}</p>
+          )}
         </label>
       ) : (
-        /* Vehículo propio: campos financieros completos */
         <>
           {!isAdvisor && (
             <label className="block">
@@ -181,6 +200,9 @@ export function VehicleBusinessFields({
                 placeholder="315000000"
                 defaultValue={defaultBuyPrice ?? ""}
               />
+              {fieldErrors.buyPrice && (
+                <p className="mt-1 text-xs text-red-400">{fieldErrors.buyPrice[0]}</p>
+              )}
             </label>
           )}
           <label className="block">
@@ -192,6 +214,9 @@ export function VehicleBusinessFields({
               placeholder="369000000"
               defaultValue={defaultTargetPrice ?? ""}
             />
+            {fieldErrors.targetPrice && (
+              <p className="mt-1 text-xs text-red-400">{fieldErrors.targetPrice[0]}</p>
+            )}
           </label>
           <label className="block">
             <span className="mb-2 block text-sm text-zinc-400">Precio mínimo</span>
@@ -202,6 +227,9 @@ export function VehicleBusinessFields({
               placeholder="354000000"
               defaultValue={defaultMinPrice ?? ""}
             />
+            {fieldErrors.minPrice && (
+              <p className="mt-1 text-xs text-red-400">{fieldErrors.minPrice[0]}</p>
+            )}
           </label>
           {!isAdvisor && (
             <>
@@ -215,22 +243,40 @@ export function VehicleBusinessFields({
                   defaultValue={defaultEstimatedCost ?? ""}
                 />
               </label>
-              <label className="block">
-                <span className="mb-2 block text-sm text-zinc-400">Costo real inicial</span>
-                <Input
-                  name="realCost"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  defaultValue={defaultRealCost ?? ""}
-                />
-              </label>
+
+              {/* Costo real: solo lectura en edición (lo gestiona trigger de Supabase) */}
+              {isEditMode ? (
+                <div className="block">
+                  <span className="mb-2 flex items-center gap-1 text-sm text-zinc-400">
+                    <Lock className="h-3 w-3" />
+                    Costo real acumulado
+                  </span>
+                  <div className="flex items-center rounded-2xl border border-zinc-800 bg-zinc-900/40 px-3 py-2">
+                    <span className="flex-1 text-sm text-zinc-300">{formatCOP(currentRealCost)}</span>
+                    <span className="text-xs text-zinc-600">auto</span>
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-600">
+                    Se actualiza automáticamente al registrar costos.
+                  </p>
+                </div>
+              ) : (
+                <label className="block">
+                  <span className="mb-2 block text-sm text-zinc-400">Costo real inicial</span>
+                  <Input
+                    name="realCost"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    defaultValue={0}
+                  />
+                </label>
+              )}
             </>
           )}
         </>
       )}
 
-      {/* ── Asesores ─────────────────────────────────────────── */}
+      {/* ── Asesores ─────────────────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">Asesor captador</span>
         <Select name="advisorBuyerId" defaultValue={defaultAdvisorBuyerId}>
@@ -253,7 +299,7 @@ export function VehicleBusinessFields({
         </label>
       )}
 
-      {/* ── Documentos legales ──────────────────────────────── */}
+      {/* ── Documentos legales ───────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">SOAT vence</span>
         <Input name="soatDue" type="date" defaultValue={defaultSoatDue} />

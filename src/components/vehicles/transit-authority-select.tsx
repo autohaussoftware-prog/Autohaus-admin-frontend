@@ -27,14 +27,25 @@ export function TransitAuthoritySelect({
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        if (!value) setQuery("");
-        else setQuery(value);
+        closeDrop();
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [value]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, value]);
+
+  function closeDrop() {
+    setOpen(false);
+    if (!value && query.trim()) {
+      // No match selected but user typed something — save as free text
+      setValue(query.trim());
+    } else if (value) {
+      setQuery(value);
+    } else {
+      setQuery("");
+    }
+  }
 
   function selectOption(name: string) {
     setValue(name);
@@ -61,6 +72,16 @@ export function TransitAuthoritySelect({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
+          onBlur={() => {
+            // Small delay so onMouseDown on options fires first
+            setTimeout(() => {
+              if (!value && query.trim()) {
+                setValue(query.trim());
+              } else if (value) {
+                setQuery(value);
+              }
+            }, 150);
+          }}
           placeholder={placeholder}
           className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 pr-16 text-sm text-white placeholder-zinc-600 outline-none transition focus:border-[#D6A93D] focus:ring-1 focus:ring-[#D6A93D]"
           autoComplete="off"
@@ -101,8 +122,8 @@ export function TransitAuthoritySelect({
       )}
 
       {open && query.length > 1 && results.length === 0 && (
-        <div className="absolute z-50 mt-1 w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-3 py-3 text-sm text-zinc-500 shadow-xl">
-          Sin resultados para &ldquo;{query}&rdquo;
+        <div className="absolute z-50 mt-1 w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-3 py-3 text-sm text-zinc-400 shadow-xl">
+          Sin resultados — se guardará &ldquo;{query}&rdquo; como texto libre
         </div>
       )}
     </div>
