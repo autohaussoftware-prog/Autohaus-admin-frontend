@@ -5,6 +5,7 @@ import {
   CircleDollarSign,
   ClipboardList,
   HandCoins,
+  KeyRound,
   Landmark,
   LayoutDashboard,
   Settings,
@@ -25,6 +26,7 @@ const FINANCE: UserRole[] = ["owner", "partner", "admin", "gerente", "accounting
 const SALES_AND_UP: UserRole[] = ["owner", "partner", "admin", "gerente", "accounting"];
 const ADVISOR_AND_UP: UserRole[] = ["owner", "partner", "admin", "gerente", "advisor", "accounting"];
 const ADMIN_ONLY: UserRole[] = ["owner", "admin"];
+const MGMT: UserRole[] = ["owner", "partner", "admin", "gerente"];
 
 export const navItems: NavItem[] = [
   { label: "Dashboard",      href: "/",              icon: LayoutDashboard,  roles: ADVISOR_AND_UP },
@@ -38,5 +40,6 @@ export const navItems: NavItem[] = [
   { label: "Efectivo",       href: "/efectivo",      icon: Wallet,           roles: FINANCE },
   { label: "Reportes",       href: "/reportes",      icon: BarChart3,        roles: FINANCE },
   { label: "Alertas",        href: "/alertas",       icon: AlertTriangle,    roles: FINANCE },
+  { label: "Usuarios",       href: "/usuarios",      icon: KeyRound,         roles: MGMT },
   { label: "Configuración",  href: "/configuracion", icon: Settings,         roles: ADMIN_ONLY },
 ];

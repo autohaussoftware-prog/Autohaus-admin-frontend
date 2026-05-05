@@ -6,13 +6,20 @@ import { getUserRole } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-const ADVISOR_ROLES = ["Captador", "Vendedor", "Captador/Vendedor", "Aliado"] as const;
+const ADVISOR_ROLES = ["Captador", "Vendedor", "Asesor", "Gerente"] as const;
+const ADVISOR_TIPOS = ["interno", "externo"] as const;
 
 const advisorSchema = z.object({
-  fullName: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres"),
-  role: z.enum(ADVISOR_ROLES),
+  userId: z.string().uuid("Debes seleccionar un usuario válido."),
+  role: z.enum(ADVISOR_ROLES, { message: "Rol inválido." }),
+  tipo: z.enum(ADVISOR_TIPOS, { message: "Tipo inválido." }),
   phone: z.string().trim().optional(),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
+});
+
+const advisorUpdateSchema = z.object({
+  role: z.enum(ADVISOR_ROLES, { message: "Rol inválido." }),
+  tipo: z.enum(ADVISOR_TIPOS, { message: "Tipo inválido." }),
+  phone: z.string().trim().optional(),
 });
 
 async function assertManageRole() {
@@ -26,10 +33,10 @@ export async function createAdvisorAction(formData: FormData): Promise<{ error?:
   if (err) return { error: err };
 
   const parsed = advisorSchema.safeParse({
-    fullName: formData.get("fullName"),
+    userId: formData.get("userId"),
     role: formData.get("role"),
+    tipo: formData.get("tipo"),
     phone: formData.get("phone") || undefined,
-    email: formData.get("email") || undefined,
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
@@ -37,11 +44,29 @@ export async function createAdvisorAction(formData: FormData): Promise<{ error?:
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) return { error: "Supabase no configurado." };
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .eq("id", parsed.data.userId)
+    .single();
+
+  if (!profile) return { error: "Usuario no encontrado." };
+
+  const { data: existing } = await supabase
+    .from("advisors")
+    .select("id")
+    .eq("user_id", parsed.data.userId)
+    .maybeSingle();
+
+  if (existing) return { error: "Este usuario ya tiene un asesor asignado." };
+
   const { error } = await supabase.from("advisors").insert({
-    full_name: parsed.data.fullName,
+    full_name: profile.full_name,
+    email: profile.email,
     role: parsed.data.role,
+    tipo: parsed.data.tipo,
     phone: parsed.data.phone || null,
-    email: parsed.data.email || null,
+    user_id: parsed.data.userId,
     active: true,
   });
 
@@ -58,11 +83,10 @@ export async function updateAdvisorAction(
   const err = await assertManageRole();
   if (err) return { error: err };
 
-  const parsed = advisorSchema.safeParse({
-    fullName: formData.get("fullName"),
+  const parsed = advisorUpdateSchema.safeParse({
     role: formData.get("role"),
+    tipo: formData.get("tipo"),
     phone: formData.get("phone") || undefined,
-    email: formData.get("email") || undefined,
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
@@ -73,10 +97,9 @@ export async function updateAdvisorAction(
   const { error } = await supabase
     .from("advisors")
     .update({
-      full_name: parsed.data.fullName,
       role: parsed.data.role,
+      tipo: parsed.data.tipo,
       phone: parsed.data.phone || null,
-      email: parsed.data.email || null,
     })
     .eq("id", advisorId);
 

@@ -10,12 +10,14 @@ type Advisor = {
   id: string;
   name: string;
   role: string;
+  tipo: string;
   phone: string | null;
   email: string | null;
   active: boolean;
 };
 
-const ADVISOR_ROLES = ["Captador", "Vendedor", "Captador/Vendedor", "Aliado"] as const;
+const ADVISOR_ROLES = ["Captador", "Vendedor", "Asesor", "Gerente"] as const;
+const ADVISOR_TIPOS = ["interno", "externo"] as const;
 
 function EditRow({ advisor, onDone }: { advisor: Advisor; onDone: () => void }) {
   const [pending, startTransition] = useTransition();
@@ -32,15 +34,8 @@ function EditRow({ advisor, onDone }: { advisor: Advisor; onDone: () => void }) 
 
   return (
     <tr className="border-b border-zinc-900/80 bg-zinc-900/40">
-      <td colSpan={6} className="px-5 py-4">
+      <td colSpan={7} className="px-5 py-4">
         <form action={handleSubmit} className="grid gap-3 sm:grid-cols-4">
-          <input
-            name="fullName"
-            defaultValue={advisor.name}
-            required
-            placeholder="Nombre"
-            className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white focus:border-[#D6A93D] focus:outline-none"
-          />
           <select
             name="role"
             defaultValue={advisor.role}
@@ -48,17 +43,17 @@ function EditRow({ advisor, onDone }: { advisor: Advisor; onDone: () => void }) 
           >
             {ADVISOR_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
+          <select
+            name="tipo"
+            defaultValue={advisor.tipo}
+            className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white focus:border-[#D6A93D] focus:outline-none"
+          >
+            {ADVISOR_TIPOS.map((t) => <option key={t} value={t}>{t === "interno" ? "Interno" : "Externo"}</option>)}
+          </select>
           <input
             name="phone"
             defaultValue={advisor.phone ?? ""}
             placeholder="Teléfono"
-            className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white focus:border-[#D6A93D] focus:outline-none"
-          />
-          <input
-            name="email"
-            type="email"
-            defaultValue={advisor.email ?? ""}
-            placeholder="Email"
             className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white focus:border-[#D6A93D] focus:outline-none"
           />
           {error && <p className="col-span-4 text-xs text-red-400">{error}</p>}
@@ -103,6 +98,11 @@ function AdvisorRow({ advisor, canManage }: { advisor: Advisor; canManage: boole
     <tr className={`border-b border-zinc-900/80 hover:bg-zinc-950/70 ${!advisor.active ? "opacity-50" : ""}`}>
       <td className="px-5 py-4 font-medium text-white">{advisor.name}</td>
       <td className="px-5 py-4 text-zinc-400">{advisor.role}</td>
+      <td className="px-5 py-4">
+        <Badge tone={advisor.tipo === "interno" ? "blue" : "gold"}>
+          {advisor.tipo === "interno" ? "Interno" : "Externo"}
+        </Badge>
+      </td>
       <td className="px-5 py-4 text-zinc-400">{advisor.phone ?? "—"}</td>
       <td className="px-5 py-4 text-zinc-400">{advisor.email ?? "—"}</td>
       <td className="px-5 py-4">
@@ -142,11 +142,12 @@ function AdvisorRow({ advisor, canManage }: { advisor: Advisor; canManage: boole
 export function AdvisorsList({ advisors, canManage }: { advisors: Advisor[]; canManage: boolean }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-left text-sm">
+      <table className="w-full min-w-[700px] text-left text-sm">
         <thead className="border-b border-zinc-900 bg-zinc-950/60 text-xs uppercase tracking-[0.18em] text-zinc-500">
           <tr>
             <th className="px-5 py-4 font-medium">Nombre</th>
             <th className="px-5 py-4 font-medium">Rol</th>
+            <th className="px-5 py-4 font-medium">Tipo</th>
             <th className="px-5 py-4 font-medium">Teléfono</th>
             <th className="px-5 py-4 font-medium">Email</th>
             <th className="px-5 py-4 font-medium">Estado</th>
@@ -156,7 +157,7 @@ export function AdvisorsList({ advisors, canManage }: { advisors: Advisor[]; can
         <tbody>
           {advisors.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-5 py-12 text-center text-sm text-zinc-500">
+              <td colSpan={7} className="px-5 py-12 text-center text-sm text-zinc-500">
                 Sin asesores registrados.
               </td>
             </tr>

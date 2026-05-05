@@ -78,8 +78,6 @@ function ToggleActive({ userId, active }: { userId: string; active: boolean }) {
   );
 }
 
-const ADVISOR_ROLE_LABELS = ["Captador", "Vendedor", "Captador/Vendedor", "Aliado"] as const;
-
 function CopyLinkBox({ link }: { link: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -186,19 +184,9 @@ function InviteForm() {
           </div>
 
           {selectedRole === "advisor" && (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 space-y-2">
-              <p className="text-xs text-zinc-400">Datos del asesor (aparece en /Asesores)</p>
-              <select
-                name="advisorRole"
-                defaultValue="Captador/Vendedor"
-                className="w-full appearance-none rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 focus:border-[#D6A93D] focus:outline-none"
-              >
-                {ADVISOR_ROLE_LABELS.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-              <Input name="phone" type="tel" placeholder="Teléfono (opcional)" className="h-8 text-sm" />
-            </div>
+            <p className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-xs text-zinc-500">
+              Después de crear el usuario ve a <strong className="text-zinc-400">Asesores</strong> para vincularlo.
+            </p>
           )}
 
           {error && <p className="text-xs text-red-400">{error}</p>}

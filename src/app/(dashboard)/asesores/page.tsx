@@ -17,7 +17,7 @@ async function getAllAdvisors() {
 
   const { data } = await supabase
     .from("advisors")
-    .select("id,full_name,role,phone,email,active")
+    .select("id,full_name,role,tipo,phone,email,active")
     .order("active", { ascending: false })
     .order("full_name");
 
@@ -25,10 +25,40 @@ async function getAllAdvisors() {
     id: a.id as string,
     name: a.full_name as string,
     role: a.role as string,
+    tipo: (a.tipo ?? "interno") as string,
     phone: a.phone as string | null,
     email: a.email as string | null,
     active: Boolean(a.active),
   }));
+}
+
+async function getAvailableUsers() {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) return [];
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, role")
+    .eq("active", true)
+    .order("full_name");
+
+  if (!profiles?.length) return [];
+
+  const { data: linked } = await supabase
+    .from("advisors")
+    .select("user_id")
+    .not("user_id", "is", null);
+
+  const linkedIds = new Set((linked ?? []).map((a: any) => a.user_id as string));
+
+  return profiles
+    .filter((p: any) => !linkedIds.has(p.id))
+    .map((p: any) => ({
+      id: p.id as string,
+      name: (p.full_name ?? p.email) as string,
+      email: p.email as string,
+      role: p.role as string,
+    }));
 }
 
 export default async function AdvisorsPage({
@@ -37,7 +67,11 @@ export default async function AdvisorsPage({
   searchParams: Promise<{ error?: string; success?: string }>;
 }) {
   const params = await searchParams;
-  const [advisors, role] = await Promise.all([getAllAdvisors(), getUserRole()]);
+  const [advisors, availableUsers, role] = await Promise.all([
+    getAllAdvisors(),
+    getAvailableUsers(),
+    getUserRole(),
+  ]);
 
   const active = advisors.filter((a) => a.active).length;
   const inactive = advisors.filter((a) => !a.active).length;
@@ -48,7 +82,7 @@ export default async function AdvisorsPage({
       <PageHeader
         eyebrow="Equipo comercial"
         title="Asesores"
-        description="Gestión de captadores, vendedores y aliados del equipo comercial."
+        description="Gestión de captadores, vendedores y asesores vinculados a usuarios del sistema."
       />
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
@@ -62,7 +96,7 @@ export default async function AdvisorsPage({
           <Card>
             <CardHeader className="border-b border-zinc-900">
               <CardTitle>Listado de asesores</CardTitle>
-              <CardDescription>Activos primero. Desactivar no elimina el historial de comisiones.</CardDescription>
+              <CardDescription>Activos primero. Cada asesor está vinculado a un usuario del sistema.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <AdvisorsList advisors={advisors} canManage={canManage} />
@@ -74,8 +108,8 @@ export default async function AdvisorsPage({
           <div>
             <Card>
               <CardHeader className="border-b border-zinc-900">
-                <CardTitle>Registrar asesor</CardTitle>
-                <CardDescription>Nuevo captador, vendedor o aliado.</CardDescription>
+                <CardTitle>Vincular asesor</CardTitle>
+                <CardDescription>Asocia un usuario existente como asesor.</CardDescription>
               </CardHeader>
               <CardContent className="p-5">
                 {params.error && (
@@ -88,44 +122,62 @@ export default async function AdvisorsPage({
                     Asesor registrado correctamente.
                   </div>
                 )}
-                <form
-                  action={async (formData) => {
-                    "use server";
-                    const { redirect } = await import("next/navigation");
-                    const result = await createAdvisorAction(formData);
-                    if (result?.error) {
-                      redirect("/asesores?error=" + encodeURIComponent(result.error));
-                    }
-                    redirect("/asesores?success=1");
-                  }}
-                  className="space-y-4"
-                >
-                  <div className="space-y-1.5">
-                    <label className="text-xs uppercase tracking-[0.14em] text-zinc-500">Nombre completo *</label>
-                    <Input name="fullName" required placeholder="Juan García" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs uppercase tracking-[0.14em] text-zinc-500">Rol *</label>
-                    <Select name="role" defaultValue="Captador/Vendedor">
-                      <option value="Captador">Captador</option>
-                      <option value="Vendedor">Vendedor</option>
-                      <option value="Captador/Vendedor">Captador / Vendedor</option>
-                      <option value="Aliado">Aliado</option>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs uppercase tracking-[0.14em] text-zinc-500">Teléfono</label>
-                    <Input name="phone" type="tel" placeholder="3001234567" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs uppercase tracking-[0.14em] text-zinc-500">Email</label>
-                    <Input name="email" type="email" placeholder="asesor@email.com" />
-                  </div>
-                  <Button type="submit" className="w-full">
-                    <Save className="h-4 w-4" />
-                    Registrar asesor
-                  </Button>
-                </form>
+
+                {availableUsers.length === 0 ? (
+                  <p className="text-sm text-zinc-500">
+                    Todos los usuarios activos ya tienen un asesor asignado. Crea un nuevo usuario desde{" "}
+                    <a href="/usuarios" className="text-[#D6A93D] hover:underline">Usuarios</a> primero.
+                  </p>
+                ) : (
+                  <form
+                    action={async (formData) => {
+                      "use server";
+                      const { redirect } = await import("next/navigation");
+                      const result = await createAdvisorAction(formData);
+                      if (result?.error) {
+                        redirect("/asesores?error=" + encodeURIComponent(result.error));
+                      }
+                      redirect("/asesores?success=1");
+                    }}
+                    className="space-y-4"
+                  >
+                    <div className="space-y-1.5">
+                      <label className="text-xs uppercase tracking-[0.14em] text-zinc-500">Usuario *</label>
+                      <Select name="userId" required>
+                        <option value="">Seleccionar usuario...</option>
+                        {availableUsers.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} — {u.email}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs uppercase tracking-[0.14em] text-zinc-500">Rol *</label>
+                      <Select name="role" defaultValue="Asesor">
+                        <option value="Captador">Captador</option>
+                        <option value="Vendedor">Vendedor</option>
+                        <option value="Asesor">Asesor</option>
+                        <option value="Gerente">Gerente</option>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs uppercase tracking-[0.14em] text-zinc-500">Tipo *</label>
+                      <Select name="tipo" defaultValue="interno">
+                        <option value="interno">Interno</option>
+                        <option value="externo">Externo</option>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs uppercase tracking-[0.14em] text-zinc-500">Teléfono</label>
+                      <Input name="phone" type="tel" placeholder="3001234567" />
+                    </div>
+                    <Button type="submit" className="w-full">
+                      <Save className="h-4 w-4" />
+                      Vincular asesor
+                    </Button>
+                  </form>
+                )}
               </CardContent>
             </Card>
           </div>

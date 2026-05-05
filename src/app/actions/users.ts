@@ -63,9 +63,6 @@ export async function inviteUserAction(formData: FormData) {
   const email = (formData.get("email") as string)?.trim();
   const fullName = (formData.get("fullName") as string)?.trim();
   const role = (formData.get("role") as UserRole) ?? "viewer";
-  const advisorRole = (formData.get("advisorRole") as string)?.trim() || "Captador/Vendedor";
-  const phone = (formData.get("phone") as string)?.trim() || null;
-
   if (!email) return { error: "El email es requerido." };
   if (!fullName) return { error: "El nombre es requerido." };
 
@@ -97,31 +94,16 @@ export async function inviteUserAction(formData: FormData) {
   // Try to send via Resend — returns false if email not configured or fails
   const emailSent = await sendInviteEmail(email, fullName, link);
 
-  // Upsert profile with desired role
-  await admin.from("profiles").upsert({
-    email,
-    full_name: fullName,
-    role,
-    active: true,
-  }, { onConflict: "email", ignoreDuplicates: false });
-
-  // If advisor role, auto-create in advisors table
-  if (role === "advisor") {
-    const { data: existing } = await admin
-      .from("advisors")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
-
-    if (!existing) {
-      await admin.from("advisors").insert({
-        full_name: fullName,
-        role: advisorRole,
-        email,
-        phone,
-        active: true,
-      });
-    }
+  // Upsert profile with desired role — id must match the auth user's UUID
+  const userId = linkData.user?.id;
+  if (userId) {
+    await admin.from("profiles").upsert({
+      id: userId,
+      email,
+      full_name: fullName,
+      role,
+      active: true,
+    }, { onConflict: "id", ignoreDuplicates: false });
   }
 
   revalidatePath("/usuarios");
