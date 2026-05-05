@@ -6,7 +6,7 @@ import { z } from "zod";
 import { updateVehicle } from "@/lib/data/vehicles";
 
 const optionalNumber = z.preprocess(
-  (v) => (v === "" || v === null ? undefined : Number(v)),
+  (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
   z.number().nonnegative().optional()
 );
 

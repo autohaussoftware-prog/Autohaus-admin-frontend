@@ -7,7 +7,7 @@ import { createVehicle } from "@/lib/data/vehicles";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 
 const optionalNumber = z.preprocess(
-  (value) => (value === "" || value === null ? undefined : Number(value)),
+  (value) => (value === "" || value === null || value === undefined ? undefined : Number(value)),
   z.number().nonnegative().optional()
 );
 
