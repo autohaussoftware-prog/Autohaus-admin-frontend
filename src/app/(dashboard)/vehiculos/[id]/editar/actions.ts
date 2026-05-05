@@ -8,12 +8,12 @@ import { updateVehicle } from "@/lib/data/vehicles";
 const optionalNumber = z.preprocess(
   (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
   z.number().nonnegative().optional()
-);
+).optional();
 
 const optionalText = z.preprocess(
   (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
   z.string().trim().optional()
-);
+).optional();
 
 const vehicleSchema = z.object({
   plate: z.string().trim().min(3, "La placa debe tener al menos 3 caracteres."),

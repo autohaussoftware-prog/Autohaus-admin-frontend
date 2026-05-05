@@ -9,12 +9,12 @@ import { getCurrentUserProfile } from "@/lib/supabase/server";
 const optionalNumber = z.preprocess(
   (value) => (value === "" || value === null || value === undefined ? undefined : Number(value)),
   z.number().nonnegative().optional()
-);
+).optional();
 
 const optionalText = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z.string().trim().optional()
-);
+).optional();
 
 const vehicleSchema = z.object({
   plate: z.string().trim().min(3, "La placa debe tener al menos 3 caracteres."),
