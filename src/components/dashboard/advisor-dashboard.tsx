@@ -1,4 +1,4 @@
-import { Car, CircleDollarSign, Calendar, TrendingUp } from "lucide-react";
+import { Car, CircleDollarSign, Calendar } from "lucide-react";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/ui/badge";
 import type { AdvisorStats } from "@/lib/data/advisor-dashboard";
