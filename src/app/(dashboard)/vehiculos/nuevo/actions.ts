@@ -69,7 +69,10 @@ const vehicleSchema = z.object({
   }
 });
 
-export async function createVehicleAction(formData: FormData) {
+export async function createVehicleAction(
+  _prev: { error: string | null },
+  formData: FormData
+): Promise<{ error: string | null }> {
   const rawData = Object.fromEntries(
     [...formData.entries()].filter(([, v]) => !(v instanceof File))
   );
@@ -77,8 +80,7 @@ export async function createVehicleAction(formData: FormData) {
   const parsed = vehicleSchema.safeParse(rawData);
 
   if (!parsed.success) {
-    const firstError = parsed.error.issues[0]?.message ?? "Revisa los campos obligatorios.";
-    redirect(`/vehiculos/nuevo?error=${encodeURIComponent(firstError)}`);
+    return { error: parsed.error.issues[0]?.message ?? "Revisa los campos obligatorios." };
   }
 
   const profile = await getCurrentUserProfile();
@@ -87,8 +89,7 @@ export async function createVehicleAction(formData: FormData) {
   try {
     vehicleId = await createVehicle({ ...parsed.data, createdByUserId: profile.id });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo crear el vehículo.";
-    redirect(`/vehiculos/nuevo?error=${encodeURIComponent(message)}`);
+    return { error: error instanceof Error ? error.message : "No se pudo crear el vehículo." };
   }
 
   revalidatePath("/inventario");
