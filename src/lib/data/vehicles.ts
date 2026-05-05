@@ -294,13 +294,12 @@ export async function createVehicle(input: CreateVehicleInput) {
       advisor_seller_id: input.advisorSellerId || null,
       soat_due: input.soatDue || null,
       techno_due: input.technoDue || null,
-      entry_type: input.entryType || "Compra",
       published,
       separated,
       owner_name: input.ownerName?.trim() || null,
       owner_phone: input.ownerPhone?.trim() || null,
-      created_by: input.createdByUserId || null,       // references profiles(id) = auth.uid()
-      created_by_user_id: input.createdByUserId || null, // references auth.users(id)
+      created_by: input.createdByUserId || null,
+      created_by_user_id: input.createdByUserId || null,
     })
     .select("id")
     .single();
@@ -360,7 +359,6 @@ export async function updateVehicle(vehicleId: string, input: CreateVehicleInput
       advisor_seller_id: input.advisorSellerId || null,
       soat_due: input.soatDue || null,
       techno_due: input.technoDue || null,
-      entry_type: input.entryType || "Compra",
       published,
       separated,
       owner_name: input.ownerName?.trim() || null,
