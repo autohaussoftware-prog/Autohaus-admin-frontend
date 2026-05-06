@@ -28,6 +28,8 @@ type Props = {
   defaultOwnerName?: string;
   defaultOwnerPhone?: string;
   fieldErrors?: Record<string, string[]>;
+  onOwnerTypeChange?: (type: string) => void;
+  onBuyPriceChange?: (price: string) => void;
 };
 
 const STATUSES = [
@@ -65,9 +67,16 @@ export function VehicleBusinessFields({
   defaultOwnerName = "",
   defaultOwnerPhone = "",
   fieldErrors = {},
+  onOwnerTypeChange,
+  onBuyPriceChange,
 }: Props) {
   const [ownerType, setOwnerType] = useState(defaultOwnerType);
   const isConsignment = ownerType === "Comisión";
+
+  function handleOwnerTypeChange(type: string) {
+    setOwnerType(type);
+    onOwnerTypeChange?.(type);
+  }
 
   return (
     <>
@@ -80,7 +89,7 @@ export function VehicleBusinessFields({
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => setOwnerType("Propio")}
+            onClick={() => handleOwnerTypeChange("Propio")}
             className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors ${
               !isConsignment
                 ? "border-[#D6A93D] bg-[#D6A93D]/5 text-white"
@@ -95,7 +104,7 @@ export function VehicleBusinessFields({
           </button>
           <button
             type="button"
-            onClick={() => setOwnerType("Comisión")}
+            onClick={() => handleOwnerTypeChange("Comisión")}
             className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors ${
               isConsignment
                 ? "border-[#D6A93D] bg-[#D6A93D]/5 text-white"
@@ -199,6 +208,7 @@ export function VehicleBusinessFields({
                 min="0"
                 placeholder="315000000"
                 defaultValue={defaultBuyPrice ?? ""}
+                onChange={(e) => onBuyPriceChange?.(e.target.value)}
               />
               {fieldErrors.buyPrice && (
                 <p className="mt-1 text-xs text-red-400">{fieldErrors.buyPrice[0]}</p>

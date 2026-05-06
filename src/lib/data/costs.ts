@@ -88,13 +88,14 @@ export async function createVehicleCost(input: CreateVehicleCostInput): Promise<
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function syncVehicleRealCost(supabase: any, vehicleId: string) {
-  const { data } = await supabase
-    .from("vehicle_costs")
-    .select("amount")
-    .eq("vehicle_id", vehicleId);
-  const total = (data ?? []).reduce((sum: number, c: { amount: unknown }) => sum + Number(c.amount), 0);
-  await supabase.from("vehicles").update({ real_cost: total }).eq("id", vehicleId);
+export async function syncVehicleRealCost(supabase: any, vehicleId: string) {
+  const [costsResult, gastosResult] = await Promise.all([
+    supabase.from("vehicle_costs").select("amount").eq("vehicle_id", vehicleId),
+    supabase.from("vehiculo_gastos").select("monto").eq("vehiculo_id", vehicleId),
+  ]);
+  const costsTotal = ((costsResult.data ?? []) as any[]).reduce((s, c) => s + Number(c.amount), 0);
+  const gastosTotal = ((gastosResult.data ?? []) as any[]).reduce((s, g) => s + Number(g.monto), 0);
+  await supabase.from("vehicles").update({ real_cost: costsTotal + gastosTotal }).eq("id", vehicleId);
 }
 
 export async function deleteVehicleCost(costId: string, vehicleId?: string, deletedBy?: string): Promise<void> {

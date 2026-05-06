@@ -5,6 +5,8 @@ import { VehicleStatusChanger } from "@/components/vehicles/vehicle-status-chang
 import { getVehicleById, getVehicleMovementsByVehicleId } from "@/lib/data/vehicles";
 import { getVehicleCosts } from "@/lib/data/costs";
 import { getVehicleDocs } from "@/lib/data/docs";
+import { getVehicleInvestors } from "@/lib/data/investors";
+import { getVehicleExpenses } from "@/lib/data/expenses";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,17 +19,20 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   if (!vehicle) notFound();
 
-  const [movements, costs, legalDocs] = await Promise.all([
-    getVehicleMovementsByVehicleId(vehicle.id),
-    getVehicleCosts(vehicle.id),
-    getVehicleDocs(vehicle.id),
-  ]);
-
   const showFinancials = role !== "advisor";
   const canChangeStatus = role !== "viewer";
   const canEdit = !["advisor", "viewer"].includes(role);
   const canDeleteCosts = ["owner", "partner", "admin"].includes(role);
   const canDeleteDocs = ["owner", "partner", "admin"].includes(role);
+  const canManageInvestments = ["owner", "partner", "admin", "gerente", "accounting"].includes(role);
+
+  const [movements, costs, legalDocs, investors, expenses] = await Promise.all([
+    getVehicleMovementsByVehicleId(vehicle.id),
+    getVehicleCosts(vehicle.id),
+    getVehicleDocs(vehicle.id),
+    showFinancials ? getVehicleInvestors(vehicle.id) : Promise.resolve([]),
+    showFinancials ? getVehicleExpenses(vehicle.id) : Promise.resolve([]),
+  ]);
 
   return (
     <>
@@ -49,9 +54,12 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         movements={movements}
         costs={costs}
         legalDocs={legalDocs}
+        investors={investors}
+        expenses={expenses}
         showFinancials={showFinancials}
         canDeleteCosts={canDeleteCosts}
         canDeleteDocs={canDeleteDocs}
+        canManageInvestments={canManageInvestments}
       />
     </>
   );

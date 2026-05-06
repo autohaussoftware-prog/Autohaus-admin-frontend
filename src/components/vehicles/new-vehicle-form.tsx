@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { Save } from "lucide-react";
+import { useActionState, useState } from "react";
+import { Save, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { createVehicleAction } from "@/app/(dashboard)/vehiculos/nuevo/actions";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { VehicleIdentificationFields } from "@/components/vehicles/vehicle-ident
 import { VehicleBusinessFields } from "@/components/vehicles/vehicle-business-fields";
 import { TransitAuthoritySelect } from "@/components/vehicles/transit-authority-select";
 import { PrendaFields } from "@/components/vehicles/prenda-fields";
+import { InvestorsSection } from "@/components/vehicles/investors-section";
 
 type Option = { id: string; name: string };
 
@@ -36,6 +37,10 @@ function FormFields({
   isAdvisor: boolean;
   fieldErrors?: Record<string, string[]>;
 }) {
+  const [ownerType, setOwnerType] = useState(values?.ownerType ?? "Propio");
+  const [buyPrice, setBuyPrice] = useState(Number(values?.buyPrice) || 0);
+  const isPropio = ownerType === "Propio";
+
   return (
     <>
       <Card>
@@ -113,9 +118,28 @@ function FormFields({
             defaultOwnerName={values?.ownerName}
             defaultOwnerPhone={values?.ownerPhone}
             fieldErrors={fieldErrors}
+            onOwnerTypeChange={setOwnerType}
+            onBuyPriceChange={(p) => setBuyPrice(Number(p) || 0)}
           />
         </CardContent>
       </Card>
+
+      {isPropio && !isAdvisor && (
+        <Card>
+          <CardHeader className="border-b border-zinc-900">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-[#D6A93D]" />
+              <CardTitle>Inversionistas</CardTitle>
+            </div>
+            <CardDescription>
+              Personas que compran o invierten en este vehículo. La suma debe coincidir con el precio de compra.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-5">
+            <InvestorsSection buyPrice={buyPrice} />
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }

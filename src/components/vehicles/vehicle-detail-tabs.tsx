@@ -17,13 +17,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { VehicleCosts } from "@/components/vehicles/vehicle-costs";
 import { VehicleDocuments } from "@/components/vehicles/vehicle-documents";
+import { VehicleExpenses } from "@/components/vehicles/vehicle-expenses";
 import { VehicleStatusBadge } from "@/components/vehicles/vehicle-status-badge";
 import { compactCOP, currencyCOP, percentage } from "@/lib/utils";
 import type { Vehicle, VehicleMovement } from "@/types/vehicle";
 import type { VehicleCost } from "@/lib/data/costs";
 import type { VehicleDoc } from "@/lib/data/docs";
+import type { VehicleInvestor } from "@/lib/data/investors";
+import type { VehicleExpense } from "@/lib/data/expenses";
 
-type Tab = "info" | "costos" | "documentos" | "historial";
+type Tab = "info" | "costos" | "inversion" | "documentos" | "historial";
 
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
@@ -77,17 +80,23 @@ export function VehicleDetailTabs({
   movements,
   costs,
   legalDocs,
+  investors = [],
+  expenses = [],
   showFinancials,
   canDeleteCosts,
   canDeleteDocs,
+  canManageInvestments = false,
 }: {
   vehicle: Vehicle;
   movements: VehicleMovement[];
   costs: VehicleCost[];
   legalDocs: VehicleDoc[];
+  investors?: VehicleInvestor[];
+  expenses?: VehicleExpense[];
   showFinancials: boolean;
   canDeleteCosts: boolean;
   canDeleteDocs: boolean;
+  canManageInvestments?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("info");
 
@@ -108,6 +117,15 @@ export function VehicleDetailTabs({
             icon={DollarSign}
             label="Costos"
             count={costs.length}
+          />
+        )}
+        {showFinancials && vehicle.ownerType === "Propio" && (
+          <TabButton
+            active={tab === "inversion"}
+            onClick={() => setTab("inversion")}
+            icon={UserRound}
+            label="Inversión"
+            count={investors.length + expenses.length || undefined}
           />
         )}
         <TabButton
@@ -259,6 +277,74 @@ export function VehicleDetailTabs({
       {/* Tab: Costos */}
       {tab === "costos" && showFinancials && (
         <VehicleCosts vehicleId={vehicle.id} costs={costs} canDelete={canDeleteCosts} />
+      )}
+
+      {/* Tab: Inversión */}
+      {tab === "inversion" && showFinancials && vehicle.ownerType === "Propio" && (
+        <div className="space-y-6">
+          {investors.length > 0 && (
+            <Card>
+              <CardHeader className="border-b border-zinc-900">
+                <CardTitle>Inversionistas</CardTitle>
+                <CardDescription>
+                  Personas que aportaron capital para la compra de este vehículo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-zinc-900 text-xs uppercase tracking-[0.15em] text-zinc-500">
+                      <tr>
+                        <th className="px-5 py-3 text-left font-medium">Nombre</th>
+                        <th className="px-5 py-3 text-left font-medium">Celular</th>
+                        <th className="px-5 py-3 text-right font-medium">Monto aportado</th>
+                        <th className="px-5 py-3 text-right font-medium">% del total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {investors.map((inv) => {
+                        const pct = vehicle.buyPrice > 0 ? (inv.monto / vehicle.buyPrice) * 100 : 0;
+                        return (
+                          <tr key={inv.id} className="border-b border-zinc-900/60 hover:bg-zinc-900/40">
+                            <td className="px-5 py-3 font-medium text-white">{inv.nombre}</td>
+                            <td className="px-5 py-3 text-zinc-400">{inv.celular}</td>
+                            <td className="px-5 py-3 text-right font-medium text-white">{currencyCOP(inv.monto)}</td>
+                            <td className="px-5 py-3 text-right text-zinc-400">{percentage(pct)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t border-zinc-800 bg-zinc-900/30">
+                        <td className="px-5 py-3 text-xs font-medium uppercase tracking-widest text-zinc-500" colSpan={2}>Total</td>
+                        <td className="px-5 py-3 text-right text-sm font-semibold text-[#D6A93D]">
+                          {currencyCOP(investors.reduce((s, i) => s + i.monto, 0))}
+                        </td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader className="border-b border-zinc-900">
+              <CardTitle>Gastos adicionales</CardTitle>
+              <CardDescription>
+                Gastos incurridos después del ingreso del vehículo (reparaciones, grúa, papeles, etc.).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-5">
+              <VehicleExpenses
+                vehicleId={vehicle.id}
+                expenses={expenses}
+                canDelete={canManageInvestments}
+              />
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Tab: Documentos */}
