@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createOrder } from "@/lib/data/orders";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
+import { createNotification, getAdminAndManagerIds } from "@/lib/data/notifications";
 
 const orderSchema = z.object({
   brand: z.string().trim().min(1, "La marca es obligatoria."),
@@ -54,8 +55,9 @@ export async function createOrderAction(
     };
   }
 
+  let orderId: string;
   try {
-    await createOrder({ ...parsed.data, createdByUserId: profile.id });
+    orderId = await createOrder({ ...parsed.data, createdByUserId: profile.id });
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "No se pudo crear el pedido.",
@@ -63,6 +65,20 @@ export async function createOrderAction(
       values: rawData,
     };
   }
+
+  const adminIds = await getAdminAndManagerIds();
+  await Promise.all(
+    adminIds
+      .filter((id) => id !== profile.id)
+      .map((id) =>
+        createNotification(
+          id,
+          "Nuevo pedido",
+          `${profile.name} registró un pedido: ${parsed.data.brand} ${parsed.data.line} ${parsed.data.year}`,
+          `/pedidos/${orderId}`
+        )
+      )
+  );
 
   revalidatePath("/pedidos");
   redirect("/pedidos");

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
@@ -35,7 +36,7 @@ function StatusSelect({ orderId, current }: { orderId: string; current: OrderSta
   );
 }
 
-export function OrdersTable({ orders }: { orders: Order[] }) {
+export function OrdersTable({ orders, matchCounts = {} }: { orders: Order[]; matchCounts?: Record<string, number> }) {
   if (orders.length === 0) {
     return (
       <div className="rounded-2xl border border-zinc-800 bg-zinc-950 px-5 py-16 text-center text-sm text-zinc-500">
@@ -57,6 +58,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
               <th className="px-5 py-3 text-left font-medium">Asesor</th>
               <th className="px-5 py-3 text-left font-medium">Cliente</th>
               <th className="px-5 py-3 text-left font-medium">Estado</th>
+              <th className="px-5 py-3 text-left font-medium">Coincidencias</th>
               <th className="px-5 py-3 text-left font-medium">Fecha</th>
             </tr>
           </thead>
@@ -97,6 +99,26 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                 </td>
                 <td className="px-5 py-3">
                   <StatusSelect orderId={order.id} current={order.status} />
+                </td>
+                <td className="px-5 py-3">
+                  {(() => {
+                    const count = matchCounts[order.id] ?? 0;
+                    return count > 0 ? (
+                      <Link
+                        href={`/pedidos/${order.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-green-950/40 border border-green-900/40 px-2.5 py-1 text-xs font-medium text-green-400 hover:bg-green-950/70 transition-colors"
+                      >
+                        ✅ {count} {count === 1 ? "coincidencia" : "coincidencias"}
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/pedidos/${order.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 border border-zinc-800 px-2.5 py-1 text-xs text-zinc-500 hover:bg-zinc-800 transition-colors"
+                      >
+                        ❌ Sin coincidencias
+                      </Link>
+                    );
+                  })()}
                 </td>
                 <td className="px-5 py-3 text-xs text-zinc-500">{fmtDate(order.createdAt)}</td>
               </tr>

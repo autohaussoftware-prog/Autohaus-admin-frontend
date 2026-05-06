@@ -8,9 +8,11 @@ import type { UserRole } from "@/types/auth";
 export function DashboardShell({
   children,
   role,
+  unreadCount = 0,
 }: {
   children: React.ReactNode;
   role: UserRole;
+  unreadCount?: number;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -32,7 +34,7 @@ export function DashboardShell({
         )}
 
         <div className="min-w-0 flex-1">
-          <Topbar onOpenSidebar={() => setSidebarOpen(true)} />
+          <Topbar onOpenSidebar={() => setSidebarOpen(true)} unreadCount={unreadCount} />
           <main className="p-4 xl:p-8">{children}</main>
         </div>
       </div>

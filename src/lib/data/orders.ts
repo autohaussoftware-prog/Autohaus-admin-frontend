@@ -145,6 +145,66 @@ export async function createOrder(input: CreateOrderInput): Promise<string> {
   return data.id as string;
 }
 
+export async function getOrderById(orderId: string, viewer?: { userId: string; role: string }): Promise<Order | null> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", orderId)
+    .single();
+
+  if (error || !data) return null;
+
+  const order = data as DbOrder;
+  const advisorsMap = new Map<string, AdvisorProfile>();
+
+  if (order.created_by_user_id) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, full_name, phone")
+      .eq("id", order.created_by_user_id)
+      .single();
+
+    if (profile) {
+      advisorsMap.set(order.created_by_user_id, { full_name: (profile as any).full_name ?? null, phone: (profile as any).phone ?? null });
+    }
+  }
+
+  return mapOrder(order, viewer, advisorsMap);
+}
+
+export type OpenOrder = {
+  id: string;
+  brand: string;
+  line: string;
+  year: number;
+  budget: string;
+  createdByUserId: string | null;
+};
+
+export async function getOpenOrders(): Promise<OpenOrder[]> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id, brand, line, year, budget, created_by_user_id")
+    .not("status", "in", '("Cerrado")');
+
+  if (error || !data) return [];
+
+  return (data as any[]).map((o) => ({
+    id: o.id,
+    brand: o.brand,
+    line: o.line,
+    year: o.year,
+    budget: o.budget,
+    createdByUserId: o.created_by_user_id,
+  }));
+}
+
 export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) throw new Error("Supabase no configurado.");

@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { createVehicle } from "@/lib/data/vehicles";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { vehicleSchema, type VehicleActionState } from "@/lib/schemas/vehicle-schema";
+import { getOpenOrders } from "@/lib/data/orders";
+import { getVehicleById } from "@/lib/data/vehicles";
+import { matchesOrder } from "@/lib/utils/order-matcher";
+import { createNotification } from "@/lib/data/notifications";
 
 export async function createVehicleAction(
   _prev: VehicleActionState,
@@ -37,6 +41,27 @@ export async function createVehicleAction(
       attempt: _prev.attempt + 1,
       values: rawData,
     };
+  }
+
+  const [vehicle, openOrders] = await Promise.all([
+    getVehicleById(vehicleId),
+    getOpenOrders(),
+  ]);
+
+  if (vehicle) {
+    const matched = openOrders.filter((o) => matchesOrder(vehicle, o));
+    await Promise.all(
+      matched
+        .filter((o) => o.createdByUserId && o.createdByUserId !== profile.id)
+        .map((o) =>
+          createNotification(
+            o.createdByUserId!,
+            "¡Coincidencia en inventario!",
+            `El vehículo ${vehicle.brand} ${vehicle.line} ${vehicle.year} coincide con tu pedido.`,
+            `/pedidos/${o.id}`
+          )
+        )
+    );
   }
 
   revalidatePath("/inventario");

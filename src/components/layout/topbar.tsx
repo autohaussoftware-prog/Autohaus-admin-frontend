@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 
-export function Topbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
+export function Topbar({ onOpenSidebar, unreadCount = 0 }: { onOpenSidebar: () => void; unreadCount?: number }) {
   const router = useRouter();
 
   async function handleLogout() {
@@ -55,9 +55,18 @@ export function Topbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" aria-label="Alertas">
-            <Bell className="h-4 w-4" />
-          </Button>
+          <Link href="/notificaciones" className="relative" aria-label="Notificaciones">
+            <Button variant="outline" size="icon" asChild>
+              <span>
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#D6A93D] text-[10px] font-bold text-black">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </span>
+            </Button>
+          </Link>
           <Link href="/movimientos/nuevo" className="hidden md:inline-flex items-center gap-2 rounded-2xl bg-[#D6A93D] px-4 py-2 text-sm font-medium text-black hover:bg-[#c49835] transition-colors">
             <Plus className="h-4 w-4" />
             Registrar movimiento

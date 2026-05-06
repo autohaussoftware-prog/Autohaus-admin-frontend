@@ -10,6 +10,7 @@ import {
   Landmark,
   LayoutDashboard,
   Settings,
+  UserCircle,
   Users,
   Wallet,
 } from "lucide-react";
@@ -44,4 +45,5 @@ export const navItems: NavItem[] = [
   { label: "Alertas",        href: "/alertas",       icon: AlertTriangle,    roles: FINANCE },
   { label: "Usuarios",       href: "/usuarios",      icon: KeyRound,         roles: MGMT },
   { label: "Configuración",  href: "/configuracion", icon: Settings,         roles: ADMIN_ONLY },
+  { label: "Mi Perfil",      href: "/perfil",         icon: UserCircle,       roles: ALL },
 ];

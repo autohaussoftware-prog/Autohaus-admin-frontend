@@ -68,7 +68,7 @@ export async function getCurrentUserName(): Promise<string> {
   return profile?.full_name || profile?.email || user.email || "Usuario";
 }
 
-export async function getCurrentUserProfile(): Promise<{ id: string; name: string; role: UserRole }> {
+export async function getCurrentUserProfile(): Promise<{ id: string; name: string; role: UserRole; phone: string | null }> {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return { id: "", name: "Sistema", role: "owner" };
 
