@@ -54,6 +54,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
               <th className="px-5 py-3 text-left font-medium">Presupuesto</th>
               <th className="px-5 py-3 text-left font-medium">Pago</th>
               <th className="px-5 py-3 text-left font-medium">Color</th>
+              <th className="px-5 py-3 text-left font-medium">Asesor</th>
               <th className="px-5 py-3 text-left font-medium">Cliente</th>
               <th className="px-5 py-3 text-left font-medium">Estado</th>
               <th className="px-5 py-3 text-left font-medium">Fecha</th>
@@ -69,6 +70,18 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                 <td className="px-5 py-3 text-zinc-300">{order.budget}</td>
                 <td className="px-5 py-3 text-zinc-400">{order.paymentMethod}</td>
                 <td className="px-5 py-3 text-zinc-400">{order.colorPreference}</td>
+                <td className="px-5 py-3">
+                  {order.advisorName ? (
+                    <>
+                      <p className="font-medium text-white">{order.advisorName}</p>
+                      {order.advisorPhone && (
+                        <p className="text-xs text-zinc-500">{order.advisorPhone}</p>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-xs text-zinc-600">Sin datos</span>
+                  )}
+                </td>
                 <td className="px-5 py-3">
                   {order.customerVisible ? (
                     <>

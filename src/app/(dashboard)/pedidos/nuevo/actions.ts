@@ -46,6 +46,14 @@ export async function createOrderAction(
 
   const profile = await getCurrentUserProfile();
 
+  if (!profile.phone?.trim()) {
+    return {
+      error: "Debes registrar tu número de teléfono en tu perfil antes de crear un pedido.",
+      attempt: _prev.attempt + 1,
+      values: rawData,
+    };
+  }
+
   try {
     await createOrder({ ...parsed.data, createdByUserId: profile.id });
   } catch (error) {

@@ -77,7 +77,7 @@ export async function getCurrentUserProfile(): Promise<{ id: string; name: strin
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, email, role")
+    .select("full_name, email, role, phone")
     .eq("id", user.id)
     .single();
 
@@ -85,5 +85,6 @@ export async function getCurrentUserProfile(): Promise<{ id: string; name: strin
     id: user.id,
     name: profile?.full_name || profile?.email || user.email || "Usuario",
     role: (profile?.role as UserRole) ?? "viewer",
+    phone: (profile?.phone as string | null) ?? null,
   };
 }

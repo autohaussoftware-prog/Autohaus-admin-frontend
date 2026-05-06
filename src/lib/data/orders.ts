@@ -17,6 +17,8 @@ export type Order = {
   status: OrderStatus;
   createdAt: string;
   createdByUserId: string | null;
+  advisorName: string | null;
+  advisorPhone: string | null;
   customerName: string | null;
   customerPhone: string | null;
   customerVisible: boolean;
@@ -51,11 +53,19 @@ type DbOrder = {
   created_at: string;
 };
 
-function mapOrder(order: DbOrder, viewer?: { userId: string; role: string }): Order {
+type AdvisorProfile = { full_name: string | null; phone: string | null };
+
+function mapOrder(
+  order: DbOrder,
+  viewer: { userId: string; role: string } | undefined,
+  advisorsMap: Map<string, AdvisorProfile>
+): Order {
   const canSeeContact =
     !viewer ||
     FULL_ACCESS_ROLES.includes(viewer.role) ||
     (order.created_by_user_id !== null && order.created_by_user_id === viewer.userId);
+
+  const advisor = order.created_by_user_id ? advisorsMap.get(order.created_by_user_id) : undefined;
 
   return {
     id: order.id,
@@ -69,6 +79,8 @@ function mapOrder(order: DbOrder, viewer?: { userId: string; role: string }): Or
     status: order.status,
     createdAt: order.created_at,
     createdByUserId: order.created_by_user_id,
+    advisorName: advisor?.full_name ?? null,
+    advisorPhone: advisor?.phone ?? null,
     customerName: canSeeContact ? order.customer_name : null,
     customerPhone: canSeeContact ? order.customer_phone : null,
     customerVisible: canSeeContact,
@@ -86,7 +98,24 @@ export async function getOrders(viewer?: { userId: string; role: string }): Prom
 
   if (error || !data) return [];
 
-  return (data as DbOrder[]).map((order) => mapOrder(order, viewer));
+  const orders = data as DbOrder[];
+  const advisorIds = [...new Set(orders.map((o) => o.created_by_user_id).filter(Boolean))] as string[];
+
+  const advisorsMap = new Map<string, AdvisorProfile>();
+  if (advisorIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, phone")
+      .in("id", advisorIds);
+
+    if (profiles) {
+      for (const p of profiles as any[]) {
+        advisorsMap.set(p.id, { full_name: p.full_name ?? null, phone: p.phone ?? null });
+      }
+    }
+  }
+
+  return orders.map((order) => mapOrder(order, viewer, advisorsMap));
 }
 
 export async function createOrder(input: CreateOrderInput): Promise<string> {
