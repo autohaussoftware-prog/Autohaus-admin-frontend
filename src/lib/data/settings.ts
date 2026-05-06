@@ -11,11 +11,12 @@ export type AppSetting = {
 };
 
 const DEFAULTS: AppSetting[] = [
-  { key: "commission_captador",   value: "20",       label: "Comisión captador",         groupName: "Comisiones",   unit: "%",  updatedAt: "" },
-  { key: "commission_vendedor",   value: "20",       label: "Comisión vendedor",         groupName: "Comisiones",   unit: "%",  updatedAt: "" },
-  { key: "commission_credito",    value: "33",       label: "Comisión crédito",          groupName: "Comisiones",   unit: "%",  updatedAt: "" },
-  { key: "margin_min",            value: "3",        label: "Margen mínimo esperado",    groupName: "Rentabilidad", unit: "%",  updatedAt: "" },
-  { key: "cash_alert_threshold",  value: "30000000", label: "Alerta movimiento grande",  groupName: "Efectivo",     unit: "$",  updatedAt: "" },
+  { key: "commission_captador",       value: "20",       label: "Comisión captador",              groupName: "Comisiones",   unit: "%",  updatedAt: "" },
+  { key: "commission_vendedor",       value: "20",       label: "Comisión vendedor",              groupName: "Comisiones",   unit: "%",  updatedAt: "" },
+  { key: "commission_credito",        value: "33",       label: "Comisión crédito",               groupName: "Comisiones",   unit: "%",  updatedAt: "" },
+  { key: "commission_consignacion",   value: "3",        label: "Comisión consignación",          groupName: "Comisiones",   unit: "%",  updatedAt: "" },
+  { key: "margin_min",                value: "3",        label: "Margen mínimo esperado",         groupName: "Rentabilidad", unit: "%",  updatedAt: "" },
+  { key: "cash_alert_threshold",      value: "30000000", label: "Alerta movimiento grande",       groupName: "Efectivo",     unit: "$",  updatedAt: "" },
 ];
 
 export async function getSettings(): Promise<AppSetting[]> {

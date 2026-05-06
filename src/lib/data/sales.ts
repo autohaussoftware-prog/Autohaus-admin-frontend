@@ -86,6 +86,10 @@ export type SaleDetail = Sale & {
   vehicleLine: string;
   vehicleVersion: string;
   customerDocument: string | null;
+  vehicleOwnerType: string;
+  consignmentRate: number;
+  consignmentCommission: number;
+  ownerPayout: number;
 };
 
 export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
@@ -100,29 +104,37 @@ export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
 
   if (error || !s) return null;
 
-  const [vehicleRes, customerRes, advisorRes] = await Promise.all([
-    s.vehicle_id ? supabase.from("vehicles").select("id,brand,line,version,plate").eq("id", s.vehicle_id).single() : Promise.resolve({ data: null }),
+  const [vehicleRes, customerRes, advisorRes, settings] = await Promise.all([
+    s.vehicle_id ? supabase.from("vehicles").select("id,brand,line,version,plate,owner_type").eq("id", s.vehicle_id).single() : Promise.resolve({ data: null }),
     s.customer_id ? supabase.from("customers").select("id,full_name,phone,document_number").eq("id", s.customer_id).single() : Promise.resolve({ data: null }),
     s.seller_id ? supabase.from("advisors").select("id,full_name").eq("id", s.seller_id).single() : Promise.resolve({ data: null }),
+    getSettings(),
   ]);
 
   const v = vehicleRes.data;
   const c = customerRes.data;
   const a = advisorRes.data;
 
+  const settingsMap = Object.fromEntries(settings.map((st) => [st.key, Number(st.value)]));
+  const consignmentRate = settingsMap["commission_consignacion"] ?? 3;
+  const agreedPrice = Number(s.agreed_price);
+  const ownerType = (v as any)?.owner_type ?? "Propio";
+  const consignmentCommission = ownerType === "Comisión" ? Math.round(agreedPrice * consignmentRate / 100) : 0;
+  const ownerPayout = ownerType === "Comisión" ? agreedPrice - consignmentCommission : 0;
+
   return {
     id: s.id,
     vehicleId: s.vehicle_id,
-    vehicleName: v ? `${v.brand} ${v.line}` : "Vehículo",
-    vehiclePlate: v?.plate ?? "",
-    vehicleBrand: v?.brand ?? "",
-    vehicleLine: v?.line ?? "",
-    vehicleVersion: v?.version ?? "",
+    vehicleName: v ? `${(v as any).brand} ${(v as any).line}` : "Vehículo",
+    vehiclePlate: (v as any)?.plate ?? "",
+    vehicleBrand: (v as any)?.brand ?? "",
+    vehicleLine: (v as any)?.line ?? "",
+    vehicleVersion: (v as any)?.version ?? "",
     customerName: c?.full_name ?? null,
     customerPhone: c?.phone ?? null,
     customerDocument: c?.document_number ?? null,
     sellerName: a?.full_name ?? null,
-    agreedPrice: Number(s.agreed_price),
+    agreedPrice,
     initialPayment: Number(s.initial_payment),
     pendingBalance: Number(s.pending_balance),
     paymentStatus: s.payment_status,
@@ -132,6 +144,10 @@ export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
     expiryDate: s.expiry_date ?? null,
     closedAt: s.closed_at ?? null,
     createdAt: s.created_at,
+    vehicleOwnerType: ownerType,
+    consignmentRate,
+    consignmentCommission,
+    ownerPayout,
   };
 }
 
@@ -253,46 +269,68 @@ async function autoCreateCommissions(
   try {
     const [settings, vehicleRes] = await Promise.all([
       getSettings(),
-      supabase.from("vehicles").select("advisor_buyer_id, buy_price, real_cost").eq("id", vehicleId).single(),
+      supabase.from("vehicles").select("advisor_buyer_id, buy_price, real_cost, owner_type, brand, line").eq("id", vehicleId).single(),
     ]);
 
-    const vehicle = vehicleRes.data;
+    const vehicle = vehicleRes.data as any;
     if (!vehicle) return;
 
     const settingsMap = Object.fromEntries(settings.map((s) => [s.key, Number(s.value)]));
     const pctCaptador = settingsMap["commission_captador"] ?? 20;
     const pctVendedor = settingsMap["commission_vendedor"] ?? 20;
+    const pctConsignacion = settingsMap["commission_consignacion"] ?? 3;
 
+    const currentMonth = new Date().toISOString().slice(0, 7);
+
+    // ── Comisión de consignación (ingreso para el negocio) ─────────
+    if (vehicle.owner_type === "Comisión") {
+      const commissionAmount = Math.round(agreedPrice * pctConsignacion / 100);
+      const vehicleName = `${vehicle.brand} ${vehicle.line}`;
+
+      await supabase.from("finance_movements").insert({
+        type: "Ingreso",
+        channel: "Banco",
+        concept: `Comisión consignación — ${vehicleName}`,
+        amount: commissionAmount,
+        date: new Date().toISOString().split("T")[0],
+        vehicle_id: vehicleId,
+        responsible_name: "Sistema",
+        category: "Consignaciones",
+        notes: `${pctConsignacion}% del precio de venta $${agreedPrice.toLocaleString("es-CO")}. Venta ID: ${saleId}.`,
+      });
+      // Para vehículos en consignación no se calculan comisiones de asesores
+      // sobre ganancia bruta ya que el negocio no compró el vehículo.
+      return;
+    }
+
+    // ── Comisiones de asesores (solo para vehículos propios) ───────
     const grossProfit = Math.max(0, agreedPrice - Number(vehicle.buy_price) - Number(vehicle.real_cost ?? 0));
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 
     const commissionsToInsert: any[] = [];
 
     if (vehicle.advisor_buyer_id) {
-      const baseAmount = grossProfit;
       commissionsToInsert.push({
         advisor_id: vehicle.advisor_buyer_id,
         role: "Captador",
         vehicle_id: vehicleId,
         sale_id: saleId,
-        base_amount: baseAmount,
+        base_amount: grossProfit,
         percentage: pctCaptador,
-        amount: Math.round((baseAmount * pctCaptador) / 100),
+        amount: Math.round((grossProfit * pctCaptador) / 100),
         status: "Pendiente",
         month: currentMonth,
       });
     }
 
     if (sellerId) {
-      const baseAmount = grossProfit;
       commissionsToInsert.push({
         advisor_id: sellerId,
         role: "Vendedor",
         vehicle_id: vehicleId,
         sale_id: saleId,
-        base_amount: baseAmount,
+        base_amount: grossProfit,
         percentage: pctVendedor,
-        amount: Math.round((baseAmount * pctVendedor) / 100),
+        amount: Math.round((grossProfit * pctVendedor) / 100),
         status: "Pendiente",
         month: currentMonth,
       });

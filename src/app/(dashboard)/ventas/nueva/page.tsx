@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { getVehicleFormOptions, getVehicles } from "@/lib/data/vehicles";
+import { getSettings } from "@/lib/data/settings";
+import { ConsignmentAwarePricing } from "@/components/sales/consignment-preview";
 
 function Field({ label, children, required }: { label: string; children: ReactNode; required?: boolean }) {
   return (
@@ -28,13 +30,23 @@ export default async function NewSalePage({
   const params = await searchParams;
   const error = params.error ? decodeURIComponent(params.error) : null;
 
-  const [vehicles, { advisors }] = await Promise.all([
+  const [vehicles, { advisors }, settings] = await Promise.all([
     getVehicles(),
     getVehicleFormOptions(),
+    getSettings(),
   ]);
+
+  const settingsMap = Object.fromEntries(settings.map((s) => [s.key, Number(s.value)]));
+  const commissionRate = settingsMap["commission_consignacion"] ?? 3;
 
   const SOLD_STATUSES = new Set(["Separado", "Vendido", "Entregado"]);
   const availableVehicles = vehicles.filter((v) => !SOLD_STATUSES.has(v.status));
+  const vehicleOptions = availableVehicles.map((v) => ({
+    id: v.id,
+    label: `${v.brand} ${v.line} ${v.version} — ${v.plate} (${v.status})`,
+    ownerType: v.ownerType,
+    targetPrice: v.targetPrice,
+  }));
 
   return (
     <>
@@ -53,23 +65,20 @@ export default async function NewSalePage({
 
         <Card>
           <CardHeader className="border-b border-zinc-900">
-            <CardTitle>Vehículo</CardTitle>
-            <CardDescription>Selecciona el vehículo a separar o vender. Solo se muestran los disponibles.</CardDescription>
+            <CardTitle>Vehículo y condiciones comerciales</CardTitle>
+            <CardDescription>
+              Selecciona el vehículo y define el precio acordado. Para vehículos en consignación se calcula el {commissionRate}% de comisión automáticamente.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="p-5">
+          <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
             {availableVehicles.length === 0 ? (
-              <p className="text-sm text-zinc-500">No hay vehículos disponibles para registrar una venta. Todos están separados, en trámite o vendidos.</p>
+              <p className="col-span-full text-sm text-zinc-500">No hay vehículos disponibles.</p>
             ) : (
-              <Field label="Vehículo" required>
-                <Select name="vehicleId" defaultValue="" required>
-                  <option value="" disabled>Selecciona un vehículo</option>
-                  {availableVehicles.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.brand} {v.line} {v.version} — {v.plate} ({v.status})
-                    </option>
-                  ))}
-                </Select>
-              </Field>
+              <ConsignmentAwarePricing
+                vehicles={vehicleOptions}
+                advisors={advisors}
+                commissionRate={commissionRate}
+              />
             )}
           </CardContent>
         </Card>
@@ -88,43 +97,6 @@ export default async function NewSalePage({
             </Field>
             <Field label="Documento (CC / NIT)">
               <Input name="customerDocument" placeholder="1234567890" />
-            </Field>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="border-b border-zinc-900">
-            <CardTitle>Condiciones comerciales</CardTitle>
-            <CardDescription>Precio acordado, abono y asesor vendedor.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="Tipo de registro" required>
-              <Select name="saleStatus" defaultValue="separacion">
-                <option value="separacion">Separación (con saldo pendiente)</option>
-                <option value="vendido">Venta directa (pago completo)</option>
-              </Select>
-            </Field>
-            <Field label="Fecha límite separación">
-              <Input
-                name="expiryDate"
-                type="date"
-                defaultValue=""
-                title="Solo aplica para separaciones. Dejar vacío si es venta directa."
-              />
-            </Field>
-            <Field label="Precio acordado (COP)" required>
-              <Input name="agreedPrice" type="number" min="0" required placeholder="Ej: 350000000" />
-            </Field>
-            <Field label="Abono inicial (COP)">
-              <Input name="initialPayment" type="number" min="0" defaultValue="0" placeholder="0" />
-            </Field>
-            <Field label="Asesor vendedor">
-              <Select name="sellerId" defaultValue="">
-                <option value="">Sin asignar</option>
-                {advisors.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </Select>
             </Field>
           </CardContent>
         </Card>

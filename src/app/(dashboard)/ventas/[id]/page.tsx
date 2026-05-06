@@ -151,6 +151,41 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             </CardContent>
           </Card>
 
+          {/* Liquidación consignación */}
+          {sale.vehicleOwnerType === "Comisión" && (
+            <Card>
+              <CardHeader className="border-b border-zinc-900">
+                <div className="flex items-center justify-between">
+                  <CardTitle>Liquidación consignación</CardTitle>
+                  <span className="rounded-xl border border-[#D6A93D]/40 bg-[#D6A93D]/10 px-3 py-1 text-xs font-medium text-[#D6A93D]">
+                    {sale.consignmentRate}% comisión
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="p-5">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+                    <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Precio de venta</p>
+                    <p className="mt-1 text-lg font-bold text-white">{currencyCOP(sale.agreedPrice)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-[#D6A93D]/30 bg-[#D6A93D]/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.14em] text-[#D6A93D]">
+                      Comisión Autohaus ({sale.consignmentRate}%)
+                    </p>
+                    <p className="mt-1 text-lg font-bold text-[#D6A93D]">{currencyCOP(sale.consignmentCommission)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-emerald-900/40 bg-emerald-950/20 p-4">
+                    <p className="text-xs uppercase tracking-[0.14em] text-emerald-400">Valor para propietario</p>
+                    <p className="mt-1 text-lg font-bold text-emerald-400">{currencyCOP(sale.ownerPayout)}</p>
+                  </div>
+                </div>
+                <p className="mt-4 text-xs text-zinc-500">
+                  Fórmula: Precio de venta × {sale.consignmentRate}% = Comisión Autohaus. El propietario recibe el saldo restante.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Abonos */}
           <SalePayments
             saleId={sale.id}
