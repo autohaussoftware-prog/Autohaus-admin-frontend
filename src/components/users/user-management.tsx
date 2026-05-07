@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { inviteUserAction, updateUserRoleAction, toggleUserActiveAction, resendInviteAction } from "@/app/actions/users";
+import { ChangePasswordButton } from "@/components/users/change-password-button";
 import type { AppUser } from "@/lib/data/users";
 import type { UserRole } from "@/types/auth";
 
@@ -321,8 +322,9 @@ export function UserManagement({ users }: { users: AppUser[] }) {
                     {new Date(user.createdAt).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {!user.confirmed && <ResendInvite userId={user.id} />}
+                      <ChangePasswordButton userId={user.id} userName={user.fullName || user.email} />
                       <ToggleActive userId={user.id} active={user.active} />
                     </div>
                   </td>

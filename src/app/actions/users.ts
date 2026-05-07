@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseServerClient, getUserRole, getCurrentUserProfile } from "@/lib/supabase/server";
 import type { UserRole } from "@/types/auth";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -57,6 +57,87 @@ async function sendInviteEmail(to: string, name: string, link: string): Promise<
   } catch {
     return false;
   }
+}
+
+async function sendPasswordChangeEmail(
+  to: string,
+  name: string,
+  dateTime: string,
+  changedBy: string
+): Promise<void> {
+  const resendKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM ?? "noreply@autohaus.co";
+  if (!resendKey) return;
+
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from,
+      to,
+      subject: "Tu contraseña fue actualizada — Autohaus",
+      html: `
+        <div style="font-family:sans-serif;max-width:520px;margin:auto;background:#111;color:#fff;padding:40px;border-radius:16px;">
+          <h2 style="color:#D6A93D;margin:0 0 4px;">Autohaus</h2>
+          <p style="color:#666;margin:0 0 32px;font-size:13px;text-transform:uppercase;letter-spacing:2px;">Seguridad de cuenta</p>
+          <p style="margin:0 0 8px;">Hola <strong>${name}</strong>,</p>
+          <p style="color:#aaa;line-height:1.6;margin:0 0 24px;">
+            Tu contraseña en el sistema administrativo de Autohaus fue actualizada.
+          </p>
+          <div style="background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:16px;margin-bottom:24px;">
+            <p style="margin:0 0 8px;font-size:13px;color:#888;">Detalles del cambio</p>
+            <p style="margin:0 0 4px;font-size:14px;color:#eee;">📅 <strong>Fecha:</strong> ${dateTime}</p>
+            <p style="margin:0;font-size:14px;color:#eee;">👤 <strong>Realizado por:</strong> ${changedBy}</p>
+          </div>
+          <p style="color:#666;font-size:12px;line-height:1.6;margin:0;">
+            Si no reconoces este cambio, contacta inmediatamente al administrador del sistema.
+          </p>
+        </div>
+      `,
+    }),
+  }).catch(() => {});
+}
+
+export async function changePasswordAction(
+  userId: string,
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return { error: "Servicio no disponible (falta SUPABASE_SERVICE_ROLE_KEY)." };
+
+  const role = await getUserRole();
+  if (!["owner", "partner", "admin", "gerente"].includes(role)) {
+    return { error: "Sin permisos para cambiar contraseñas." };
+  }
+
+  const password = (formData.get("password") as string ?? "").trim();
+  const confirm = (formData.get("confirmPassword") as string ?? "").trim();
+
+  if (password.length < 8) return { error: "La contraseña debe tener al menos 8 caracteres." };
+  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+    return { error: "La contraseña debe contener letras y números." };
+  }
+  if (password !== confirm) return { error: "Las contraseñas no coinciden." };
+
+  const { error: updateError } = await admin.auth.admin.updateUserById(userId, { password });
+  if (updateError) return { error: updateError.message };
+
+  // Send notification email and log asynchronously (non-blocking)
+  const [{ name: changedByName }, targetRes] = await Promise.all([
+    getCurrentUserProfile(),
+    admin.from("profiles").select("email, full_name").eq("id", userId).single(),
+  ]);
+  const target = targetRes.data as { email: string; full_name: string | null } | null;
+  if (target?.email) {
+    const now = new Date().toLocaleString("es-CO", {
+      dateStyle: "long",
+      timeStyle: "short",
+      timeZone: "America/Bogota",
+    });
+    sendPasswordChangeEmail(target.email, target.full_name ?? target.email, now, changedByName).catch(() => {});
+  }
+
+  return { success: true };
 }
 
 export async function inviteUserAction(formData: FormData) {
