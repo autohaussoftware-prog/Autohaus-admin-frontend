@@ -26,7 +26,7 @@ export async function getFinanceMovements(dateRange?: DateRange): Promise<Financ
   const supabase = await getSupabaseServerClient();
   if (!supabase) return mockFinanceMovements;
 
-  let query = supabase.from("finance_movements").select("*").order("date", { ascending: false });
+  let query = supabase.from("finance_movements").select("*").is("deleted_at", null).order("date", { ascending: false });
   if (dateRange?.from) query = query.gte("date", dateRange.from);
   if (dateRange?.to) query = query.lte("date", dateRange.to);
 
@@ -119,4 +119,21 @@ export async function createFinanceMovement(input: CreateFinanceMovementInput): 
 
   if (error || !data) throw new Error(error?.message ?? "No se pudo registrar el movimiento.");
   return data.id as string;
+}
+
+export async function deleteFinanceMovement(id: string, deletedBy: string, reason?: string): Promise<void> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  const { error } = await supabase
+    .from("finance_movements")
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: deletedBy,
+      delete_reason: reason?.trim() || null,
+    })
+    .eq("id", id)
+    .is("deleted_at", null);
+
+  if (error) throw new Error(error.message ?? "No se pudo eliminar el movimiento.");
 }

@@ -4,6 +4,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { MovementsTable } from "@/components/finance/movements-table";
 import { DateFilter } from "@/components/finance/date-filter";
 import { getCashMovements } from "@/lib/data/finance";
+import { getUserRole } from "@/lib/supabase/server";
 import { compactCOP } from "@/lib/utils";
 
 export default async function CashPage({
@@ -14,7 +15,11 @@ export default async function CashPage({
   const params = await searchParams;
   const dateRange = { from: params.dateFrom, to: params.dateTo };
 
-  const cashMovements = await getCashMovements(dateRange);
+  const [cashMovements, role] = await Promise.all([
+    getCashMovements(dateRange),
+    getUserRole(),
+  ]);
+  const canDelete = ["owner", "partner", "admin", "gerente"].includes(role);
   const cash1 = cashMovements.filter((m) => m.channel === "Efectivo José").reduce((sum, m) => sum + (m.type === "Ingreso" ? m.amount : -m.amount), 0);
   const cash2 = cashMovements.filter((m) => m.channel === "Efectivo Tomás").reduce((sum, m) => sum + (m.type === "Ingreso" ? m.amount : -m.amount), 0);
   const income = cashMovements.filter((m) => m.type === "Ingreso").reduce((sum, m) => sum + m.amount, 0);
@@ -36,7 +41,7 @@ export default async function CashPage({
         <StatCard label="Egresos efectivo" value={compactCOP(outcome)} helper={params.dateFrom || params.dateTo ? "Filtrado por fecha" : "Periodo visible"} icon={TrendingDown} tone="red" />
       </div>
       <DateFilter />
-      <MovementsTable title="Registro de efectivo" description="Movimientos separados por ubicación y responsable." movements={cashMovements} />
+      <MovementsTable title="Registro de efectivo" description="Movimientos separados por ubicación y responsable." movements={cashMovements} canDelete={canDelete} />
     </>
   );
 }

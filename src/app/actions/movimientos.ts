@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createFinanceMovement } from "@/lib/data/finance";
+import { createFinanceMovement, deleteFinanceMovement } from "@/lib/data/finance";
+import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 
 const movimientoSchema = z.object({
   type: z.enum(["Ingreso", "Egreso"]),
@@ -38,4 +39,27 @@ export async function createMovimientoAction(formData: FormData) {
   revalidatePath("/efectivo");
   revalidatePath("/");
   redirect("/banco");
+}
+
+export async function deleteMovimientoAction(
+  id: string,
+  reason?: string
+): Promise<{ error?: string }> {
+  const role = await getUserRole();
+  if (!["owner", "partner", "admin", "gerente"].includes(role)) {
+    return { error: "Sin permisos para eliminar movimientos financieros." };
+  }
+
+  const { name } = await getCurrentUserProfile();
+
+  try {
+    await deleteFinanceMovement(id, name, reason);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "No se pudo eliminar el movimiento." };
+  }
+
+  revalidatePath("/banco");
+  revalidatePath("/efectivo");
+  revalidatePath("/");
+  return {};
 }

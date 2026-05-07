@@ -2,8 +2,19 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { compactCOP } from "@/lib/utils";
 import type { FinanceMovement } from "@/types/finance";
+import { DeleteMovementButton } from "@/components/finance/delete-movement-button";
 
-export function MovementsTable({ title, description, movements }: { title: string; description: string; movements: FinanceMovement[] }) {
+export function MovementsTable({
+  title,
+  description,
+  movements,
+  canDelete = false,
+}: {
+  title: string;
+  description: string;
+  movements: FinanceMovement[];
+  canDelete?: boolean;
+}) {
   return (
     <Card>
       <CardHeader className="border-b border-zinc-900">
@@ -22,6 +33,7 @@ export function MovementsTable({ title, description, movements }: { title: strin
                 <th className="px-5 py-4 font-medium">Concepto</th>
                 <th className="px-5 py-4 font-medium">Responsable</th>
                 <th className="px-5 py-4 text-right font-medium">Monto</th>
+                {canDelete && <th className="px-3 py-4 font-medium" />}
               </tr>
             </thead>
             <tbody>
@@ -34,8 +46,13 @@ export function MovementsTable({ title, description, movements }: { title: strin
                   <td className="px-5 py-4 text-white">{movement.concept}</td>
                   <td className="px-5 py-4 text-zinc-400">{movement.responsible}</td>
                   <td className={`px-5 py-4 text-right font-medium ${movement.type === "Ingreso" ? "text-emerald-300" : "text-red-300"}`}>
-                    {movement.type === "Ingreso" ? "+" : "-"}{compactCOP(movement.amount)}
+                    {movement.type === "Ingreso" ? "+" : "−"}{compactCOP(movement.amount)}
                   </td>
+                  {canDelete && (
+                    <td className="px-3 py-4">
+                      <DeleteMovementButton movement={movement} />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

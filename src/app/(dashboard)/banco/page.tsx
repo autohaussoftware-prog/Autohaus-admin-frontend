@@ -4,6 +4,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { MovementsTable } from "@/components/finance/movements-table";
 import { DateFilter } from "@/components/finance/date-filter";
 import { getBankMovements } from "@/lib/data/finance";
+import { getUserRole } from "@/lib/supabase/server";
 import { compactCOP } from "@/lib/utils";
 
 export default async function BankPage({
@@ -14,7 +15,11 @@ export default async function BankPage({
   const params = await searchParams;
   const dateRange = { from: params.dateFrom, to: params.dateTo };
 
-  const bankMovements = await getBankMovements(dateRange);
+  const [bankMovements, role] = await Promise.all([
+    getBankMovements(dateRange),
+    getUserRole(),
+  ]);
+  const canDelete = ["owner", "partner", "admin", "gerente"].includes(role);
   const income = bankMovements.filter((m) => m.type === "Ingreso").reduce((sum, m) => sum + m.amount, 0);
   const outcome = bankMovements.filter((m) => m.type === "Egreso").reduce((sum, m) => sum + m.amount, 0);
   const balance = income - outcome;
@@ -35,7 +40,7 @@ export default async function BankPage({
         <StatCard label="Movimientos" value={`${bankMovements.length}`} helper={params.dateFrom || params.dateTo ? "Filtrado por fecha" : "Total registros"} icon={WalletCards} tone="gold" />
       </div>
       <DateFilter />
-      <MovementsTable title="Registro bancario" description="Movimientos bancarios con trazabilidad por responsable y concepto." movements={bankMovements} />
+      <MovementsTable title="Registro bancario" description="Movimientos bancarios con trazabilidad por responsable y concepto." movements={bankMovements} canDelete={canDelete} />
     </>
   );
 }
