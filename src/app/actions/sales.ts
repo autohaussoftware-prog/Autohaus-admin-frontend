@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSale, confirmSaleFromReservation, updateSaleStatuses, markSaleDelivered, updateConsignmentPaperwork, updateSaleCommission } from "@/lib/data/sales";
+import { createTraspasoFromSale } from "@/lib/data/traspasos";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { sendSaleNotification } from "@/lib/email";
 
@@ -54,7 +55,7 @@ export async function createSaleAction(formData: FormData) {
     redirect("/ventas/nueva?error=" + encodeURIComponent(msg));
   }
 
-  const { id: userId } = await getCurrentUserProfile();
+  const { id: userId, name } = await getCurrentUserProfile();
 
   let saleId: string;
   try {
@@ -65,6 +66,9 @@ export async function createSaleAction(formData: FormData) {
   }
 
   sendSaleNotification(saleId).catch(() => {});
+  if (parsed.data.saleStatus === "vendido") {
+    createTraspasoFromSale(saleId, name).catch(() => {});
+  }
 
   revalidatePath("/ventas");
   revalidatePath("/inventario");
@@ -86,9 +90,12 @@ export async function confirmSaleAction(saleId: string, vehicleId: string) {
     return { error: err instanceof Error ? err.message : "Error confirmando venta." };
   }
 
+  createTraspasoFromSale(saleId, name).catch(() => {});
+
   revalidatePath("/ventas");
   revalidatePath("/vehiculos");
   revalidatePath(`/vehiculos/${vehicleId}`);
+  revalidatePath(`/ventas/${saleId}`);
   return { success: true };
 }
 

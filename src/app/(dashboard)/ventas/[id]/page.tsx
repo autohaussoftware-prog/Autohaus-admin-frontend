@@ -5,12 +5,14 @@ import {
   CalendarX2,
   Car,
   Clock,
+  ClipboardList,
   FileText,
   Printer,
   User,
 } from "lucide-react";
 import { getSaleById } from "@/lib/data/sales";
 import { getPaymentsBySaleId } from "@/lib/data/payments";
+import { getTraspasosBySaleId } from "@/lib/data/traspasos";
 import { getUserRole } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +24,7 @@ import { DeliveryChecklist } from "@/components/sales/delivery-checklist";
 import { ConfirmSaleButton } from "@/components/sales/confirm-sale-button";
 import { PaperworkEditor } from "@/components/sales/paperwork-editor";
 import { CommissionEditor } from "@/components/sales/commission-editor";
+import { TraspasoInlineStatus } from "@/components/traspasos/traspaso-inline-status";
 import { currencyCOP } from "@/lib/utils";
 
 function formatDate(iso: string | null) {
@@ -59,9 +62,10 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 export default async function SaleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [sale, payments, role] = await Promise.all([
+  const [sale, payments, traspaso, role] = await Promise.all([
     getSaleById(id),
     getPaymentsBySaleId(id),
+    getTraspasosBySaleId(id),
     getUserRole(),
   ]);
 
@@ -350,6 +354,45 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
                 <FileText className="h-3 w-3" />
                 Ver ficha completa
               </Link>
+            </CardContent>
+          </Card>
+
+          {/* Traspaso */}
+          <Card>
+            <CardHeader className="border-b border-zinc-900">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-zinc-500" />
+                <CardTitle>Traspaso</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-5">
+              {traspaso ? (
+                <div className="space-y-3">
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Estado</p>
+                    <div className="mt-1">
+                      <TraspasoInlineStatus
+                        traspasoId={traspaso.id}
+                        saleId={sale.id}
+                        currentStatus={traspaso.status}
+                        canEdit={role !== "viewer"}
+                      />
+                    </div>
+                  </div>
+                  {traspaso.createdAt && (
+                    <InfoRow label="Generado" value={formatDate(traspaso.createdAt)} />
+                  )}
+                  {traspaso.completedAt && (
+                    <InfoRow label="Completado" value={formatDate(traspaso.completedAt)} />
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-500">
+                  {sale.saleStatus === "vendido" || sale.saleStatus === "entregado"
+                    ? "Traspaso pendiente de generación."
+                    : "Se genera automáticamente al confirmar la venta."}
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
