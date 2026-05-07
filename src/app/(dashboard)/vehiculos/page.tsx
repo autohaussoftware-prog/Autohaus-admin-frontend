@@ -17,6 +17,7 @@ export default async function VehiclesPage({
   const { q } = await searchParams;
   const profile = await getCurrentUserProfile();
   const vehicles = await getVehicles({ userId: profile.id, role: profile.role });
+  const canEditPrice = ["owner", "partner", "admin", "gerente"].includes(profile.role);
 
   const available = vehicles.filter((v) => v.status === "Disponible" || v.status === "Publicado").length;
   const totalCapital = vehicles
@@ -44,7 +45,7 @@ export default async function VehiclesPage({
         <StatCard label="Con alertas" value={`${risky}`} helper="Requieren atención" icon={ShieldAlert} tone="red" />
       </div>
 
-      <VehiclesInventory vehicles={vehicles} initialQuery={q} />
+      <VehiclesInventory vehicles={vehicles} initialQuery={q} canEditPrice={canEditPrice} />
     </>
   );
 }

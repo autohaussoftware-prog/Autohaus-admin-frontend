@@ -19,6 +19,7 @@ import { VehicleCosts } from "@/components/vehicles/vehicle-costs";
 import { VehicleDocuments } from "@/components/vehicles/vehicle-documents";
 import { VehicleExpenses } from "@/components/vehicles/vehicle-expenses";
 import { VehicleStatusBadge } from "@/components/vehicles/vehicle-status-badge";
+import { EditPriceButton } from "@/components/vehicles/edit-price-button";
 import { compactCOP, currencyCOP, percentage } from "@/lib/utils";
 import type { Vehicle, VehicleMovement } from "@/types/vehicle";
 import type { VehicleCost } from "@/lib/data/costs";
@@ -86,6 +87,7 @@ export function VehicleDetailTabs({
   canDeleteCosts,
   canDeleteDocs,
   canManageInvestments = false,
+  canEditPrice = false,
 }: {
   vehicle: Vehicle;
   movements: VehicleMovement[];
@@ -97,6 +99,7 @@ export function VehicleDetailTabs({
   canDeleteCosts: boolean;
   canDeleteDocs: boolean;
   canManageInvestments?: boolean;
+  canEditPrice?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("info");
 
@@ -161,8 +164,13 @@ export function VehicleDetailTabs({
                     <CardTitle className="text-2xl">{vehicle.brand} {vehicle.line}</CardTitle>
                     <CardDescription>{vehicle.version} · {vehicle.year} · Placa {vehicle.plate}</CardDescription>
                   </div>
-                  <div className="rounded-3xl border border-[#D6A93D]/20 bg-[#D6A93D]/10 px-5 py-4 text-right">
-                    <p className="text-xs uppercase tracking-[0.2em] text-[#D6A93D]">Precio objetivo</p>
+                  <div className="rounded-3xl border border-[#D6A93D]/20 bg-[#D6A93D]/10 px-5 py-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs uppercase tracking-[0.2em] text-[#D6A93D]">Precio objetivo</p>
+                      {canEditPrice && (
+                        <EditPriceButton vehicleId={vehicle.id} currentPrice={vehicle.targetPrice} />
+                      )}
+                    </div>
                     <p className="mt-1 text-2xl font-semibold text-white">{compactCOP(vehicle.targetPrice)}</p>
                     <p className="mt-0.5 text-xs text-zinc-500">Mín. {compactCOP(vehicle.minPrice)}</p>
                   </div>

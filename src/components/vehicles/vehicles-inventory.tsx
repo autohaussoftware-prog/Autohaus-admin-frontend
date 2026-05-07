@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { compactCOP, percentage } from "@/lib/utils";
 import { getVehicleProjectedMargin } from "@/lib/domain/vehicle-calculations";
 import { VehicleStatusBadge } from "./vehicle-status-badge";
+import { EditPriceButton } from "./edit-price-button";
 import type { Vehicle } from "@/types/vehicle";
 
 const ALL_STATUSES = [
@@ -153,7 +154,7 @@ function KanbanView({ vehicles }: { vehicles: Vehicle[] }) {
   );
 }
 
-function TableView({ vehicles }: { vehicles: Vehicle[] }) {
+function TableView({ vehicles, canEditPrice }: { vehicles: Vehicle[]; canEditPrice?: boolean }) {
   return (
     <Card>
       <CardContent className="p-0">
@@ -198,7 +199,12 @@ function TableView({ vehicles }: { vehicles: Vehicle[] }) {
                       </td>
                       <td className="px-5 py-3.5"><VehicleStatusBadge status={vehicle.status} /></td>
                       <td className="px-5 py-3.5 text-zinc-400">{vehicle.location}</td>
-                      <td className="px-5 py-3.5 font-medium text-white">{compactCOP(vehicle.targetPrice)}</td>
+                      <td className="px-5 py-3.5 font-medium text-white">
+                        <div className="flex items-center gap-1">
+                          {compactCOP(vehicle.targetPrice)}
+                          {canEditPrice && <EditPriceButton vehicleId={vehicle.id} currentPrice={vehicle.targetPrice} />}
+                        </div>
+                      </td>
                       <td className={`px-5 py-3.5 font-medium ${margin < 3 ? "text-red-300" : "text-[#D6A93D]"}`}>
                         {percentage(margin)}
                       </td>
@@ -230,7 +236,7 @@ function TableView({ vehicles }: { vehicles: Vehicle[] }) {
   );
 }
 
-export function VehiclesInventory({ vehicles, initialQuery }: { vehicles: Vehicle[]; initialQuery?: string }) {
+export function VehiclesInventory({ vehicles, initialQuery, canEditPrice = false }: { vehicles: Vehicle[]; initialQuery?: string; canEditPrice?: boolean }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const [status, setStatus] = useState("Todos");
   const [brand, setBrand] = useState("Todas");
@@ -309,7 +315,7 @@ export function VehiclesInventory({ vehicles, initialQuery }: { vehicles: Vehicl
 
       {!hasFilters && <p className="mb-3 text-xs text-zinc-600">{filtered.length} de {vehicles.length} vehículos</p>}
 
-      {view === "table" && <TableView vehicles={filtered} />}
+      {view === "table" && <TableView vehicles={filtered} canEditPrice={canEditPrice} />}
       {view === "cards" && <CardView vehicles={filtered} />}
       {view === "kanban" && <KanbanView vehicles={filtered} />}
     </>
