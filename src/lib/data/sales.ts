@@ -487,3 +487,51 @@ export async function confirmSaleFromReservation(saleId: string, vehicleId: stri
     metadata: { userName, saleId },
   });
 }
+
+export async function cancelSale(
+  saleId: string,
+  deleteInitialPayment: boolean,
+  cancelledBy: string,
+  reason?: string
+): Promise<void> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  // Fetch sale data before deleting
+  const { data: sale } = await supabase
+    .from("sales")
+    .select("vehicle_id, initial_payment, agreed_price, sale_status, customer_id")
+    .eq("id", saleId)
+    .single();
+  if (!sale) throw new Error("Venta no encontrada.");
+
+  // Delete traspaso if exists (CASCADE handles it, but be explicit for the movement log)
+  await supabase.from("traspasos").delete().eq("sale_id", saleId);
+
+  if (deleteInitialPayment) {
+    // Delete all payments for this sale
+    await supabase.from("payments").delete().eq("sale_id", saleId);
+    // Delete related finance movements (initial payment + commissions)
+    await supabase.from("finance_movements").delete().ilike("notes", `%${saleId}%`);
+  }
+
+  // Log the cancellation before deleting
+  await supabase.from("vehicle_movements").insert({
+    vehicle_id: sale.vehicle_id,
+    type: "Disponible",
+    title: "Venta cancelada — vehículo liberado",
+    description: `Venta cancelada por ${cancelledBy}.${reason ? ` Motivo: ${reason}.` : ""} Abono inicial ${deleteInitialPayment ? "eliminado" : "conservado"}.`,
+    new_status: "Disponible",
+    metadata: { cancelledBy, saleId, deleteInitialPayment, reason: reason ?? null },
+  });
+
+  // Delete the sale record
+  const { error } = await supabase.from("sales").delete().eq("id", saleId);
+  if (error) throw new Error(error.message);
+
+  // Restore vehicle to Disponible
+  await supabase.from("vehicles").update({
+    status: "Disponible",
+    separated: false,
+  }).eq("id", sale.vehicle_id);
+}

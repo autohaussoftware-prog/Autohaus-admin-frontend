@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createSale, confirmSaleFromReservation, updateSaleStatuses, markSaleDelivered, updateConsignmentPaperwork, updateSaleCommission } from "@/lib/data/sales";
+import { createSale, confirmSaleFromReservation, updateSaleStatuses, markSaleDelivered, updateConsignmentPaperwork, updateSaleCommission, cancelSale } from "@/lib/data/sales";
 import { createTraspasoFromSale } from "@/lib/data/traspasos";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { sendSaleNotification } from "@/lib/email";
@@ -196,4 +196,29 @@ export async function updatePaperworkAmountAction(
 
   revalidatePath(`/ventas/${saleId}`);
   return { error: null, attempt: _prev.attempt + 1 };
+}
+
+export async function cancelSaleAction(
+  saleId: string,
+  vehicleId: string,
+  deleteInitialPayment: boolean,
+  reason?: string
+): Promise<{ error?: string }> {
+  const role = await getUserRole();
+  if (!["owner", "partner", "admin", "gerente"].includes(role)) {
+    return { error: "Sin permisos para cancelar ventas." };
+  }
+
+  const { name } = await getCurrentUserProfile();
+
+  try {
+    await cancelSale(saleId, deleteInitialPayment, name, reason);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Error cancelando la venta." };
+  }
+
+  revalidatePath("/ventas");
+  revalidatePath("/vehiculos");
+  revalidatePath(`/vehiculos/${vehicleId}`);
+  return {};
 }

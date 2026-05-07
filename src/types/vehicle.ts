@@ -2,6 +2,7 @@ export type VehicleStatus =
   | "Disponible"
   | "Separado"
   | "Vendido"
+  | "Vendido por el propietario"
   | "En comisión"
   | "En reparación"
   | "En trámite"

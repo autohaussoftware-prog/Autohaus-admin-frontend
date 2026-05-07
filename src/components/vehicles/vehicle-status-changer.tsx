@@ -15,6 +15,7 @@ const ALL_STATUSES: VehicleStatus[] = [
   "En trámite",
   "Papeles pendientes",
   "Vendido",
+  "Vendido por el propietario",
   "Entregado",
 ];
 
@@ -28,10 +29,11 @@ const STATUS_COLOR: Record<VehicleStatus, string> = {
   "En trámite": "text-cyan-400",
   "Papeles pendientes": "text-yellow-400",
   Vendido: "text-red-400",
+  "Vendido por el propietario": "text-rose-300",
   Entregado: "text-emerald-400",
 };
 
-const TERMINAL: VehicleStatus[] = ["Vendido", "Entregado"];
+const TERMINAL: VehicleStatus[] = ["Vendido", "Entregado", "Vendido por el propietario"];
 const PRE_SALE: VehicleStatus[] = ["Disponible", "Publicado", "No publicado"];
 
 function isRestrictedTransition(from: VehicleStatus, to: VehicleStatus): boolean {

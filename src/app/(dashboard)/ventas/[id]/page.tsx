@@ -24,6 +24,7 @@ import { DeliveryChecklist } from "@/components/sales/delivery-checklist";
 import { ConfirmSaleButton } from "@/components/sales/confirm-sale-button";
 import { PaperworkEditor } from "@/components/sales/paperwork-editor";
 import { CommissionEditor } from "@/components/sales/commission-editor";
+import { CancelSaleButton } from "@/components/sales/cancel-sale-button";
 import { TraspasoInlineStatus } from "@/components/traspasos/traspaso-inline-status";
 import { currencyCOP } from "@/lib/utils";
 
@@ -75,6 +76,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   const canAddPayment = role !== "viewer";
   const canEditStatuses = ["owner", "partner", "admin", "accounting", "advisor"].includes(role);
   const canEditCommission = ["owner", "partner", "admin", "gerente"].includes(role);
+  const canCancelSale = ["owner", "partner", "admin", "gerente"].includes(role);
   const canDeliver = ["owner", "partner", "admin", "accounting"].includes(role);
   const alreadyDelivered = sale.saleStatus === "entregado" || sale.deliveryStatus === "completada";
   const canShowDelivery = canDeliver && (sale.saleStatus === "vendido" || alreadyDelivered);
@@ -108,6 +110,13 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             <Printer className="h-4 w-4" />
             Acta de entrega
           </Link>
+        )}
+        {canCancelSale && (
+          <CancelSaleButton
+            saleId={sale.id}
+            vehicleId={sale.vehicleId}
+            saleStatus={sale.saleStatus}
+          />
         )}
       </div>
 

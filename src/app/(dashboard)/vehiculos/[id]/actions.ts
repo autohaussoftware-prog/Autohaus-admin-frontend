@@ -5,7 +5,7 @@ import { getVehicleById, updateVehicleStatus } from "@/lib/data/vehicles";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import type { VehicleStatus } from "@/types/vehicle";
 
-const TERMINAL_STATUSES: VehicleStatus[] = ["Vendido", "Entregado"];
+const TERMINAL_STATUSES: VehicleStatus[] = ["Vendido", "Entregado", "Vendido por el propietario"];
 const PRE_SALE_STATUSES: VehicleStatus[] = ["Disponible", "Publicado", "No publicado"];
 
 export async function updateVehicleStatusAction(vehicleId: string, status: VehicleStatus) {
