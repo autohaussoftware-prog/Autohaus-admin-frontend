@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { buildChannelOptions } from "@/lib/domain/payment-channels-config";
 
 type VehicleOption = {
   id: string;
   label: string;
   ownerType: string;
   targetPrice: number;
+  ownerName?: string | null;
 };
 
 function fmtCOP(n: number) {
@@ -30,9 +32,11 @@ export function ConsignmentAwarePricing({
   const [paperwork, setPaperwork] = useState("");
   const [saleStatus, setSaleStatus] = useState("separacion");
   const [paymentMethod, setPaymentMethod] = useState("Contado");
+  const [initialPaymentChannel, setInitialPaymentChannel] = useState("Banco");
 
   const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
   const isConsignment = selectedVehicle?.ownerType === "Comisión";
+  const channelOptions = buildChannelOptions(isConsignment ? selectedVehicle?.ownerName : null);
   const price = Number(agreedPrice) || 0;
   const commission = isConsignment && price > 0 ? Math.round(price * commissionRate / 100) : 0;
   const paperworkAmount = Number(paperwork) || 0;
@@ -49,7 +53,7 @@ export function ConsignmentAwarePricing({
           name="vehicleId"
           defaultValue=""
           required
-          onChange={(e) => setVehicleId(e.target.value)}
+          onChange={(e) => { setVehicleId(e.target.value); setInitialPaymentChannel("Banco"); }}
         >
           <option value="" disabled>Selecciona un vehículo</option>
           {vehicles.map((v) => (
@@ -138,6 +142,29 @@ export function ConsignmentAwarePricing({
       <div className="block">
         <span className="mb-2 block text-sm text-zinc-400">Abono inicial (COP)</span>
         <Input name="initialPayment" type="number" min="0" defaultValue="0" placeholder="0" />
+      </div>
+
+      {/* Initial payment channel */}
+      <div className="block">
+        <span className="mb-2 block text-sm text-zinc-400">Canal del abono inicial</span>
+        <Select
+          name="initialPaymentChannel"
+          value={initialPaymentChannel}
+          onChange={(e) => setInitialPaymentChannel(e.target.value)}
+        >
+          <optgroup label="Canales de la empresa">
+            {channelOptions.filter((c) => !isConsignment || (!c.startsWith("Efectivo -") && !c.startsWith("Transferencia -"))).map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </optgroup>
+          {isConsignment && channelOptions.some((c) => c.startsWith("Efectivo -") || c.startsWith("Transferencia -")) && (
+            <optgroup label={`Pago al propietario — ${selectedVehicle?.ownerName ?? ""}`}>
+              {channelOptions.filter((c) => c.startsWith("Efectivo -") || c.startsWith("Transferencia -")).map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </optgroup>
+          )}
+        </Select>
       </div>
 
       {/* Paperwork amount — only shown for consignment */}

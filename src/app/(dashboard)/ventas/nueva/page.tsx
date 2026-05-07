@@ -46,6 +46,7 @@ export default async function NewSalePage({
     label: `${v.brand} ${v.line} ${v.version} — ${v.plate} (${v.status})`,
     ownerType: v.ownerType,
     targetPrice: v.targetPrice,
+    ownerName: v.ownerName ?? null,
   }));
 
   return (

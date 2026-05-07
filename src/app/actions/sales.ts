@@ -33,6 +33,7 @@ const saleSchema = z.object({
   saleStatus: z.enum(["separacion", "vendido"]),
   paymentMethod: z.enum(PAYMENT_METHODS, { errorMap: () => ({ message: "Forma de pago inválida." }) }),
   expiryDate: optionalText,
+  initialPaymentChannel: z.string().optional(),
 }).superRefine((data, ctx) => {
   const needsExpiry = data.saleStatus === "separacion" && data.paymentMethod !== "Crédito";
   if (needsExpiry && !data.expiryDate) {
@@ -59,7 +60,7 @@ export async function createSaleAction(formData: FormData) {
 
   let saleId: string;
   try {
-    saleId = await createSale({ ...parsed.data, paymentMethod: parsed.data.paymentMethod, createdByUserId: userId });
+    saleId = await createSale({ ...parsed.data, paymentMethod: parsed.data.paymentMethod, initialPaymentChannel: parsed.data.initialPaymentChannel, createdByUserId: userId });
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se pudo registrar la venta.";
     redirect("/ventas/nueva?error=" + encodeURIComponent(message));

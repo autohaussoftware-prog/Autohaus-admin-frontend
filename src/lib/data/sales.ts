@@ -186,6 +186,7 @@ export type CreateSaleInput = {
   saleStatus: string;
   expiryDate?: string;
   paymentMethod?: string;
+  initialPaymentChannel?: string;
   clientPaperworkAmount?: number;
   createdByUserId?: string;
 };
@@ -282,7 +283,7 @@ export async function createSale(input: CreateSaleInput): Promise<string> {
     conceptParts.push(customerLabel);
     await supabase.from("finance_movements").insert({
       type: "Ingreso",
-      channel: "Banco",
+      channel: input.initialPaymentChannel || "Banco",
       concept: conceptParts.join(" — "),
       amount: input.initialPayment,
       date: new Date().toISOString().split("T")[0],
