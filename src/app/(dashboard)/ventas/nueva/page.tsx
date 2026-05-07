@@ -40,7 +40,7 @@ export default async function NewSalePage({
   const commissionRate = settingsMap["commission_consignacion"] ?? 3;
 
   const SOLD_STATUSES = new Set(["Separado", "Vendido", "Entregado"]);
-  const availableVehicles = vehicles.filter((v) => !SOLD_STATUSES.has(v.status));
+  const availableVehicles = vehicles.filter((v) => !SOLD_STATUSES.has(v.status) && v.ownerType !== "Externo");
   const vehicleOptions = availableVehicles.map((v) => ({
     id: v.id,
     label: `${v.brand} ${v.line} ${v.version} — ${v.plate} (${v.status})`,

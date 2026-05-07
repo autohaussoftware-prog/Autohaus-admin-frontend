@@ -120,6 +120,7 @@ export default async function SalesPage() {
                           ) : (
                             <Badge tone="amber">Separado</Badge>
                           )}
+                          {sale.isExternal && <Badge tone="neutral">Externo</Badge>}
                         </div>
                       </div>
 
@@ -214,7 +215,10 @@ export default async function SalesPage() {
                       <div className="flex items-center gap-3 shrink-0">
                         <div className="text-right">
                           <p className="font-semibold text-[#D6A93D]">{compactCOP(sale.agreedPrice)}</p>
-                          <Badge tone="green">Vendido</Badge>
+                          <div className="mt-1 flex justify-end gap-1.5">
+                            <Badge tone="green">Vendido</Badge>
+                            {sale.isExternal && <Badge tone="neutral">Externo</Badge>}
+                          </div>
                         </div>
                         <Link
                           href={`/ventas/${sale.id}`}

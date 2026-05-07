@@ -40,6 +40,7 @@ export type CreateVehicleInput = {
   separated?: boolean;
   ownerName?: string;
   ownerPhone?: string;
+  ownerDocument?: string;
   createdByUserId?: string;
 };
 
@@ -76,6 +77,7 @@ type DbVehicle = {
   alert_summary: string | null;
   owner_name: string | null;
   owner_phone: string | null;
+  owner_document: string | null;
   created_by_user_id: string | null;
   created_by: string | null; // existing column in schema, references profiles(id)
 };
@@ -299,6 +301,7 @@ export async function createVehicle(input: CreateVehicleInput) {
       separated,
       owner_name: input.ownerName?.trim() || null,
       owner_phone: input.ownerPhone?.trim() || null,
+      owner_document: input.ownerDocument?.trim() || null,
       created_by: input.createdByUserId || null,
       created_by_user_id: input.createdByUserId || null,
     })

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSale, confirmSaleFromReservation, updateSaleStatuses, markSaleDelivered, updateConsignmentPaperwork, updateSaleCommission, cancelSale } from "@/lib/data/sales";
+import { createVehicle } from "@/lib/data/vehicles";
 import { createTraspasoFromSale } from "@/lib/data/traspasos";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { sendSaleNotification } from "@/lib/email";
@@ -15,8 +16,26 @@ const optionalText = z.preprocess(
 
 const PAYMENT_METHODS = ["Contado", "Transferencia", "Efectivo", "Mixto", "Crédito"] as const;
 
+const optionalNumber = (nonneg = false) =>
+  z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
+    nonneg ? z.number().nonnegative().optional() : z.number().optional()
+  );
+
 const saleSchema = z.object({
-  vehicleId: z.string().trim().min(1),
+  vehicleMode: z.enum(["inventory", "external"]).default("inventory"),
+  vehicleId: optionalText,
+  // External vehicle fields
+  extPlate: optionalText,
+  extBrand: optionalText,
+  extLine: optionalText,
+  extYear: optionalNumber(),
+  extMileage: optionalNumber(true),
+  extColor: optionalText,
+  extOwnerName: optionalText,
+  extOwnerPhone: optionalText,
+  extOwnerDocument: optionalText,
+  // Sale fields
   customerName: z.string().trim().min(2, "El nombre del cliente es obligatorio."),
   customerPhone: z.string().trim().min(7, "El teléfono del cliente es obligatorio."),
   customerDocument: optionalText,
@@ -35,6 +54,19 @@ const saleSchema = z.object({
   expiryDate: optionalText,
   initialPaymentChannel: z.string().optional(),
 }).superRefine((data, ctx) => {
+  // Vehicle selection validation
+  if (data.vehicleMode === "inventory") {
+    if (!data.vehicleId?.trim()) {
+      ctx.addIssue({ code: "custom", path: ["vehicleId"], message: "Selecciona un vehículo del inventario." });
+    }
+  } else {
+    if (!data.extPlate?.trim()) ctx.addIssue({ code: "custom", path: ["extPlate"], message: "La placa es obligatoria." });
+    if (!data.extBrand?.trim()) ctx.addIssue({ code: "custom", path: ["extBrand"], message: "La marca es obligatoria." });
+    if (!data.extLine?.trim()) ctx.addIssue({ code: "custom", path: ["extLine"], message: "La línea es obligatoria." });
+    if (!data.extOwnerName?.trim()) ctx.addIssue({ code: "custom", path: ["extOwnerName"], message: "El nombre del propietario es obligatorio." });
+    if (!data.extOwnerPhone?.trim()) ctx.addIssue({ code: "custom", path: ["extOwnerPhone"], message: "El celular del propietario es obligatorio." });
+  }
+  // Expiry date validation
   const needsExpiry = data.saleStatus === "separacion" && data.paymentMethod !== "Crédito";
   if (needsExpiry && !data.expiryDate) {
     ctx.addIssue({ code: "custom", path: ["expiryDate"], message: "La fecha límite es obligatoria para separaciones que no son por crédito." });
@@ -58,9 +90,36 @@ export async function createSaleAction(formData: FormData) {
 
   const { id: userId, name } = await getCurrentUserProfile();
 
+  // Create external vehicle first if not from inventory
+  let vehicleId = parsed.data.vehicleId ?? "";
+  if (parsed.data.vehicleMode === "external") {
+    const isSold = parsed.data.saleStatus === "vendido";
+    try {
+      vehicleId = await createVehicle({
+        plate: parsed.data.extPlate!,
+        brand: parsed.data.extBrand!,
+        line: parsed.data.extLine!,
+        year: parsed.data.extYear,
+        mileage: parsed.data.extMileage ?? 0,
+        color: parsed.data.extColor,
+        status: isSold ? "Vendido" : "Separado",
+        ownerType: "Externo",
+        targetPrice: parsed.data.agreedPrice,
+        ownerName: parsed.data.extOwnerName,
+        ownerPhone: parsed.data.extOwnerPhone,
+        ownerDocument: parsed.data.extOwnerDocument,
+        separated: !isSold,
+        createdByUserId: userId,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No se pudo registrar el vehículo externo.";
+      redirect("/ventas/nueva?error=" + encodeURIComponent(message));
+    }
+  }
+
   let saleId: string;
   try {
-    saleId = await createSale({ ...parsed.data, paymentMethod: parsed.data.paymentMethod, initialPaymentChannel: parsed.data.initialPaymentChannel, createdByUserId: userId });
+    saleId = await createSale({ ...parsed.data, vehicleId, paymentMethod: parsed.data.paymentMethod, initialPaymentChannel: parsed.data.initialPaymentChannel, createdByUserId: userId });
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se pudo registrar la venta.";
     redirect("/ventas/nueva?error=" + encodeURIComponent(message));

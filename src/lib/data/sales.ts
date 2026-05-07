@@ -20,6 +20,7 @@ export type Sale = {
   expiryDate: string | null;
   paymentMethod: string;
   createdAt: string;
+  isExternal: boolean;
 };
 
 export async function getSales(filterByUserId?: string): Promise<Sale[]> {
@@ -47,7 +48,7 @@ export async function getSales(filterByUserId?: string): Promise<Sale[]> {
   const sellerIds = [...new Set(data.map((s: any) => s.seller_id).filter(Boolean))];
 
   const [vehiclesRes, customersRes, advisorsRes] = await Promise.all([
-    vehicleIds.length ? supabase.from("vehicles").select("id,brand,line,plate").in("id", vehicleIds) : Promise.resolve({ data: [] }),
+    vehicleIds.length ? supabase.from("vehicles").select("id,brand,line,plate,owner_type").in("id", vehicleIds) : Promise.resolve({ data: [] }),
     customerIds.length ? supabase.from("customers").select("id,full_name,phone").in("id", customerIds) : Promise.resolve({ data: [] }),
     sellerIds.length ? supabase.from("advisors").select("id,full_name").in("id", sellerIds) : Promise.resolve({ data: [] }),
   ]);
@@ -65,6 +66,7 @@ export async function getSales(filterByUserId?: string): Promise<Sale[]> {
       vehicleId: s.vehicle_id,
       vehicleName: v ? `${v.brand} ${v.line}` : "Vehículo",
       vehiclePlate: v?.plate ?? "",
+      isExternal: (v as any)?.owner_type === "Externo",
       customerName: c?.full_name ?? null,
       customerPhone: c?.phone ?? null,
       sellerName: a?.full_name ?? null,
@@ -327,6 +329,9 @@ async function autoCreateCommissions(
     // Build vehicle tag if not passed in
     const vTag = vehicleTag || [vehicle.brand + " " + vehicle.line, vehicle.plate].filter(Boolean).join(" · ");
 
+    // External vehicles have no automatic commissions (no buy_price to base gross profit on)
+    if (vehicle.owner_type === "Externo") return;
+
     // ── Comisión de consignación (ingreso para el negocio) ─────────
     if (vehicle.owner_type === "Comisión") {
       const commissionAmount = Math.round(agreedPrice * pctConsignacion / 100);
@@ -527,6 +532,13 @@ export async function cancelSale(
     .single();
   if (!sale) throw new Error("Venta no encontrada.");
 
+  const { data: vehicleInfo } = await supabase
+    .from("vehicles")
+    .select("owner_type")
+    .eq("id", sale.vehicle_id)
+    .maybeSingle();
+  const isExternal = (vehicleInfo as any)?.owner_type === "Externo";
+
   // Delete all child records that reference sales.id (FK constraints)
   await Promise.all([
     supabase.from("traspasos").delete().eq("sale_id", saleId),
@@ -553,9 +565,11 @@ export async function cancelSale(
   const { error } = await supabase.from("sales").delete().eq("id", saleId);
   if (error) throw new Error(error.message);
 
-  // Restore vehicle to Disponible
-  await supabase.from("vehicles").update({
-    status: "Disponible",
-    separated: false,
-  }).eq("id", sale.vehicle_id);
+  // Restore or archive vehicle
+  if (isExternal) {
+    // External vehicles are deleted when their sale is cancelled (they don't belong in inventory)
+    await supabase.from("vehicles").delete().eq("id", sale.vehicle_id);
+  } else {
+    await supabase.from("vehicles").update({ status: "Disponible", separated: false }).eq("id", sale.vehicle_id);
+  }
 }

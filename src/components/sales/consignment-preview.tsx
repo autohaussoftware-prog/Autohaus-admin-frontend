@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PackageSearch, Warehouse } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { buildChannelOptions } from "@/lib/domain/payment-channels-config";
@@ -27,6 +28,7 @@ export function ConsignmentAwarePricing({
   advisors: { id: string; name: string }[];
   commissionRate: number;
 }) {
+  const [vehicleMode, setVehicleMode] = useState<"inventory" | "external">("inventory");
   const [vehicleId, setVehicleId] = useState("");
   const [agreedPrice, setAgreedPrice] = useState("");
   const [paperwork, setPaperwork] = useState("");
@@ -34,39 +36,136 @@ export function ConsignmentAwarePricing({
   const [paymentMethod, setPaymentMethod] = useState("Contado");
   const [initialPaymentChannel, setInitialPaymentChannel] = useState("Banco");
 
-  const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
+  const selectedVehicle = vehicleMode === "inventory" ? vehicles.find((v) => v.id === vehicleId) : null;
   const isConsignment = selectedVehicle?.ownerType === "Comisión";
-  const channelOptions = buildChannelOptions(isConsignment ? selectedVehicle?.ownerName : null);
   const price = Number(agreedPrice) || 0;
   const commission = isConsignment && price > 0 ? Math.round(price * commissionRate / 100) : 0;
   const paperworkAmount = Number(paperwork) || 0;
   const ownerPayout = price > 0 ? price - commission - paperworkAmount : 0;
+  const channelOptions = buildChannelOptions(isConsignment ? selectedVehicle?.ownerName : null);
+
+  function switchMode(mode: "inventory" | "external") {
+    setVehicleMode(mode);
+    setVehicleId("");
+    setAgreedPrice("");
+    setInitialPaymentChannel("Banco");
+  }
 
   return (
     <>
-      {/* Vehicle select */}
-      <div className="block">
-        <span className="mb-2 block text-sm text-zinc-400">
-          Vehículo <span className="text-red-400">*</span>
-        </span>
-        <Select
-          name="vehicleId"
-          defaultValue=""
-          required
-          onChange={(e) => { setVehicleId(e.target.value); setInitialPaymentChannel("Banco"); }}
-        >
-          <option value="" disabled>Selecciona un vehículo</option>
-          {vehicles.map((v) => (
-            <option key={v.id} value={v.id}>{v.label}</option>
-          ))}
-        </Select>
-        {isConsignment && (
-          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[#D6A93D]">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#D6A93D]" />
-            Vehículo en consignación — comisión del {commissionRate}% automática
-          </p>
-        )}
+      {/* Vehicle origin toggle */}
+      <div className="col-span-full">
+        <span className="mb-2 block text-sm text-zinc-400">Origen del vehículo</span>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => switchMode("inventory")}
+            className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition ${vehicleMode === "inventory" ? "border-[#D6A93D] bg-[#D6A93D]/10 text-[#D6A93D]" : "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-white"}`}
+          >
+            <Warehouse className="h-4 w-4" />
+            Del inventario
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode("external")}
+            className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition ${vehicleMode === "external" ? "border-rose-700 bg-rose-950/30 text-rose-300" : "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-white"}`}
+          >
+            <PackageSearch className="h-4 w-4" />
+            No registrado
+          </button>
+        </div>
+        <input type="hidden" name="vehicleMode" value={vehicleMode} />
       </div>
+
+      {vehicleMode === "inventory" ? (
+        /* ── Inventory vehicle select ── */
+        <div className="block">
+          <span className="mb-2 block text-sm text-zinc-400">
+            Vehículo <span className="text-red-400">*</span>
+          </span>
+          <Select
+            name="vehicleId"
+            defaultValue=""
+            required
+            onChange={(e) => { setVehicleId(e.target.value); setInitialPaymentChannel("Banco"); }}
+          >
+            <option value="" disabled>Selecciona un vehículo</option>
+            {vehicles.map((v) => (
+              <option key={v.id} value={v.id}>{v.label}</option>
+            ))}
+          </Select>
+          {isConsignment && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[#D6A93D]">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#D6A93D]" />
+              Vehículo en consignación — comisión del {commissionRate}% automática
+            </p>
+          )}
+        </div>
+      ) : (
+        /* ── External vehicle form ── */
+        <>
+          <div className="col-span-full rounded-2xl border border-rose-800/30 bg-rose-950/10 px-4 py-3">
+            <p className="text-xs text-rose-300">
+              <span className="font-semibold">Vehículo no registrado en inventario.</span> Al confirmar se creará automáticamente con etiqueta <span className="font-medium">Externo</span>.
+            </p>
+          </div>
+
+          <div className="block">
+            <span className="mb-2 block text-sm text-zinc-400">
+              Placa <span className="text-red-400">*</span>
+            </span>
+            <Input name="extPlate" required placeholder="Ej: ABC123" style={{ textTransform: "uppercase" }} />
+          </div>
+          <div className="block">
+            <span className="mb-2 block text-sm text-zinc-400">
+              Marca <span className="text-red-400">*</span>
+            </span>
+            <Input name="extBrand" required placeholder="Ej: TOYOTA" />
+          </div>
+          <div className="block">
+            <span className="mb-2 block text-sm text-zinc-400">
+              Línea <span className="text-red-400">*</span>
+            </span>
+            <Input name="extLine" required placeholder="Ej: HILUX" />
+          </div>
+          <div className="block">
+            <span className="mb-2 block text-sm text-zinc-400">Modelo (año)</span>
+            <Input name="extYear" type="number" min="1980" max="2030" placeholder={String(new Date().getFullYear())} />
+          </div>
+          <div className="block">
+            <span className="mb-2 block text-sm text-zinc-400">Kilometraje</span>
+            <Input name="extMileage" type="number" min="0" placeholder="Ej: 45000" />
+          </div>
+          <div className="block">
+            <span className="mb-2 block text-sm text-zinc-400">Color</span>
+            <Input name="extColor" placeholder="Ej: Blanco" />
+          </div>
+
+          <div className="col-span-full">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Propietario del vehículo</p>
+          </div>
+
+          <div className="block">
+            <span className="mb-2 block text-sm text-zinc-400">
+              Nombre <span className="text-red-400">*</span>
+            </span>
+            <Input name="extOwnerName" required placeholder="Juan García López" />
+          </div>
+          <div className="block">
+            <span className="mb-2 block text-sm text-zinc-400">
+              Celular <span className="text-red-400">*</span>
+            </span>
+            <Input name="extOwnerPhone" type="tel" required placeholder="3001234567" />
+          </div>
+          <div className="block">
+            <span className="mb-2 block text-sm text-zinc-400">Cédula / NIT</span>
+            <Input name="extOwnerDocument" placeholder="1234567890" />
+          </div>
+
+          <input type="hidden" name="vehicleId" value="" />
+          <input type="hidden" name="clientPaperworkAmount" value="0" />
+        </>
+      )}
 
       {/* Sale type */}
       <div className="block">
@@ -93,7 +192,7 @@ export function ConsignmentAwarePricing({
         </Select>
       </div>
 
-      {/* Expiry */}
+      {/* Expiry date */}
       {(() => {
         const needsExpiry = saleStatus === "separacion" && paymentMethod !== "Crédito";
         const isCredit = paymentMethod === "Crédito";
@@ -167,26 +266,24 @@ export function ConsignmentAwarePricing({
         </Select>
       </div>
 
-      {/* Paperwork amount — only shown for consignment */}
-      {isConsignment ? (
-        <div className="block">
-          <span className="mb-2 block text-sm text-zinc-400">
-            Valor papeles cliente (COP)
-          </span>
-          <Input
-            name="clientPaperworkAmount"
-            type="number"
-            min="0"
-            placeholder="Ej: 1500000"
-            value={paperwork}
-            onChange={(e) => setPaperwork(e.target.value)}
-          />
-          <p className="mt-1 text-xs text-zinc-500">
-            Valor correspondiente a trámites, traspaso y papeles del cliente.
-          </p>
-        </div>
-      ) : (
-        <input type="hidden" name="clientPaperworkAmount" value="0" />
+      {/* Paperwork amount — only for inventory consignment vehicles */}
+      {vehicleMode === "inventory" && (
+        isConsignment ? (
+          <div className="block">
+            <span className="mb-2 block text-sm text-zinc-400">Valor papeles cliente (COP)</span>
+            <Input
+              name="clientPaperworkAmount"
+              type="number"
+              min="0"
+              placeholder="Ej: 1500000"
+              value={paperwork}
+              onChange={(e) => setPaperwork(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-zinc-500">Valor correspondiente a trámites, traspaso y papeles del cliente.</p>
+          </div>
+        ) : (
+          <input type="hidden" name="clientPaperworkAmount" value="0" />
+        )
       )}
 
       {/* Seller advisor */}
@@ -200,8 +297,8 @@ export function ConsignmentAwarePricing({
         </Select>
       </div>
 
-      {/* Consignment breakdown preview */}
-      {isConsignment && price > 0 && (
+      {/* Consignment breakdown — only for inventory consignment vehicles */}
+      {vehicleMode === "inventory" && isConsignment && price > 0 && (
         <div className="col-span-full rounded-2xl border border-[#D6A93D]/30 bg-[#D6A93D]/5 p-5">
           <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-[#D6A93D]">
             Liquidación consignación ({commissionRate}%)

@@ -29,7 +29,7 @@ export type Vehicle = {
   lienValue?: number;
   status: VehicleStatus;
   location: string;
-  ownerType: "Propio" | "Comisión";
+  ownerType: "Propio" | "Comisión" | "Externo";
   entryType: string;
   buyPrice: number;
   targetPrice: number;
