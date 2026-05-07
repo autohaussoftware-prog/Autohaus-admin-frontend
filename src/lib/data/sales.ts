@@ -254,6 +254,16 @@ export async function createSale(input: CreateSaleInput): Promise<string> {
     .update({ status: newStatus, separated: !isSold })
     .eq("id", input.vehicleId);
 
+  // Fetch vehicle info for movement labels
+  const { data: vehicleInfo } = await supabase
+    .from("vehicles")
+    .select("brand, line, plate")
+    .eq("id", input.vehicleId)
+    .maybeSingle();
+  const vehicleTag = vehicleInfo
+    ? [vehicleInfo.brand + " " + vehicleInfo.line, vehicleInfo.plate].filter(Boolean).join(" · ")
+    : "";
+
   // Registrar movimiento del vehículo
   const customerLabel = input.customerName.trim() || "Cliente";
   await supabase.from("vehicle_movements").insert({
@@ -267,19 +277,23 @@ export async function createSale(input: CreateSaleInput): Promise<string> {
 
   // Registrar abono inicial como movimiento financiero si > 0
   if (input.initialPayment > 0) {
+    const conceptParts = [isSold ? "Pago venta" : "Abono separación"];
+    if (vehicleTag) conceptParts.push(vehicleTag);
+    conceptParts.push(customerLabel);
     await supabase.from("finance_movements").insert({
       type: "Ingreso",
       channel: "Banco",
-      concept: `${isSold ? "Pago venta" : "Abono separación"} — ${customerLabel}`,
+      concept: conceptParts.join(" — "),
       amount: input.initialPayment,
       date: new Date().toISOString().split("T")[0],
       vehicle_id: input.vehicleId,
       responsible_name: "Sistema",
+      notes: `Venta ID: ${sale.id}.`,
     });
   }
 
   // Auto-calcular comisiones si hay asesores asignados
-  await autoCreateCommissions(supabase, sale.id as string, input.vehicleId, input.sellerId ?? null, input.agreedPrice);
+  await autoCreateCommissions(supabase, sale.id as string, input.vehicleId, input.sellerId ?? null, input.agreedPrice, customerLabel, vehicleTag);
 
   return sale.id as string;
 }
@@ -289,12 +303,14 @@ async function autoCreateCommissions(
   saleId: string,
   vehicleId: string,
   sellerId: string | null,
-  agreedPrice: number
+  agreedPrice: number,
+  customerLabel: string = "",
+  vehicleTag: string = ""
 ) {
   try {
     const [settings, vehicleRes] = await Promise.all([
       getSettings(),
-      supabase.from("vehicles").select("advisor_buyer_id, buy_price, real_cost, owner_type, brand, line").eq("id", vehicleId).single(),
+      supabase.from("vehicles").select("advisor_buyer_id, buy_price, real_cost, owner_type, brand, line, plate").eq("id", vehicleId).single(),
     ]);
 
     const vehicle = vehicleRes.data as any;
@@ -307,16 +323,21 @@ async function autoCreateCommissions(
 
     const currentMonth = new Date().toISOString().slice(0, 7);
 
+    // Build vehicle tag if not passed in
+    const vTag = vehicleTag || [vehicle.brand + " " + vehicle.line, vehicle.plate].filter(Boolean).join(" · ");
+
     // ── Comisión de consignación (ingreso para el negocio) ─────────
     if (vehicle.owner_type === "Comisión") {
       const commissionAmount = Math.round(agreedPrice * pctConsignacion / 100);
-      const vehicleName = `${vehicle.brand} ${vehicle.line}`;
+      const commissionConceptParts = ["Comisión consignación"];
+      if (vTag) commissionConceptParts.push(vTag);
+      if (customerLabel) commissionConceptParts.push(customerLabel);
 
       await Promise.all([
         supabase.from("finance_movements").insert({
           type: "Ingreso",
           channel: "Banco",
-          concept: `Comisión consignación — ${vehicleName}`,
+          concept: commissionConceptParts.join(" — "),
           amount: commissionAmount,
           date: new Date().toISOString().split("T")[0],
           vehicle_id: vehicleId,
