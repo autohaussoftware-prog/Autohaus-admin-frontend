@@ -18,6 +18,7 @@ export type Sale = {
   deliveryStatus: string;
   saleStatus: string;
   expiryDate: string | null;
+  paymentMethod: string;
   createdAt: string;
 };
 
@@ -27,7 +28,7 @@ export async function getSales(filterByUserId?: string): Promise<Sale[]> {
 
   let query = supabase
     .from("sales")
-    .select("id,vehicle_id,customer_id,seller_id,agreed_price,initial_payment,pending_balance,payment_status,document_status,delivery_status,sale_status,expiry_date,created_at,created_by_user_id")
+    .select("id,vehicle_id,customer_id,seller_id,agreed_price,initial_payment,pending_balance,payment_status,document_status,delivery_status,sale_status,expiry_date,payment_method,created_at,created_by_user_id")
     .order("created_at", { ascending: false });
 
   if (filterByUserId) {
@@ -75,6 +76,7 @@ export async function getSales(filterByUserId?: string): Promise<Sale[]> {
       deliveryStatus: s.delivery_status,
       saleStatus: s.sale_status,
       expiryDate: s.expiry_date ?? null,
+      paymentMethod: s.payment_method ?? "Contado",
       createdAt: s.created_at,
     };
   });
@@ -144,6 +146,7 @@ export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
     deliveryStatus: s.delivery_status,
     saleStatus: s.sale_status,
     expiryDate: s.expiry_date ?? null,
+    paymentMethod: s.payment_method ?? "Contado",
     closedAt: s.closed_at ?? null,
     createdAt: s.created_at,
     vehicleOwnerType: ownerType,
@@ -167,6 +170,7 @@ export type CreateSaleInput = {
   deliveryStatus: string;
   saleStatus: string;
   expiryDate?: string;
+  paymentMethod?: string;
   clientPaperworkAmount?: number;
   createdByUserId?: string;
 };
@@ -219,6 +223,7 @@ export async function createSale(input: CreateSaleInput): Promise<string> {
       delivery_status: input.deliveryStatus,
       sale_status: input.saleStatus,
       expiry_date: input.expiryDate || null,
+      payment_method: input.paymentMethod ?? "Contado",
       client_paperwork_amount: input.clientPaperworkAmount ?? 0,
       created_by_user_id: input.createdByUserId || null,
     })

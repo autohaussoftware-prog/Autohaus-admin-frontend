@@ -33,6 +33,13 @@ function isExpired(dateStr: string | null) {
   return new Date(dateStr) < new Date();
 }
 
+function expiryStatus(paymentMethod: string, expiryDate: string | null, saleStatus: string): "credit" | "vigente" | "vencida" | null {
+  if (saleStatus !== "separacion") return null;
+  if (paymentMethod === "Crédito") return "credit";
+  if (!expiryDate) return null;
+  return isExpired(expiryDate) ? "vencida" : "vigente";
+}
+
 const STATUS_LABELS: Record<string, string> = {
   separacion: "Separación",
   vendido: "Vendido",
@@ -59,7 +66,6 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
 
   if (!sale) notFound();
 
-  const expired = isExpired(sale.expiryDate);
   const canConfirm = ["owner", "partner", "admin", "accounting"].includes(role);
   const canAddPayment = role !== "viewer";
   const canEditStatuses = ["owner", "partner", "admin", "accounting", "advisor"].includes(role);
@@ -272,17 +278,39 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             </CardHeader>
             <CardContent className="space-y-4 p-5">
               <InfoRow label="Registro" value={formatDate(sale.createdAt)} />
-              {sale.expiryDate && (
-                <div className="flex flex-col gap-1">
-                  <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Límite separación</p>
-                  <div className="flex items-center gap-2">
-                    {expired && <CalendarX2 className="h-4 w-4 text-red-400" />}
-                    <p className={`text-sm font-medium ${expired ? "text-red-400" : "text-white"}`}>
-                      {formatDate(sale.expiryDate)}{expired && " — VENCIDA"}
-                    </p>
+              <InfoRow label="Forma de pago" value={sale.paymentMethod} />
+              {(sale.expiryDate || sale.paymentMethod === "Crédito") && sale.saleStatus === "separacion" && (() => {
+                const status = expiryStatus(sale.paymentMethod, sale.expiryDate, sale.saleStatus);
+                return (
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Límite separación</p>
+                    {status === "credit" ? (
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-blue-950/60 border border-blue-800/50 px-2.5 py-0.5 text-xs font-medium text-blue-300">
+                          En proceso de crédito
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {status === "vencida" && <CalendarX2 className="h-4 w-4 text-red-400" />}
+                        <p className={`text-sm font-medium ${status === "vencida" ? "text-red-400" : "text-white"}`}>
+                          {formatDate(sale.expiryDate)}
+                        </p>
+                        {status === "vigente" && (
+                          <span className="rounded-full bg-emerald-950/60 border border-emerald-800/50 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
+                            Vigente
+                          </span>
+                        )}
+                        {status === "vencida" && (
+                          <span className="rounded-full bg-red-950/60 border border-red-800/50 px-2.5 py-0.5 text-xs font-medium text-red-300">
+                            Vencida
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
               {sale.closedAt && <InfoRow label="Cierre comercial" value={formatDate(sale.closedAt)} />}
             </CardContent>
           </Card>

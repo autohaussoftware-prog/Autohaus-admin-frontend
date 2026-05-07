@@ -12,6 +12,8 @@ const optionalText = z.preprocess(
   z.string().trim().optional()
 );
 
+const PAYMENT_METHODS = ["Contado", "Transferencia", "Efectivo", "Mixto", "Crédito"] as const;
+
 const saleSchema = z.object({
   vehicleId: z.string().trim().min(1),
   customerName: z.string().trim().min(2, "El nombre del cliente es obligatorio."),
@@ -28,7 +30,20 @@ const saleSchema = z.object({
   documentStatus: z.enum(["pendiente", "en_tramite", "completo"]),
   deliveryStatus: z.enum(["pendiente", "programada", "completada"]),
   saleStatus: z.enum(["separacion", "vendido"]),
+  paymentMethod: z.enum(PAYMENT_METHODS, { errorMap: () => ({ message: "Forma de pago inválida." }) }),
   expiryDate: optionalText,
+}).superRefine((data, ctx) => {
+  const needsExpiry = data.saleStatus === "separacion" && data.paymentMethod !== "Crédito";
+  if (needsExpiry && !data.expiryDate) {
+    ctx.addIssue({ code: "custom", path: ["expiryDate"], message: "La fecha límite es obligatoria para separaciones que no son por crédito." });
+  }
+  if (data.expiryDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (new Date(data.expiryDate) < today) {
+      ctx.addIssue({ code: "custom", path: ["expiryDate"], message: "La fecha límite no puede ser una fecha pasada." });
+    }
+  }
 });
 
 export async function createSaleAction(formData: FormData) {
@@ -43,7 +58,7 @@ export async function createSaleAction(formData: FormData) {
 
   let saleId: string;
   try {
-    saleId = await createSale({ ...parsed.data, createdByUserId: userId });
+    saleId = await createSale({ ...parsed.data, paymentMethod: parsed.data.paymentMethod, createdByUserId: userId });
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se pudo registrar la venta.";
     redirect("/ventas/nueva?error=" + encodeURIComponent(message));

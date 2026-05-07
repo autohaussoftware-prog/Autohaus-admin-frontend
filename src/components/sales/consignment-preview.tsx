@@ -28,6 +28,8 @@ export function ConsignmentAwarePricing({
   const [vehicleId, setVehicleId] = useState("");
   const [agreedPrice, setAgreedPrice] = useState("");
   const [paperwork, setPaperwork] = useState("");
+  const [saleStatus, setSaleStatus] = useState("separacion");
+  const [paymentMethod, setPaymentMethod] = useState("Contado");
 
   const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
   const isConsignment = selectedVehicle?.ownerType === "Comisión";
@@ -67,22 +69,54 @@ export function ConsignmentAwarePricing({
         <span className="mb-2 block text-sm text-zinc-400">
           Tipo de registro <span className="text-red-400">*</span>
         </span>
-        <Select name="saleStatus" defaultValue="separacion">
+        <Select name="saleStatus" defaultValue="separacion" onChange={(e) => setSaleStatus(e.target.value)}>
           <option value="separacion">Separación (con saldo pendiente)</option>
           <option value="vendido">Venta directa (pago completo)</option>
         </Select>
       </div>
 
-      {/* Expiry */}
+      {/* Payment method */}
       <div className="block">
-        <span className="mb-2 block text-sm text-zinc-400">Fecha límite separación</span>
-        <Input
-          name="expiryDate"
-          type="date"
-          defaultValue=""
-          title="Solo aplica para separaciones."
-        />
+        <span className="mb-2 block text-sm text-zinc-400">
+          Forma de pago <span className="text-red-400">*</span>
+        </span>
+        <Select name="paymentMethod" defaultValue="Contado" onChange={(e) => setPaymentMethod(e.target.value)}>
+          <option value="Contado">Contado</option>
+          <option value="Transferencia">Transferencia</option>
+          <option value="Efectivo">Efectivo</option>
+          <option value="Mixto">Mixto</option>
+          <option value="Crédito">Crédito</option>
+        </Select>
       </div>
+
+      {/* Expiry */}
+      {(() => {
+        const needsExpiry = saleStatus === "separacion" && paymentMethod !== "Crédito";
+        const isCredit = paymentMethod === "Crédito";
+        return (
+          <div className="block">
+            <span className="mb-2 block text-sm text-zinc-400">
+              Fecha límite separación
+              {needsExpiry && <span className="text-red-400"> *</span>}
+            </span>
+            {isCredit ? (
+              <>
+                <Input name="expiryDate" type="date" defaultValue="" disabled className="opacity-40" />
+                <p className="mt-1 text-xs text-blue-400">No aplica para créditos — la fecha se coordinará con la entidad.</p>
+              </>
+            ) : (
+              <Input
+                name="expiryDate"
+                type="date"
+                defaultValue=""
+                required={needsExpiry}
+                min={new Date().toISOString().split("T")[0]}
+                title={needsExpiry ? "Obligatorio para separaciones." : "Solo aplica para separaciones."}
+              />
+            )}
+          </div>
+        );
+      })()}
 
       {/* Agreed price */}
       <div className="block">
