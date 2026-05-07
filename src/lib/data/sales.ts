@@ -89,6 +89,7 @@ export type SaleDetail = Sale & {
   vehicleVersion: string;
   customerDocument: string | null;
   vehicleOwnerType: string;
+  vehicleOwnerName: string | null;
   consignmentRate: number;
   consignmentCommission: number;
   consignmentAutoAmount: number;
@@ -112,7 +113,7 @@ export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
   if (error || !s) return null;
 
   const [vehicleRes, customerRes, advisorRes, settings] = await Promise.all([
-    s.vehicle_id ? supabase.from("vehicles").select("id,brand,line,version,plate,owner_type").eq("id", s.vehicle_id).single() : Promise.resolve({ data: null }),
+    s.vehicle_id ? supabase.from("vehicles").select("id,brand,line,version,plate,owner_type,owner_name").eq("id", s.vehicle_id).single() : Promise.resolve({ data: null }),
     s.customer_id ? supabase.from("customers").select("id,full_name,phone,document_number").eq("id", s.customer_id).single() : Promise.resolve({ data: null }),
     s.seller_id ? supabase.from("advisors").select("id,full_name").eq("id", s.seller_id).single() : Promise.resolve({ data: null }),
     getSettings(),
@@ -159,6 +160,7 @@ export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
     closedAt: s.closed_at ?? null,
     createdAt: s.created_at,
     vehicleOwnerType: ownerType,
+    vehicleOwnerName: (v as any)?.owner_name ?? null,
     consignmentRate,
     consignmentCommission,
     consignmentAutoAmount,

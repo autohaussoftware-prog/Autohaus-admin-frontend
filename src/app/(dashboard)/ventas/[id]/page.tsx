@@ -234,6 +234,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             saleId={sale.id}
             payments={payments}
             pendingBalance={sale.pendingBalance}
+            ownerName={sale.vehicleOwnerType === "Comisión" ? sale.vehicleOwnerName : null}
             canAdd={canAddPayment && !alreadyDelivered}
           />
 

@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, CreditCard, PlusCircle } from "lucide-react";
 import { createPaymentAction } from "@/app/actions/payments";
-import { PAYMENT_CHANNELS } from "@/lib/domain/payment-channels-config";
+import { buildChannelOptions } from "@/lib/domain/payment-channels-config";
 import type { Payment } from "@/lib/data/payments";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,15 +20,24 @@ const CHANNEL_COLORS: Record<string, string> = {
   "Efectivo Tomás": "text-amber-300 border-amber-500/30 bg-amber-500/10",
 };
 
+function channelBadgeClass(channel: string): string {
+  if (CHANNEL_COLORS[channel]) return CHANNEL_COLORS[channel];
+  if (channel.startsWith("Efectivo -")) return "text-violet-300 border-violet-500/30 bg-violet-500/10";
+  if (channel.startsWith("Transferencia -")) return "text-cyan-300 border-cyan-500/30 bg-cyan-500/10";
+  return "text-zinc-300 border-zinc-600 bg-zinc-700/30";
+}
+
 export function SalePayments({
   saleId,
   payments,
   pendingBalance,
+  ownerName,
   canAdd = false,
 }: {
   saleId: string;
   payments: Payment[];
   pendingBalance: number;
+  ownerName?: string | null;
   canAdd?: boolean;
 }) {
   const router = useRouter();
@@ -36,6 +45,7 @@ export function SalePayments({
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const channelOptions = buildChannelOptions(ownerName);
 
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
 
@@ -111,9 +121,18 @@ export function SalePayments({
                   required
                   className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white focus:border-[#D6A93D] focus:outline-none"
                 >
-                  {PAYMENT_CHANNELS.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
+                  <optgroup label="Canales de la empresa">
+                    {channelOptions.filter((c) => !c.includes(" - ")).map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </optgroup>
+                  {ownerName?.trim() && (
+                    <optgroup label={`Pago al propietario — ${ownerName.trim()}`}>
+                      {channelOptions.filter((c) => c.includes(" - ")).map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
 
@@ -183,7 +202,7 @@ export function SalePayments({
                 <div className="min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${CHANNEL_COLORS[p.channel] ?? "text-zinc-300 border-zinc-600 bg-zinc-700/30"}`}
+                      className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${channelBadgeClass(p.channel)}`}
                     >
                       {p.channel}
                     </span>
