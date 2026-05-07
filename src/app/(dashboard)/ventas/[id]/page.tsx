@@ -21,6 +21,7 @@ import { SaleStatusPanel } from "@/components/sales/sale-status-panel";
 import { DeliveryChecklist } from "@/components/sales/delivery-checklist";
 import { ConfirmSaleButton } from "@/components/sales/confirm-sale-button";
 import { PaperworkEditor } from "@/components/sales/paperwork-editor";
+import { CommissionEditor } from "@/components/sales/commission-editor";
 import { currencyCOP } from "@/lib/utils";
 
 function formatDate(iso: string | null) {
@@ -69,6 +70,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   const canConfirm = ["owner", "partner", "admin", "accounting"].includes(role);
   const canAddPayment = role !== "viewer";
   const canEditStatuses = ["owner", "partner", "admin", "accounting", "advisor"].includes(role);
+  const canEditCommission = ["owner", "partner", "admin", "gerente"].includes(role);
   const canDeliver = ["owner", "partner", "admin", "accounting"].includes(role);
   const alreadyDelivered = sale.saleStatus === "entregado" || sale.deliveryStatus === "completada";
   const canShowDelivery = canDeliver && (sale.saleStatus === "vendido" || alreadyDelivered);
@@ -165,7 +167,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
                 <div className="flex items-center justify-between">
                   <CardTitle>Liquidación consignación</CardTitle>
                   <span className="rounded-xl border border-[#D6A93D]/40 bg-[#D6A93D]/10 px-3 py-1 text-xs font-medium text-[#D6A93D]">
-                    {sale.consignmentRate}% comisión
+                    {sale.consignmentRate}% base
                   </span>
                 </div>
               </CardHeader>
@@ -177,10 +179,18 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
                     <p className="mt-1 text-base font-bold text-white">{currencyCOP(sale.agreedPrice)}</p>
                   </div>
                   <div className="rounded-2xl border border-[#D6A93D]/30 bg-[#D6A93D]/5 p-4">
-                    <p className="text-xs uppercase tracking-[0.14em] text-[#D6A93D]">
-                      Comisión ({sale.consignmentRate}%)
-                    </p>
-                    <p className="mt-1 text-base font-bold text-[#D6A93D]">− {currencyCOP(sale.consignmentCommission)}</p>
+                    <p className="text-xs uppercase tracking-[0.14em] text-[#D6A93D]">Comisión</p>
+                    <div className="mt-1">
+                      <CommissionEditor
+                        saleId={sale.id}
+                        vehicleId={sale.vehicleId}
+                        currentAmount={sale.consignmentCommission}
+                        autoAmount={sale.consignmentAutoAmount}
+                        rate={sale.consignmentRate}
+                        overrideBy={sale.commissionOverrideBy}
+                        canEdit={canEditCommission && !alreadyDelivered}
+                      />
+                    </div>
                   </div>
                   <div className="rounded-2xl border border-zinc-700/50 bg-zinc-800/40 p-4">
                     <p className="text-xs uppercase tracking-[0.14em] text-zinc-400">Papeles cliente</p>
@@ -205,10 +215,15 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
                 <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3 text-xs text-zinc-500">
                   <span className="font-medium text-zinc-400">Fórmula: </span>
                   {currencyCOP(sale.agreedPrice)}
-                  {" − "}{sale.consignmentRate}% ({currencyCOP(sale.consignmentCommission)})
+                  {" − comisión ("}{currencyCOP(sale.consignmentCommission)}{")"}
                   {sale.clientPaperworkAmount > 0 && ` − papeles (${currencyCOP(sale.clientPaperworkAmount)})`}
                   {" = "}<span className="font-semibold text-emerald-400">{currencyCOP(sale.ownerPayout)}</span>
                   {" para el propietario"}
+                  {sale.commissionIsOverridden && (
+                    <span className="ml-2 rounded-full bg-amber-950/60 border border-amber-800/40 px-2 py-0.5 text-amber-400">
+                      comisión ajustada manualmente
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>

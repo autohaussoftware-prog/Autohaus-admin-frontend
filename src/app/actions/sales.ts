@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createSale, confirmSaleFromReservation, updateSaleStatuses, markSaleDelivered, updateConsignmentPaperwork } from "@/lib/data/sales";
+import { createSale, confirmSaleFromReservation, updateSaleStatuses, markSaleDelivered, updateConsignmentPaperwork, updateSaleCommission } from "@/lib/data/sales";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { sendSaleNotification } from "@/lib/email";
 
@@ -134,6 +134,35 @@ export async function markSaleDeliveredAction(
   revalidatePath(`/vehiculos/${vehicleId}`);
   revalidatePath(`/ventas/${saleId}`);
   return { success: true };
+}
+
+export async function updateCommissionAmountAction(
+  saleId: string,
+  vehicleId: string,
+  _prev: { error: string | null; attempt: number },
+  formData: FormData
+): Promise<{ error: string | null; attempt: number }> {
+  const role = await getUserRole();
+  if (!["owner", "partner", "admin", "gerente"].includes(role)) {
+    return { error: "Sin permisos para modificar el valor de la comisión.", attempt: _prev.attempt + 1 };
+  }
+
+  const raw = formData.get("commissionAmount");
+  const amount = Number(raw);
+  if (isNaN(amount) || amount < 0) {
+    return { error: "El valor debe ser un número mayor o igual a $0.", attempt: _prev.attempt + 1 };
+  }
+
+  const { name } = await getCurrentUserProfile();
+
+  try {
+    await updateSaleCommission(saleId, vehicleId, amount, name);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Error actualizando comisión.", attempt: _prev.attempt + 1 };
+  }
+
+  revalidatePath(`/ventas/${saleId}`);
+  return { error: null, attempt: _prev.attempt + 1 };
 }
 
 export async function updatePaperworkAmountAction(

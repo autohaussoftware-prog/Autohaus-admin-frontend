@@ -91,6 +91,10 @@ export type SaleDetail = Sale & {
   vehicleOwnerType: string;
   consignmentRate: number;
   consignmentCommission: number;
+  consignmentAutoAmount: number;
+  commissionIsOverridden: boolean;
+  commissionOverrideBy: string | null;
+  commissionOverrideAt: string | null;
   clientPaperworkAmount: number;
   ownerPayout: number;
 };
@@ -122,7 +126,12 @@ export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
   const consignmentRate = settingsMap["commission_consignacion"] ?? 3;
   const agreedPrice = Number(s.agreed_price);
   const ownerType = (v as any)?.owner_type ?? "Propio";
-  const consignmentCommission = ownerType === "Comisión" ? Math.round(agreedPrice * consignmentRate / 100) : 0;
+  const consignmentAutoAmount = ownerType === "Comisión" ? Math.round(agreedPrice * consignmentRate / 100) : 0;
+  const storedCommission = (s as any).commission_amount;
+  const consignmentCommission = ownerType === "Comisión"
+    ? (storedCommission !== null && storedCommission !== undefined ? Number(storedCommission) : consignmentAutoAmount)
+    : 0;
+  const commissionIsOverridden = ownerType === "Comisión" && storedCommission !== null && storedCommission !== undefined && Number(storedCommission) !== consignmentAutoAmount;
   const clientPaperworkAmount = ownerType === "Comisión" ? Number((s as any).client_paperwork_amount ?? 0) : 0;
   const ownerPayout = ownerType === "Comisión" ? agreedPrice - consignmentCommission - clientPaperworkAmount : 0;
 
@@ -152,6 +161,10 @@ export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
     vehicleOwnerType: ownerType,
     consignmentRate,
     consignmentCommission,
+    consignmentAutoAmount,
+    commissionIsOverridden,
+    commissionOverrideBy: (s as any).commission_override_by ?? null,
+    commissionOverrideAt: (s as any).commission_override_at ?? null,
     clientPaperworkAmount,
     ownerPayout,
   };
@@ -297,17 +310,23 @@ async function autoCreateCommissions(
       const commissionAmount = Math.round(agreedPrice * pctConsignacion / 100);
       const vehicleName = `${vehicle.brand} ${vehicle.line}`;
 
-      await supabase.from("finance_movements").insert({
-        type: "Ingreso",
-        channel: "Banco",
-        concept: `Comisión consignación — ${vehicleName}`,
-        amount: commissionAmount,
-        date: new Date().toISOString().split("T")[0],
-        vehicle_id: vehicleId,
-        responsible_name: "Sistema",
-        category: "Consignaciones",
-        notes: `${pctConsignacion}% del precio de venta $${agreedPrice.toLocaleString("es-CO")}. Venta ID: ${saleId}.`,
-      });
+      await Promise.all([
+        supabase.from("finance_movements").insert({
+          type: "Ingreso",
+          channel: "Banco",
+          concept: `Comisión consignación — ${vehicleName}`,
+          amount: commissionAmount,
+          date: new Date().toISOString().split("T")[0],
+          vehicle_id: vehicleId,
+          responsible_name: "Sistema",
+          category: "Consignaciones",
+          notes: `${pctConsignacion}% del precio de venta $${agreedPrice.toLocaleString("es-CO")}. Venta ID: ${saleId}.`,
+        }),
+        supabase.from("sales").update({
+          commission_amount: commissionAmount,
+          commission_auto_amount: commissionAmount,
+        }).eq("id", saleId),
+      ]);
       // Para vehículos en consignación no se calculan comisiones de asesores
       // sobre ganancia bruta ya que el negocio no compró el vehículo.
       return;
@@ -351,6 +370,34 @@ async function autoCreateCommissions(
     }
   } catch {
     // Comisiones son secundarias — no fallar la venta si hay error
+  }
+}
+
+export async function updateSaleCommission(
+  saleId: string,
+  vehicleId: string,
+  amount: number,
+  overrideBy: string
+): Promise<void> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  const { error } = await supabase.from("sales").update({
+    commission_amount: Math.max(0, amount),
+    commission_override_by: overrideBy,
+    commission_override_at: new Date().toISOString(),
+  }).eq("id", saleId);
+  if (error) throw new Error(error.message);
+
+  // Sync the corresponding finance_movement
+  const { data: movements } = await supabase
+    .from("finance_movements")
+    .select("id")
+    .ilike("notes", `%Venta ID: ${saleId}.%`)
+    .limit(1);
+
+  if (movements && movements.length > 0) {
+    await supabase.from("finance_movements").update({ amount: Math.max(0, amount) }).eq("id", movements[0].id);
   }
 }
 
