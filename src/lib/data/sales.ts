@@ -505,12 +505,14 @@ export async function cancelSale(
     .single();
   if (!sale) throw new Error("Venta no encontrada.");
 
-  // Delete traspaso if exists (CASCADE handles it, but be explicit for the movement log)
-  await supabase.from("traspasos").delete().eq("sale_id", saleId);
+  // Delete all child records that reference sales.id (FK constraints)
+  await Promise.all([
+    supabase.from("traspasos").delete().eq("sale_id", saleId),
+    supabase.from("payments").delete().eq("sale_id", saleId),
+    supabase.from("commissions").delete().eq("sale_id", saleId),
+  ]);
 
   if (deleteInitialPayment) {
-    // Delete all payments for this sale
-    await supabase.from("payments").delete().eq("sale_id", saleId);
     // Delete related finance movements (initial payment + commissions)
     await supabase.from("finance_movements").delete().ilike("notes", `%${saleId}%`);
   }
