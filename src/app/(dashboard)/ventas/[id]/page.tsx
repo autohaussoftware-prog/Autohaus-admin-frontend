@@ -20,6 +20,7 @@ import { SalePayments } from "@/components/sales/sale-payments";
 import { SaleStatusPanel } from "@/components/sales/sale-status-panel";
 import { DeliveryChecklist } from "@/components/sales/delivery-checklist";
 import { ConfirmSaleButton } from "@/components/sales/confirm-sale-button";
+import { PaperworkEditor } from "@/components/sales/paperwork-editor";
 import { currencyCOP } from "@/lib/utils";
 
 function formatDate(iso: string | null) {
@@ -162,26 +163,47 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
                   </span>
                 </div>
               </CardHeader>
-              <CardContent className="p-5">
-                <div className="grid gap-4 sm:grid-cols-3">
+              <CardContent className="p-5 space-y-5">
+                {/* Summary grid */}
+                <div className="grid gap-3 sm:grid-cols-4">
                   <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
                     <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Precio de venta</p>
-                    <p className="mt-1 text-lg font-bold text-white">{currencyCOP(sale.agreedPrice)}</p>
+                    <p className="mt-1 text-base font-bold text-white">{currencyCOP(sale.agreedPrice)}</p>
                   </div>
                   <div className="rounded-2xl border border-[#D6A93D]/30 bg-[#D6A93D]/5 p-4">
                     <p className="text-xs uppercase tracking-[0.14em] text-[#D6A93D]">
-                      Comisión Autohaus ({sale.consignmentRate}%)
+                      Comisión ({sale.consignmentRate}%)
                     </p>
-                    <p className="mt-1 text-lg font-bold text-[#D6A93D]">{currencyCOP(sale.consignmentCommission)}</p>
+                    <p className="mt-1 text-base font-bold text-[#D6A93D]">− {currencyCOP(sale.consignmentCommission)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-700/50 bg-zinc-800/40 p-4">
+                    <p className="text-xs uppercase tracking-[0.14em] text-zinc-400">Papeles cliente</p>
+                    <p className="mt-2">
+                      <PaperworkEditor
+                        saleId={sale.id}
+                        currentAmount={sale.clientPaperworkAmount}
+                        canEdit={canEditStatuses && !alreadyDelivered}
+                      />
+                    </p>
+                    {sale.clientPaperworkAmount > 0 && (
+                      <p className="mt-0.5 text-xs text-zinc-500">− {currencyCOP(sale.clientPaperworkAmount)}</p>
+                    )}
                   </div>
                   <div className="rounded-2xl border border-emerald-900/40 bg-emerald-950/20 p-4">
-                    <p className="text-xs uppercase tracking-[0.14em] text-emerald-400">Valor para propietario</p>
-                    <p className="mt-1 text-lg font-bold text-emerald-400">{currencyCOP(sale.ownerPayout)}</p>
+                    <p className="text-xs uppercase tracking-[0.14em] text-emerald-400">Para el propietario</p>
+                    <p className="mt-1 text-base font-bold text-emerald-400">{currencyCOP(sale.ownerPayout)}</p>
                   </div>
                 </div>
-                <p className="mt-4 text-xs text-zinc-500">
-                  Fórmula: Precio de venta × {sale.consignmentRate}% = Comisión Autohaus. El propietario recibe el saldo restante.
-                </p>
+
+                {/* Formula note */}
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3 text-xs text-zinc-500">
+                  <span className="font-medium text-zinc-400">Fórmula: </span>
+                  {currencyCOP(sale.agreedPrice)}
+                  {" − "}{sale.consignmentRate}% ({currencyCOP(sale.consignmentCommission)})
+                  {sale.clientPaperworkAmount > 0 && ` − papeles (${currencyCOP(sale.clientPaperworkAmount)})`}
+                  {" = "}<span className="font-semibold text-emerald-400">{currencyCOP(sale.ownerPayout)}</span>
+                  {" para el propietario"}
+                </div>
               </CardContent>
             </Card>
           )}

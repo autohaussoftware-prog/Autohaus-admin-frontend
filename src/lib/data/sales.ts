@@ -89,6 +89,7 @@ export type SaleDetail = Sale & {
   vehicleOwnerType: string;
   consignmentRate: number;
   consignmentCommission: number;
+  clientPaperworkAmount: number;
   ownerPayout: number;
 };
 
@@ -120,7 +121,8 @@ export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
   const agreedPrice = Number(s.agreed_price);
   const ownerType = (v as any)?.owner_type ?? "Propio";
   const consignmentCommission = ownerType === "Comisión" ? Math.round(agreedPrice * consignmentRate / 100) : 0;
-  const ownerPayout = ownerType === "Comisión" ? agreedPrice - consignmentCommission : 0;
+  const clientPaperworkAmount = ownerType === "Comisión" ? Number((s as any).client_paperwork_amount ?? 0) : 0;
+  const ownerPayout = ownerType === "Comisión" ? agreedPrice - consignmentCommission - clientPaperworkAmount : 0;
 
   return {
     id: s.id,
@@ -147,6 +149,7 @@ export async function getSaleById(saleId: string): Promise<SaleDetail | null> {
     vehicleOwnerType: ownerType,
     consignmentRate,
     consignmentCommission,
+    clientPaperworkAmount,
     ownerPayout,
   };
 }
@@ -164,6 +167,7 @@ export type CreateSaleInput = {
   deliveryStatus: string;
   saleStatus: string;
   expiryDate?: string;
+  clientPaperworkAmount?: number;
   createdByUserId?: string;
 };
 
@@ -215,6 +219,7 @@ export async function createSale(input: CreateSaleInput): Promise<string> {
       delivery_status: input.deliveryStatus,
       sale_status: input.saleStatus,
       expiry_date: input.expiryDate || null,
+      client_paperwork_amount: input.clientPaperworkAmount ?? 0,
       created_by_user_id: input.createdByUserId || null,
     })
     .select("id")
@@ -342,6 +347,18 @@ async function autoCreateCommissions(
   } catch {
     // Comisiones son secundarias — no fallar la venta si hay error
   }
+}
+
+export async function updateConsignmentPaperwork(saleId: string, amount: number): Promise<void> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  const { error } = await supabase
+    .from("sales")
+    .update({ client_paperwork_amount: Math.max(0, amount) })
+    .eq("id", saleId);
+
+  if (error) throw new Error(error.message);
 }
 
 export async function updateSaleStatuses(

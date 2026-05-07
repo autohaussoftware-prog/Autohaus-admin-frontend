@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createSale, confirmSaleFromReservation, updateSaleStatuses, markSaleDelivered } from "@/lib/data/sales";
+import { createSale, confirmSaleFromReservation, updateSaleStatuses, markSaleDelivered, updateConsignmentPaperwork } from "@/lib/data/sales";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { sendSaleNotification } from "@/lib/email";
 
@@ -20,6 +20,10 @@ const saleSchema = z.object({
   sellerId: optionalText,
   agreedPrice: z.preprocess((v) => Number(v), z.number().positive()),
   initialPayment: z.preprocess((v) => Number(v), z.number().nonnegative()),
+  clientPaperworkAmount: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? 0 : Number(v)),
+    z.number().nonnegative()
+  ),
   paymentStatus: z.enum(["pendiente", "parcial", "completo"]),
   documentStatus: z.enum(["pendiente", "en_tramite", "completo"]),
   deliveryStatus: z.enum(["pendiente", "programada", "completada"]),
@@ -115,4 +119,30 @@ export async function markSaleDeliveredAction(
   revalidatePath(`/vehiculos/${vehicleId}`);
   revalidatePath(`/ventas/${saleId}`);
   return { success: true };
+}
+
+export async function updatePaperworkAmountAction(
+  saleId: string,
+  _prev: { error: string | null; attempt: number },
+  formData: FormData
+): Promise<{ error: string | null; attempt: number }> {
+  const role = await getUserRole();
+  if (!["owner", "partner", "admin", "accounting", "advisor"].includes(role)) {
+    return { error: "Sin permisos.", attempt: _prev.attempt + 1 };
+  }
+
+  const raw = formData.get("clientPaperworkAmount");
+  const amount = Number(raw);
+  if (isNaN(amount) || amount < 0) {
+    return { error: "El valor debe ser un número mayor o igual a $0.", attempt: _prev.attempt + 1 };
+  }
+
+  try {
+    await updateConsignmentPaperwork(saleId, amount);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Error actualizando valor.", attempt: _prev.attempt + 1 };
+  }
+
+  revalidatePath(`/ventas/${saleId}`);
+  return { error: null, attempt: _prev.attempt + 1 };
 }
