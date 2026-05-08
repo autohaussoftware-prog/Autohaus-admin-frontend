@@ -46,11 +46,11 @@ const saleSchema = z.object({
     (v) => (v === "" || v === null || v === undefined ? 0 : Number(v)),
     z.number().nonnegative()
   ),
-  paymentStatus: z.enum(["pendiente", "parcial", "completo"]),
-  documentStatus: z.enum(["pendiente", "en_tramite", "completo"]),
-  deliveryStatus: z.enum(["pendiente", "programada", "completada"]),
-  saleStatus: z.enum(["separacion", "vendido"]),
-  paymentMethod: z.enum(PAYMENT_METHODS, { errorMap: () => ({ message: "Forma de pago inválida." }) }),
+  paymentStatus: z.enum(["pendiente", "parcial", "completo"]).default("pendiente"),
+  documentStatus: z.enum(["pendiente", "en_tramite", "completo"]).default("pendiente"),
+  deliveryStatus: z.enum(["pendiente", "programada", "completada"]).default("pendiente"),
+  saleStatus: z.enum(["separacion", "vendido"]).default("separacion"),
+  paymentMethod: z.enum(PAYMENT_METHODS, { errorMap: () => ({ message: "Forma de pago inválida." }) }).default("Contado"),
   expiryDate: optionalText,
   initialPaymentChannel: z.string().optional(),
 }).superRefine((data, ctx) => {
