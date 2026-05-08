@@ -23,10 +23,12 @@ export function ConsignmentAwarePricing({
   vehicles,
   advisors,
   commissionRate,
+  defaultSellerId = null,
 }: {
   vehicles: VehicleOption[];
   advisors: { id: string; name: string }[];
   commissionRate: number;
+  defaultSellerId?: string | null;
 }) {
   const [vehicleMode, setVehicleMode] = useState<"inventory" | "external">("inventory");
   const [vehicleId, setVehicleId] = useState("");
@@ -289,7 +291,7 @@ export function ConsignmentAwarePricing({
       {/* Seller advisor */}
       <div className="block">
         <span className="mb-2 block text-sm text-zinc-400">Asesor vendedor</span>
-        <Select name="sellerId" defaultValue="">
+        <Select name="sellerId" defaultValue={defaultSellerId ?? ""}>
           <option value="">Sin asignar</option>
           {advisors.map((a) => (
             <option key={a.id} value={a.id}>{a.name}</option>

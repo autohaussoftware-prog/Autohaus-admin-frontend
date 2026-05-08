@@ -84,7 +84,9 @@ export async function createSaleAction(formData: FormData) {
   const parsed = saleSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    const msg = parsed.error.issues[0]?.message ?? "Datos inválidos.";
+    const issue = parsed.error.issues[0];
+    const path = issue?.path?.join(".") ?? "";
+    const msg = path ? `[${path}] ${issue?.message}` : (issue?.message ?? "Datos inválidos.");
     redirect("/ventas/nueva?error=" + encodeURIComponent(msg));
   }
 

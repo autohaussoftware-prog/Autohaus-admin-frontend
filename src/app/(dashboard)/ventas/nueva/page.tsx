@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { getVehicleFormOptions, getVehicles } from "@/lib/data/vehicles";
 import { getSettings } from "@/lib/data/settings";
+import { getCurrentUserProfile, getSupabaseServerClient } from "@/lib/supabase/server";
 import { ConsignmentAwarePricing } from "@/components/sales/consignment-preview";
 
 function Field({ label, children, required }: { label: string; children: ReactNode; required?: boolean }) {
@@ -30,11 +31,25 @@ export default async function NewSalePage({
   const params = await searchParams;
   const error = params.error ? decodeURIComponent(params.error) : null;
 
+  const profile = await getCurrentUserProfile();
   const [vehicles, { advisors }, settings] = await Promise.all([
     getVehicles(),
     getVehicleFormOptions(),
     getSettings(),
   ]);
+
+  // Find advisor record linked to the current user
+  const supabase = await getSupabaseServerClient();
+  let defaultSellerId: string | null = null;
+  if (supabase && profile.id) {
+    const { data: myAdvisor } = await supabase
+      .from("advisors")
+      .select("id")
+      .eq("user_id", profile.id)
+      .eq("active", true)
+      .maybeSingle();
+    defaultSellerId = (myAdvisor as any)?.id ?? null;
+  }
 
   const settingsMap = Object.fromEntries(settings.map((s) => [s.key, Number(s.value)]));
   const commissionRate = settingsMap["commission_consignacion"] ?? 3;
@@ -76,6 +91,7 @@ export default async function NewSalePage({
               vehicles={vehicleOptions}
               advisors={advisors}
               commissionRate={commissionRate}
+              defaultSellerId={defaultSellerId}
             />
           </CardContent>
         </Card>
