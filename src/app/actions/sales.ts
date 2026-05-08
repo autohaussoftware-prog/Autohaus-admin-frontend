@@ -36,8 +36,8 @@ const saleSchema = z.object({
   extOwnerPhone: optionalText,
   extOwnerDocument: optionalText,
   // Sale fields
-  customerName: z.string().trim().min(2, "El nombre del cliente es obligatorio."),
-  customerPhone: z.string().trim().min(7, "El teléfono del cliente es obligatorio."),
+  customerName: z.preprocess((v) => (v == null ? "" : String(v)), z.string().trim().min(2, "El nombre del cliente es obligatorio.")),
+  customerPhone: z.preprocess((v) => (v == null ? "" : String(v)), z.string().trim().min(7, "El teléfono del cliente es obligatorio.")),
   customerDocument: optionalText,
   sellerId: optionalText,
   agreedPrice: z.preprocess((v) => Number(v), z.number().positive()),
