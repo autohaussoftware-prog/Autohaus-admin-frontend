@@ -99,7 +99,7 @@ export function VehicleBusinessFields({
             <Building2 className={`h-5 w-5 shrink-0 ${!isConsignment ? "text-[#D6A93D]" : "text-zinc-600"}`} />
             <div>
               <p className="text-sm font-medium">Vehículo propio</p>
-              <p className="text-xs text-zinc-500">AutoHouse lo compró o es de la empresa</p>
+              <p className="text-xs text-zinc-500">Autohaus lo compró o es de la empresa</p>
             </div>
           </button>
           <button
@@ -114,7 +114,7 @@ export function VehicleBusinessFields({
             <User className={`h-5 w-5 shrink-0 ${isConsignment ? "text-[#D6A93D]" : "text-zinc-600"}`} />
             <div>
               <p className="text-sm font-medium">En consignación</p>
-              <p className="text-xs text-zinc-500">Pertenece a un tercero, AutoHouse vende</p>
+              <p className="text-xs text-zinc-500">Pertenece a un tercero, Autohaus vende</p>
             </div>
           </button>
         </div>
