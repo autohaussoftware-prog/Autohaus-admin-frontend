@@ -9,10 +9,12 @@ import { createTraspasoFromSale } from "@/lib/data/traspasos";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { sendSaleNotification } from "@/lib/email";
 
+// In Zod v4, z.preprocess fires the nonoptional check before running fn.
+// Adding .optional() on the outer wrapper lets undefined pass through correctly.
 const optionalText = z.preprocess(
   (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
   z.string().trim().optional()
-);
+).optional();
 
 const PAYMENT_METHODS = ["Contado", "Transferencia", "Efectivo", "Mixto", "Crédito"] as const;
 
@@ -20,7 +22,7 @@ const optionalNumber = (nonneg = false) =>
   z.preprocess(
     (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
     nonneg ? z.number().nonnegative().optional() : z.number().optional()
-  );
+  ).optional();
 
 const saleSchema = z.object({
   vehicleMode: z.enum(["inventory", "external"]).default("inventory"),
@@ -84,9 +86,7 @@ export async function createSaleAction(formData: FormData) {
   const parsed = saleSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    const issue = parsed.error.issues[0];
-    const path = issue?.path?.join(".") ?? "";
-    const msg = path ? `[${path}] ${issue?.message}` : (issue?.message ?? "Datos inválidos.");
+    const msg = parsed.error.issues[0]?.message ?? "Datos inválidos.";
     redirect("/ventas/nueva?error=" + encodeURIComponent(msg));
   }
 
