@@ -11,7 +11,7 @@ import { VehicleIdentificationFields } from "@/components/vehicles/vehicle-ident
 import { VehicleBusinessFields } from "@/components/vehicles/vehicle-business-fields";
 import { TransitAuthoritySelect } from "@/components/vehicles/transit-authority-select";
 import { PrendaFields } from "@/components/vehicles/prenda-fields";
-import { InvestorsSection } from "@/components/vehicles/investors-section";
+import { InvestorsSection, type InvestorUser } from "@/components/vehicles/investors-section";
 
 type Option = { id: string; name: string };
 
@@ -29,12 +29,14 @@ function FormFields({
   locations,
   advisors,
   isAdvisor,
+  investorUsers,
   fieldErrors = {},
 }: {
   values?: Record<string, string>;
   locations: Option[];
   advisors: Option[];
   isAdvisor: boolean;
+  investorUsers: InvestorUser[];
   fieldErrors?: Record<string, string[]>;
 }) {
   const [ownerType, setOwnerType] = useState(values?.ownerType ?? "Propio");
@@ -136,7 +138,7 @@ function FormFields({
             </CardDescription>
           </CardHeader>
           <CardContent className="p-5">
-            <InvestorsSection buyPrice={buyPrice} />
+            <InvestorsSection buyPrice={buyPrice} investorUsers={investorUsers} />
           </CardContent>
         </Card>
       )}
@@ -148,10 +150,12 @@ export function NewVehicleForm({
   locations,
   advisors,
   isAdvisor,
+  investorUsers,
 }: {
   locations: Option[];
   advisors: Option[];
   isAdvisor: boolean;
+  investorUsers: InvestorUser[];
 }) {
   const [state, action, isPending] = useActionState(createVehicleAction, { error: null, attempt: 0 });
 
@@ -169,6 +173,7 @@ export function NewVehicleForm({
         locations={locations}
         advisors={advisors}
         isAdvisor={isAdvisor}
+        investorUsers={investorUsers}
         fieldErrors={state.fieldErrors}
       />
 

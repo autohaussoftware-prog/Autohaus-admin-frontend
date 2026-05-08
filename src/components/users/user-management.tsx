@@ -18,6 +18,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   advisor: "Asesor",
   accounting: "Contabilidad",
   viewer: "Solo lectura",
+  inversionista: "Inversionista",
 };
 
 function RoleSelect({ userId, current }: { userId: string; current: UserRole }) {

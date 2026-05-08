@@ -4,12 +4,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { buttonClassName } from "@/components/ui/button";
 import { getVehicleFormOptions } from "@/lib/data/vehicles";
 import { getUserRole } from "@/lib/supabase/server";
+import { getInvestorUsers } from "@/lib/data/investors";
 import { NewVehicleForm } from "@/components/vehicles/new-vehicle-form";
 
 export default async function NewVehiclePage() {
-  const [{ locations, advisors }, role] = await Promise.all([
+  const [{ locations, advisors }, role, investorUsers] = await Promise.all([
     getVehicleFormOptions(),
     getUserRole(),
+    getInvestorUsers(),
   ]);
 
   return (
@@ -31,6 +33,7 @@ export default async function NewVehiclePage() {
         locations={locations}
         advisors={advisors}
         isAdvisor={role === "advisor"}
+        investorUsers={investorUsers}
       />
     </>
   );

@@ -37,13 +37,13 @@ export async function createVehicleAction(
   let investorsList: InvestorInput[] = [];
   if (parsed.data.ownerType === "Propio" && rawData.investorsJson) {
     try {
-      const rows = JSON.parse(rawData.investorsJson) as Array<{ nombre: string; celular: string; monto: string }>;
-      const active = rows.filter((r) => r.nombre?.trim() || r.monto);
+      const rows = JSON.parse(rawData.investorsJson) as Array<{ userId?: string; nombre: string; celular: string; monto: string }>;
+      const active = rows.filter((r) => r.userId?.trim() || r.nombre?.trim() || r.monto);
       if (active.length > 0) {
         for (const r of active) {
-          if (!r.nombre?.trim() || !r.celular?.trim() || !Number(r.monto)) {
+          if (!r.userId?.trim() || !Number(r.monto)) {
             return {
-              error: "Todos los campos de los inversionistas son obligatorios (nombre, celular, monto).",
+              error: "Selecciona un inversionista y el monto para cada fila.",
               attempt: _prev.attempt + 1,
               values: rawData,
             };
@@ -60,6 +60,7 @@ export async function createVehicleAction(
           };
         }
         investorsList = active.map((r) => ({
+          userId: r.userId!.trim(),
           nombre: r.nombre.trim(),
           celular: r.celular.trim(),
           monto: Number(r.monto),

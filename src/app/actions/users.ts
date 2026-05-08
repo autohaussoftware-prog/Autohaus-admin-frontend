@@ -13,6 +13,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   advisor: "Asesor",
   accounting: "Contabilidad",
   viewer: "Solo lectura",
+  inversionista: "Inversionista",
 };
 
 async function sendInviteEmail(to: string, name: string, link: string): Promise<boolean> {

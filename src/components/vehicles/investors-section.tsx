@@ -3,8 +3,12 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import type { InvestorUser } from "@/lib/data/investors";
 
-export type InvestorRow = { nombre: string; celular: string; monto: string };
+export type { InvestorUser };
+
+export type InvestorRow = { userId: string; nombre: string; celular: string; monto: string };
 
 function fmtCOP(n: number) {
   if (!n) return "$0";
@@ -13,26 +17,39 @@ function fmtCOP(n: number) {
 
 export function InvestorsSection({
   buyPrice,
+  investorUsers,
   defaultInvestors,
 }: {
   buyPrice: number;
+  investorUsers: InvestorUser[];
   defaultInvestors?: InvestorRow[];
 }) {
   const [investors, setInvestors] = useState<InvestorRow[]>(
-    defaultInvestors?.length ? defaultInvestors : [{ nombre: "", celular: "", monto: "" }]
+    defaultInvestors?.length ? defaultInvestors : [{ userId: "", nombre: "", celular: "", monto: "" }]
   );
 
   const total = investors.reduce((s, inv) => s + (Number(inv.monto) || 0), 0);
   const diff = buyPrice - total;
   const isValid = buyPrice > 0 && Math.abs(diff) < 1;
-  const hasAny = investors.some((inv) => inv.nombre.trim() || inv.monto);
+  const hasAny = investors.some((inv) => inv.userId || inv.monto);
 
   function update(i: number, field: keyof InvestorRow, value: string) {
     setInvestors((prev) => prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)));
   }
 
+  function selectUser(i: number, userId: string) {
+    const user = investorUsers.find((u) => u.id === userId);
+    setInvestors((prev) =>
+      prev.map((row, idx) =>
+        idx === i
+          ? { ...row, userId, nombre: user?.fullName ?? "", celular: row.celular }
+          : row
+      )
+    );
+  }
+
   function addRow() {
-    setInvestors((prev) => [...prev, { nombre: "", celular: "", monto: "" }]);
+    setInvestors((prev) => [...prev, { userId: "", nombre: "", celular: "", monto: "" }]);
   }
 
   function removeRow(i: number) {
@@ -45,7 +62,7 @@ export function InvestorsSection({
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-400">
-          Registra quién compra este vehículo y cuánto aporta cada uno.
+          Selecciona los inversionistas y el monto que aporta cada uno.
         </p>
         <button
           type="button"
@@ -53,34 +70,36 @@ export function InvestorsSection({
           className="flex items-center gap-1.5 rounded-xl border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-900 transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
-          Agregar persona
+          Agregar
         </button>
       </div>
+
+      {investorUsers.length === 0 && (
+        <div className="rounded-xl border border-amber-900/40 bg-amber-950/20 px-4 py-3 text-xs text-amber-400">
+          No hay usuarios con rol <strong>Inversionista</strong> registrados. Ve a Usuarios para crear uno primero.
+        </div>
+      )}
 
       <div className="space-y-3">
         {investors.map((inv, i) => (
           <div
             key={i}
-            className="grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:grid-cols-[1fr_1fr_1fr_auto]"
+            className="grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:grid-cols-[1fr_1fr_auto]"
           >
             <div>
-              <span className="mb-1.5 block text-xs text-zinc-500">Nombre *</span>
-              <Input
-                placeholder="Nombre completo"
-                value={inv.nombre}
-                onChange={(e) => update(i, "nombre", e.target.value)}
-              />
+              <span className="mb-1.5 block text-xs text-zinc-500">Inversionista *</span>
+              <Select
+                value={inv.userId}
+                onChange={(e) => selectUser(i, e.target.value)}
+              >
+                <option value="">Seleccionar inversionista…</option>
+                {investorUsers.map((u) => (
+                  <option key={u.id} value={u.id}>{u.fullName}</option>
+                ))}
+              </Select>
             </div>
             <div>
-              <span className="mb-1.5 block text-xs text-zinc-500">Celular *</span>
-              <Input
-                placeholder="3001234567"
-                value={inv.celular}
-                onChange={(e) => update(i, "celular", e.target.value)}
-              />
-            </div>
-            <div>
-              <span className="mb-1.5 block text-xs text-zinc-500">Monto invertido *</span>
+              <span className="mb-1.5 block text-xs text-zinc-500">Monto invertido (COP) *</span>
               <Input
                 type="number"
                 min="0"

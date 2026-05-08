@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { AdvisorDashboard } from "@/components/dashboard/advisor-dashboard";
 import { ExecutiveDashboard } from "@/components/dashboard/executive-dashboard";
@@ -7,6 +8,10 @@ import { getAdvisorDashboardData } from "@/lib/data/advisor-dashboard";
 
 export default async function DashboardPage() {
   const user = await getCurrentUserProfile();
+
+  if (user.role === "inversionista") {
+    redirect("/mis-inversiones");
+  }
 
   if (user.role === "advisor") {
     const data = await getAdvisorDashboardData(user.id);

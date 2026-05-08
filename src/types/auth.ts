@@ -5,4 +5,5 @@ export type UserRole =
   | "gerente"
   | "advisor"
   | "accounting"
-  | "viewer";
+  | "viewer"
+  | "inversionista";

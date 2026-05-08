@@ -18,6 +18,7 @@ const ROUTE_PERMISSIONS: { prefix: string; allowed: UserRole[] }[] = [
   { prefix: "/ventas",           allowed: ["owner", "partner", "admin", "gerente", "advisor", "accounting"] },
   { prefix: "/clientes",         allowed: [...FINANCE] },
   { prefix: "/traspasos",        allowed: ["owner", "partner", "admin", "gerente", "advisor", "accounting"] },
+  { prefix: "/mis-inversiones",  allowed: ["inversionista", "owner", "admin"] },
 ];
 
 const EDIT_VEHICLE_ROLES: UserRole[] = ["owner", "partner", "admin", "gerente", "accounting"];
@@ -38,6 +39,7 @@ export function canAccessRoute(role: UserRole, pathname: string): boolean {
 }
 
 export function getDefaultRedirect(role: UserRole): string {
+  if (role === "inversionista") return "/mis-inversiones";
   if (role === "advisor" || role === "viewer") return "/vehiculos";
   return "/";
 }
