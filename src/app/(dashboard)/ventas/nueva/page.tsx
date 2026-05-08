@@ -72,15 +72,11 @@ export default async function NewSalePage({
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
-            {availableVehicles.length === 0 ? (
-              <p className="col-span-full text-sm text-zinc-500">No hay vehículos disponibles.</p>
-            ) : (
-              <ConsignmentAwarePricing
-                vehicles={vehicleOptions}
-                advisors={advisors}
-                commissionRate={commissionRate}
-              />
-            )}
+            <ConsignmentAwarePricing
+              vehicles={vehicleOptions}
+              advisors={advisors}
+              commissionRate={commissionRate}
+            />
           </CardContent>
         </Card>
 
@@ -137,7 +133,7 @@ export default async function NewSalePage({
             <ArrowLeft className="h-4 w-4" />
             Volver
           </Link>
-          <Button type="submit" disabled={availableVehicles.length === 0}>
+          <Button type="submit">
             <Save className="h-4 w-4" />
             Registrar
           </Button>
