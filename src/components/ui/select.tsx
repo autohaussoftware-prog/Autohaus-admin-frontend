@@ -5,7 +5,9 @@ export function Select({ className, children, ...props }: React.SelectHTMLAttrib
   return (
     <select
       className={cn(
-        "h-10 rounded-2xl border border-zinc-800 bg-zinc-950 px-3 text-sm text-zinc-300 outline-none transition focus:border-[#D6A93D]/60 focus:ring-4 focus:ring-[#D6A93D]/10",
+        "h-11 rounded-xl border border-[rgba(255,255,255,0.07)] bg-[#0f0f0f] px-3.5 text-sm text-zinc-300 outline-none transition-all duration-200 cursor-pointer",
+        "focus:border-[rgba(212,168,67,0.50)] focus:ring-4 focus:ring-[rgba(212,168,67,0.08)]",
+        "disabled:opacity-40 disabled:cursor-not-allowed",
         className
       )}
       {...props}

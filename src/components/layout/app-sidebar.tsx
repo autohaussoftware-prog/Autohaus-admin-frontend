@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, X } from "lucide-react";
+import { LogOut, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/actions/auth";
 import { navItems } from "./nav-items";
@@ -21,31 +21,43 @@ export function AppSidebar({
   const pathname = usePathname();
   const visibleItems = navItems.filter((item) => item.roles.includes(role));
 
+  const FINANCE_ROLES: UserRole[] = ["owner", "partner", "admin", "accounting"];
+
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-zinc-900 bg-[#050505] px-4 py-5 transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
+        "fixed inset-y-0 left-0 z-50 flex w-64 flex-col",
+        "border-r border-[rgba(255,255,255,0.06)] bg-[#070707]",
+        "px-3 py-4",
+        "transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        "lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
         open ? "translate-x-0" : "-translate-x-full"
       )}
       aria-label="Navegación principal"
     >
-      <div className="mb-6 flex items-center justify-between">
-        <Link href="/" onClick={onClose} className="flex items-center">
+      {/* Logo */}
+      <div className="mb-5 flex items-center justify-between px-2">
+        <Link href="/" onClick={onClose} className="flex items-center gap-0">
           <Image
-            src="/logo-full.jpg"
+            src="/logo-autohaus.png"
             alt="Autohaus"
-            width={220}
-            height={110}
-            className="h-24 w-auto object-contain"
+            width={140}
+            height={32}
+            className="h-7 w-auto object-contain invert"
             priority
           />
         </Link>
-        <button className="text-zinc-400 lg:hidden" onClick={onClose} aria-label="Cerrar menú">
-          <X className="h-5 w-5" />
+        <button
+          className="rounded-lg p-1 text-zinc-500 hover:text-white transition-colors lg:hidden"
+          onClick={onClose}
+          aria-label="Cerrar menú"
+        >
+          <X className="h-4 w-4" />
         </button>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto">
+      {/* Nav */}
+      <nav className="flex-1 space-y-0.5 overflow-y-auto no-scrollbar">
         {visibleItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -56,28 +68,31 @@ export function AppSidebar({
               href={item.href}
               onClick={onClose}
               className={cn(
-                "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition",
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
                 isActive
-                  ? "bg-white text-black shadow-lg shadow-[#D6A93D]/10"
-                  : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
+                  ? "nav-active"
+                  : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-100"
               )}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4 w-4 shrink-0" />
               <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-4 space-y-2">
-        {/* Registrar movimiento solo para roles con acceso financiero */}
-        {(["owner", "partner", "admin", "accounting"] as UserRole[]).includes(role) && (
+      {/* Footer actions */}
+      <div className="mt-3 space-y-0.5 border-t border-[rgba(255,255,255,0.05)] pt-3">
+        {FINANCE_ROLES.includes(role) && (
           <Link
             href="/movimientos/nuevo"
             onClick={onClose}
-            className="flex w-full items-center gap-3 rounded-2xl bg-[#D6A93D]/10 px-3 py-2.5 text-sm text-[#D6A93D] transition hover:bg-[#D6A93D]/20"
+            className={cn(
+              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
+              "text-[#D4A843] hover:bg-[rgba(212,168,67,0.08)] hover:text-[#E8BC55]"
+            )}
           >
-            <span className="text-lg leading-none">+</span>
+            <Plus className="h-4 w-4 shrink-0" />
             <span>Registrar movimiento</span>
           </Link>
         )}
@@ -85,9 +100,9 @@ export function AppSidebar({
         <form action={logoutAction}>
           <button
             type="submit"
-            className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-zinc-500 transition hover:bg-zinc-900 hover:text-white"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-600 transition-all duration-150 hover:bg-white/[0.04] hover:text-zinc-300"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4 shrink-0" />
             <span>Cerrar sesión</span>
           </button>
         </form>

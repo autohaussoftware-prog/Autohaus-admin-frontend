@@ -2,63 +2,144 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── CSS Design Tokens ─────────────────────────────────────────────────────── */
 :root {
   color-scheme: dark;
-  --background: #050505;
-  --foreground: #ffffff;
+  --bg:          #070707;
+  --surface-0:   #0a0a0a;
+  --surface-1:   #0f0f0f;
+  --surface-2:   #141414;
+  --surface-3:   #1c1c1c;
+  --gold:        #D4A843;
+  --gold-glow:   rgba(212, 168, 67, 0.18);
+  --gold-subtle: rgba(212, 168, 67, 0.07);
+  --border:      rgba(255, 255, 255, 0.07);
+  --ease:        cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-* {
-  box-sizing: border-box;
-}
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
 html {
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   margin: 0;
-  font-family: var(--font-inter), system-ui, sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(214, 169, 61, 0.08), transparent 28rem),
-    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.04), transparent 24rem),
-    #050505;
-  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 90% 55% at 15% -8%, rgba(212, 168, 67, 0.075) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 35% at 85% 2%,  rgba(255, 255, 255, 0.022) 0%, transparent 50%);
+  background-attachment: fixed;
+  color: #f0f0f0;
+  min-height: 100dvh;
 }
 
-::selection {
-  background: rgba(214, 169, 61, 0.35);
-  color: #ffffff;
-}
+/* ── Selection ─────────────────────────────────────────────────────────────── */
+::selection { background: rgba(212, 168, 67, 0.28); color: #fff; }
 
-::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
-}
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar             { width: 6px; height: 6px; }
+::-webkit-scrollbar-track       { background: transparent; }
+::-webkit-scrollbar-thumb       { background: rgba(255,255,255,0.09); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
 
-::-webkit-scrollbar-track {
-  background: #050505;
-}
+/* ── Focus ring ────────────────────────────────────────────────────────────── */
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
 
-::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #3a3a3a;
-}
-
+/* ── Components ────────────────────────────────────────────────────────────── */
 @layer components {
-  .glass-panel {
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(10, 10, 10, 0.82);
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(18px);
+
+  /* Legacy .glass-panel kept for backward compat */
+  .glass-panel,
+  .glass {
+    background: rgba(9, 9, 9, 0.80);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
   }
 
-  .page-grid {
-    display: grid;
-    gap: 1rem;
+  /* Gold gradient text */
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #A07D2C, #D4A843, #E8BC55);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
+
+  /* Skeleton loader */
+  .skeleton {
+    background: linear-gradient(90deg, #111 0%, #1a1a1a 50%, #111 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+    border-radius: 8px;
+  }
+
+  /* Navigation active state */
+  .nav-active {
+    background: rgba(248, 248, 248, 0.95);
+    color: #000 !important;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+
+  /* Card with gold accent gradient border on top-left corner */
+  .card-accent::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(212,168,67,0.35) 0%, transparent 55%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .page-grid { display: grid; gap: 1rem; }
 }
+
+/* ── Utilities ─────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .animate-in { animation: slideUp 0.28s var(--ease) both; }
+  .fade-in    { animation: fadeIn  0.18s ease both; }
+}
+
+/* ── Keyframes ─────────────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 14px rgba(212,168,67,0.18); }
+  50%       { box-shadow: 0 0 32px rgba(212,168,67,0.34); }
+}
+
+/* ── Date picker native dark theme ────────────────────────────────────────── */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5); cursor: pointer; opacity: 0.55; transition: opacity 0.15s;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+/* ── Table rows ────────────────────────────────────────────────────────────── */
+tbody tr { transition: background 0.10s ease; }
