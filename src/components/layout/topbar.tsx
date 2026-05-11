@@ -28,11 +28,11 @@ export function Topbar({ onOpenSidebar, unreadCount = 0 }: { onOpenSidebar: () =
             <Menu className="h-4 w-4" />
           </Button>
           <Image
-            src="/logo-autohaus.png"
-            alt="Autohaus"
-            width={110}
-            height={24}
-            className="h-6 w-auto object-contain invert lg:hidden"
+            src="/logo-ah.jpeg"
+            alt="AH"
+            width={36}
+            height={36}
+            className="h-8 w-8 rounded-lg object-cover [mix-blend-mode:screen] lg:hidden"
             priority
           />
           <div className="hidden lg:block">

@@ -37,15 +37,16 @@ export function AppSidebar({
     >
       {/* Logo */}
       <div className="mb-5 flex items-center justify-between px-2">
-        <Link href="/" onClick={onClose} className="flex items-center gap-0">
+        <Link href="/" onClick={onClose} className="flex items-center gap-3">
           <Image
-            src="/logo-autohaus.png"
-            alt="Autohaus"
-            width={140}
-            height={32}
-            className="h-7 w-auto object-contain invert"
+            src="/logo-ah.jpeg"
+            alt="AH"
+            width={40}
+            height={40}
+            className="h-9 w-9 rounded-lg object-cover [mix-blend-mode:screen]"
             priority
           />
+          <span className="text-sm font-bold tracking-[0.18em] uppercase text-white">Autohaus</span>
         </Link>
         <button
           className="rounded-lg p-1 text-zinc-500 hover:text-white transition-colors lg:hidden"
