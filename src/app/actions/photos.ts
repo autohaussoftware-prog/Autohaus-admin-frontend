@@ -2,13 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseServerClient, getUserRole } from "@/lib/supabase/server";
+import { ROLES, requireRole, isValidUUID } from "@/lib/security";
 
 export async function saveVehiclePhotoAction(
   vehicleId: string,
   fileUrl: string,
   fileName: string
 ) {
+  const role = await getUserRole();
+  const denied = requireRole(role, ROLES.VEHICLE_WRITE, "Sin permisos para subir fotos.");
+  if (denied) throw new Error(denied.error);
+
+  if (!isValidUUID(vehicleId)) throw new Error("ID de vehículo inválido.");
+
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) throw new Error("Supabase no configurado.");
 
@@ -25,6 +32,12 @@ export async function saveVehiclePhotoAction(
 }
 
 export async function deleteVehiclePhotoAction(documentId: string, storagePath: string) {
+  const role = await getUserRole();
+  const denied = requireRole(role, ROLES.VEHICLE_DELETE, "Sin permisos para eliminar fotos.");
+  if (denied) throw new Error(denied.error);
+
+  if (!isValidUUID(documentId)) throw new Error("ID de documento inválido.");
+
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) throw new Error("Supabase no configurado.");
 

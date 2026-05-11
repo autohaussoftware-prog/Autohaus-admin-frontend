@@ -1,5 +1,6 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { escapeLike } from "@/lib/security";
 
 export type TraspasoStatus = "en_proceso" | "pendiente" | "completado" | "cancelado";
 
@@ -62,7 +63,7 @@ export async function getTraspasos(filters?: TraspasoFilters): Promise<Traspaso[
   if (filters?.from) query = query.gte("created_at", filters.from);
   if (filters?.to) query = query.lte("created_at", `${filters.to}T23:59:59`);
   if (filters?.search) {
-    const s = filters.search.trim();
+    const s = escapeLike(filters.search.trim());
     query = query.or(
       `customer_name.ilike.%${s}%,vehicle_name.ilike.%${s}%,vehicle_plate.ilike.%${s}%`
     );

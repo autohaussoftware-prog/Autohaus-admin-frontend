@@ -38,10 +38,11 @@ import type { UserRole } from "@/types/auth";
 
 export async function getUserRole(): Promise<UserRole> {
   const supabase = await getSupabaseServerClient();
-  if (!supabase) return "owner";
+  // Fail-safe: deny, never grant privilege on infrastructure failure
+  if (!supabase) return "viewer";
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return "viewer";
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return "viewer";
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -70,10 +71,11 @@ export async function getCurrentUserName(): Promise<string> {
 
 export async function getCurrentUserProfile(): Promise<{ id: string; name: string; role: UserRole; phone: string | null }> {
   const supabase = await getSupabaseServerClient();
-  if (!supabase) return { id: "", name: "Sistema", role: "owner" };
+  // Fail-safe: never grant elevated access when infrastructure is unavailable
+  if (!supabase) return { id: "", name: "Sistema", role: "viewer", phone: null };
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { id: "", name: "Sistema", role: "viewer" };
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { id: "", name: "Sistema", role: "viewer", phone: null };
 
   const { data: profile } = await supabase
     .from("profiles")

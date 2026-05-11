@@ -8,6 +8,7 @@ import { createFinanceMovement } from "@/lib/data/finance";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { ROLES, requireRole } from "@/lib/security";
 
 const commissionSchema = z.object({
   advisorId: z.string().trim().min(1),
@@ -22,6 +23,10 @@ const commissionSchema = z.object({
 });
 
 export async function createCommissionAction(formData: FormData) {
+  const role = await getUserRole();
+  const denied = requireRole(role, ROLES.COMMISSION_CREATE, "Sin permisos para registrar comisiones.");
+  if (denied) redirect("/comisiones?error=" + encodeURIComponent(denied.error));
+
   const parsed = commissionSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {

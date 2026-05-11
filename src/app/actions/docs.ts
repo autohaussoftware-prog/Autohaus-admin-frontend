@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { saveVehicleDoc, deleteVehicleDoc } from "@/lib/data/docs";
 import { getUserRole } from "@/lib/supabase/server";
+import { ROLES, requireRole } from "@/lib/security";
 
 export async function saveVehicleDocAction(
   vehicleId: string,
@@ -11,7 +12,8 @@ export async function saveVehicleDocAction(
   fileName: string
 ): Promise<{ error?: string }> {
   const role = await getUserRole();
-  if (role === "viewer") return { error: "Sin permisos para subir documentos." };
+  const denied = requireRole(role, ROLES.VEHICLE_WRITE, "Sin permisos para subir documentos.");
+  if (denied) return denied;
 
   try {
     await saveVehicleDoc(vehicleId, documentType, fileUrl, fileName);
@@ -29,7 +31,8 @@ export async function deleteVehicleDocAction(
   storagePath?: string
 ): Promise<{ error?: string }> {
   const role = await getUserRole();
-  if (!["owner", "partner", "admin"].includes(role)) return { error: "Sin permisos para eliminar documentos." };
+  const denied = requireRole(role, ROLES.VEHICLE_DELETE, "Sin permisos para eliminar documentos.");
+  if (denied) return denied;
 
   try {
     if (storagePath) {

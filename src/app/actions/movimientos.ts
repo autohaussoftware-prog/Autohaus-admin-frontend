@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createFinanceMovement, deleteFinanceMovement } from "@/lib/data/finance";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
+import { ROLES, requireRole } from "@/lib/security";
 
 const movimientoSchema = z.object({
   type: z.enum(["Ingreso", "Egreso"]),
@@ -21,6 +22,10 @@ const movimientoSchema = z.object({
 });
 
 export async function createMovimientoAction(formData: FormData) {
+  const role = await getUserRole();
+  const denied = requireRole(role, ROLES.FINANCE_WRITE, "Sin permisos para registrar movimientos financieros.");
+  if (denied) redirect("/movimientos/nuevo?error=" + encodeURIComponent(denied.error));
+
   const parsed = movimientoSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
@@ -46,9 +51,8 @@ export async function deleteMovimientoAction(
   reason?: string
 ): Promise<{ error?: string }> {
   const role = await getUserRole();
-  if (!["owner", "partner", "admin", "gerente"].includes(role)) {
-    return { error: "Sin permisos para eliminar movimientos financieros." };
-  }
+  const denied = requireRole(role, ROLES.MANAGEMENT, "Sin permisos para eliminar movimientos financieros.");
+  if (denied) return denied;
 
   const { name } = await getCurrentUserProfile();
 

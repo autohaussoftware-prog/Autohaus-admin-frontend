@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createVehicleCost, deleteVehicleCost } from "@/lib/data/costs";
 import { getCurrentUserName, getUserRole } from "@/lib/supabase/server";
+import { ROLES, requireRole, isValidUUID } from "@/lib/security";
 
 const costSchema = z.object({
   vehicleId: z.string().uuid(),
@@ -17,7 +18,8 @@ const costSchema = z.object({
 
 export async function createVehicleCostAction(formData: FormData) {
   const role = await getUserRole();
-  if (role === "viewer") return { error: "Sin permisos para registrar costos." };
+  const denied = requireRole(role, ROLES.VEHICLE_WRITE, "Sin permisos para registrar costos.");
+  if (denied) return denied;
 
   const parsed = costSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
@@ -35,8 +37,13 @@ export async function createVehicleCostAction(formData: FormData) {
 }
 
 export async function deleteVehicleCostAction(costId: string, vehicleId: string) {
+  if (!isValidUUID(costId) || !isValidUUID(vehicleId)) {
+    return { error: "ID inválido." };
+  }
+
   const role = await getUserRole();
-  if (!["owner", "partner", "admin"].includes(role)) return { error: "Sin permisos para eliminar costos." };
+  const denied = requireRole(role, ROLES.VEHICLE_DELETE, "Sin permisos para eliminar costos.");
+  if (denied) return denied;
 
   const userName = await getCurrentUserName();
 
