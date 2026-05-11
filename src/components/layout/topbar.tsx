@@ -32,7 +32,7 @@ export function Topbar({ onOpenSidebar, unreadCount = 0 }: { onOpenSidebar: () =
             alt="AH"
             width={36}
             height={36}
-            className="h-8 w-8 rounded-lg object-cover invert lg:hidden"
+            className="h-8 w-8 object-cover [mix-blend-mode:screen] lg:hidden"
             priority
           />
           <div className="hidden lg:block">

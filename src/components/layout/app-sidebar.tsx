@@ -43,7 +43,7 @@ export function AppSidebar({
             alt="AH"
             width={40}
             height={40}
-            className="h-9 w-9 rounded-lg object-cover invert"
+            className="h-9 w-9 object-cover [mix-blend-mode:screen]"
             priority
           />
           <span className="text-sm font-bold tracking-[0.18em] uppercase text-white">Autohaus</span>
