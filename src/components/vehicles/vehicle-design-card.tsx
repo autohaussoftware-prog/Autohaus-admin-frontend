@@ -8,21 +8,21 @@ import type { Vehicle, VehiclePhoto } from "@/types/vehicle";
 
 type Format = "post" | "story";
 
-/* ── SVG icons (loaded via Blob URL into canvas) ─────────────────────── */
+/* ── SVG icons ───────────────────────────────────────────────────────── */
 
 const SVGS: Record<string, string> = {
-  speed: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(200,200,200,1)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-  gear:  `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(200,200,200,1)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
-  engine:`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(200,200,200,1)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="10" rx="2"/><path d="M7 8V5M12 8V5M17 8V5"/></svg>`,
-  traction:`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(200,200,200,1)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="2"/><circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg>`,
-  fuel:  `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(200,200,200,1)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="15" y2="22"/><path d="M4 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/><path d="M14 10h2a2 2 0 0 1 2 2v3a2 2 0 0 0 4 0v-5l-3-3"/></svg>`,
+  speed:    `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  gear:     `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  engine:   `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="10" rx="2"/><path d="M7 8V5M12 8V5M17 8V5"/><path d="M21 13h2M1 13h2"/></svg>`,
+  traction: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="20" height="6" rx="2"/><circle cx="6" cy="5" r="2.5"/><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="19" r="2.5"/></svg>`,
+  fuel:     `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><line x1="3" y1="22" x2="15" y2="22"/><path d="M15 10h2a2 2 0 0 1 2 2v5a1 1 0 0 0 2 0v-7l-3-3"/></svg>`,
 };
 
 function svgImg(key: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => {
     const blob = new Blob([SVGS[key]], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
-    const img = new Image(48, 48);
+    const img = new Image(64, 64);
     img.onload = () => { URL.revokeObjectURL(url); res(img); };
     img.onerror = rej;
     img.src = url;
@@ -46,12 +46,11 @@ function coverDraw(ctx: CanvasRenderingContext2D, img: HTMLImageElement, dx: num
   ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, dx, dy, dw, dh);
 }
 
-/* ── Main canvas render ──────────────────────────────────────────────── */
+/* ── Canvas renderer ─────────────────────────────────────────────────── */
 
 async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: Format): Promise<HTMLCanvasElement> {
   const W = 1080;
   const H = fmt === "post" ? 1350 : 1920;
-  const photoH = Math.floor(H * 0.595);
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -59,7 +58,6 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
   const ctx = canvas.getContext("2d")!;
   await document.fonts.ready;
 
-  // Load all assets in parallel (non-blocking failures)
   const settled = await Promise.allSettled([
     photoUrl ? photoImg(photoUrl) : Promise.reject(),
     photoImg("/logo-ah.jpeg"),
@@ -72,260 +70,317 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
   const get = (i: number) => settled[i].status === "fulfilled" ? (settled[i] as PromiseFulfilledResult<HTMLImageElement>).value : null;
   const [carImg, logoImg, iSpeed, iGear, iEngine, iTraction, iFuel] = [get(0), get(1), get(2), get(3), get(4), get(5), get(6)];
 
-  /* ── Photo ── */
+  // Diagonal band: rises from lower-left to upper-right (/)
+  // diagLY = where left edge of photo area ends (lower)
+  // diagRY = where right edge of photo area ends (higher)
+  const diagLY = Math.round(H * 0.607);
+  const diagRY = Math.round(H * 0.562);
+  const bandH  = 22;
+
+  /* ── 1. Dark base (entire canvas) ── */
+  ctx.fillStyle = "#0d0d0d";
+  ctx.fillRect(0, 0, W, H);
+
+  /* ── 2. Photo area (clipped above diagonal) ── */
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(W, 0);
+  ctx.lineTo(W, diagRY - bandH);
+  ctx.lineTo(0, diagLY - bandH);
+  ctx.closePath();
+  ctx.clip();
+
   if (carImg) {
-    coverDraw(ctx, carImg, 0, 0, W, photoH);
+    coverDraw(ctx, carImg, 0, 0, W, diagLY);
+    // Top dark gradient so logo is legible over any photo
+    const gOver = ctx.createLinearGradient(0, 0, 0, H * 0.28);
+    gOver.addColorStop(0, "rgba(0,0,0,0.52)");
+    gOver.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = gOver;
+    ctx.fillRect(0, 0, W, H * 0.28);
   } else {
-    ctx.fillStyle = "#1a1a1a";
-    ctx.fillRect(0, 0, W, photoH);
-    ctx.fillStyle = "#333";
-    ctx.font = "40px Inter, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("Sin foto", W / 2, photoH / 2);
+    // Blank template: gray → white gradient
+    const gTop = ctx.createLinearGradient(0, 0, 0, diagLY);
+    gTop.addColorStop(0,    "#909090");
+    gTop.addColorStop(0.22, "#c8c8c8");
+    gTop.addColorStop(0.55, "#ffffff");
+    gTop.addColorStop(1,    "#f0f0f0");
+    ctx.fillStyle = gTop;
+    ctx.fillRect(0, 0, W, diagLY);
   }
+  ctx.restore();
 
-  // Bottom gradient on photo
-  const g = ctx.createLinearGradient(0, photoH * 0.4, 0, photoH);
-  g.addColorStop(0, "rgba(0,0,0,0)");
-  g.addColorStop(1, "rgba(0,0,0,0.55)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, photoH);
-
-  /* ── AH Logo (screen blend) ── */
+  /* ── 3. AH logo (screen blend mode) ── */
   if (logoImg) {
-    const sz = 88;
+    const sz = 108;
     ctx.save();
     ctx.globalCompositeOperation = "screen";
-    ctx.drawImage(logoImg, (W - sz) / 2, 38, sz, sz);
+    ctx.drawImage(logoImg, (W - sz) / 2, 52, sz, sz);
     ctx.restore();
   }
 
-  /* ── @autohausmed ── */
+  /* ── 4. @autohausmed ── */
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)";
-  ctx.shadowBlur = 14;
-  ctx.fillStyle = "white";
-  ctx.font = "bold 34px Inter, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("@autohausmed", W / 2, 164);
+  ctx.shadowBlur  = 20;
+  ctx.fillStyle   = "rgba(255,255,255,0.95)";
+  ctx.font        = "600 38px Inter, sans-serif";
+  ctx.textAlign   = "center";
+  ctx.fillText("@autohausmed", W / 2, 192);
   ctx.restore();
 
-  /* ── Gold diagonal separator ── */
+  /* ── 5. Gold diagonal band ── */
   ctx.save();
   ctx.fillStyle = "#D4A843";
   ctx.beginPath();
-  ctx.moveTo(0, photoH - 22);
-  ctx.lineTo(W, photoH - 5);
-  ctx.lineTo(W, photoH + 6);
-  ctx.lineTo(0, photoH - 11);
+  ctx.moveTo(0, diagLY - bandH);
+  ctx.lineTo(W, diagRY - bandH);
+  ctx.lineTo(W, diagRY);
+  ctx.lineTo(0, diagLY);
   ctx.closePath();
   ctx.fill();
   ctx.restore();
 
-  /* ── Dark panel ── */
-  ctx.fillStyle = "#0d0d0d";
-  ctx.fillRect(0, photoH, W, H - photoH);
+  /* ── 6. Dark panel content ── */
+  const pY  = diagLY;  // left edge Y where panel begins
+  const lX  = 52;
+  const rX  = W - 52;
 
-  const pY = photoH;
-  const lX = 55;
-  const rX = W - 55;
+  const lastDigit   = v.plate.replace(/\D/g, "").at(-1) ?? "—";
+  const techno      = v.technoDue?.trim() || "N/A";
+  const subtitleTxt = [v.line, v.version?.trim()].filter(Boolean).join(" ");
 
-  const lastDigit = v.plate.replace(/\D/g, "").at(-1) ?? "—";
-  const techno = v.technoDue?.trim() || "N/A";
-
-  /* ── Line name ── */
-  const lineText = v.line.toUpperCase();
-  const lineFs = lineText.length > 10 ? 68 : lineText.length > 7 ? 80 : 92;
+  // Brand name (large, bold)
+  const brandText = v.brand.toUpperCase();
+  const brandFs   = brandText.length > 9 ? 86 : brandText.length > 7 ? 102 : 118;
   ctx.textAlign = "left";
-  ctx.fillStyle = "white";
-  ctx.font = `bold ${lineFs}px Inter, sans-serif`;
-  ctx.fillText(lineText, lX, pY + 88);
+  ctx.fillStyle = "#ffffff";
+  ctx.font      = `900 ${brandFs}px Inter, sans-serif`;
+  ctx.fillText(brandText, lX, pY + 88);
 
-  /* ── Version + Year (subtitle) ── */
-  ctx.font = "34px Inter, sans-serif";
-  ctx.fillStyle = "#888";
-  const versionTxt = v.version?.trim() || "";
-  let subtitleX = lX;
-  if (versionTxt) {
-    ctx.fillText(versionTxt, lX, pY + 132);
-    subtitleX = lX + ctx.measureText(versionTxt + " ").width;
+  // Subtitle: line + version (gray) + year (gold)
+  ctx.font = "36px Inter, sans-serif";
+  let subX = lX;
+  if (subtitleTxt) {
+    ctx.fillStyle = "#888888";
+    ctx.fillText(subtitleTxt, lX, pY + 130);
+    subX = lX + ctx.measureText(subtitleTxt + " ").width;
   }
   ctx.fillStyle = "#D4A843";
-  ctx.fillText(String(v.year), subtitleX, pY + 132);
+  ctx.fillText(String(v.year), subX, pY + 130);
 
-  /* ── Divider line ── */
-  ctx.strokeStyle = "#252525";
-  ctx.lineWidth = 1;
+  // Horizontal divider (left ~60% only)
+  ctx.strokeStyle = "#242424";
+  ctx.lineWidth   = 1;
   ctx.beginPath();
-  ctx.moveTo(lX, pY + 154);
-  ctx.lineTo(rX, pY + 154);
+  ctx.moveTo(lX, pY + 152);
+  ctx.lineTo(W * 0.61, pY + 152);
   ctx.stroke();
 
-  /* ── Spec helper (icon + text, returns next X) ── */
+  // Spec helpers
   function specUnit(icon: HTMLImageElement | null, text: string, x: number, y: number): number {
-    const IS = 34;
+    const IS = 30;
     if (icon) {
-      ctx.drawImage(icon, x, y - IS + 4, IS, IS);
-      x += IS + 10;
+      ctx.drawImage(icon, x, y - IS + 5, IS, IS);
+      x += IS + 7;
     }
-    ctx.fillStyle = "#c8c8c8";
-    ctx.font = "bold 26px Inter, sans-serif";
-    ctx.textAlign = "left";
+    ctx.fillStyle   = "#c0c0c0";
+    ctx.font        = "bold 26px Inter, sans-serif";
+    ctx.textAlign   = "left";
     ctx.fillText(text.toUpperCase(), x, y);
     return x + ctx.measureText(text.toUpperCase()).width;
   }
 
   function pipe(x: number, y: number): number {
-    ctx.fillStyle = "#3a3a3a";
-    ctx.font = "bold 26px Inter, sans-serif";
+    ctx.fillStyle = "#333333";
+    ctx.font      = "26px Inter, sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText("|", x + 14, y);
-    return x + 44;
+    ctx.fillText("|", x + 9, y);
+    return x + 34;
   }
 
-  const ROW1 = pY + 215;
-  const ROW2 = pY + 270;
-
-  // Row 1: KM | Transmission (left portion)
+  // Row 1: KM | Transmission | Motor
+  const ROW1 = pY + 203;
   let x = lX;
   x = specUnit(iSpeed, v.mileage.toLocaleString("es-CO") + " KM", x, ROW1);
   x = pipe(x, ROW1);
-  specUnit(iGear, v.transmission, x, ROW1);
-
-  // Row 2: Motor | Traction | Fuel
-  x = lX;
-  x = specUnit(iEngine, v.motor, x, ROW2);
-  if (v.traction) {
-    x = pipe(x, ROW2);
-    x = specUnit(iTraction, v.traction, x, ROW2);
+  x = specUnit(iGear, v.transmission, x, ROW1);
+  if (v.motor) {
+    x = pipe(x, ROW1);
+    specUnit(iEngine, v.motor, x, ROW1);
   }
-  x = pipe(x, ROW2);
+
+  // Row 2: Traction | Fuel
+  const ROW2 = pY + 254;
+  x = lX;
+  if (v.traction) {
+    x = specUnit(iTraction, v.traction, x, ROW2);
+    x = pipe(x, ROW2);
+  }
   specUnit(iFuel, v.fuel, x, ROW2);
 
-  /* ── Plate badge (right) ── */
-  const badgeW = 300, badgeH = 42;
-  const badgeX = rX - badgeW;
-  const badgeY = ROW1 - 34;
-  ctx.fillStyle = "#171717";
-  ctx.strokeStyle = "#D4A843";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 6);
-  else ctx.rect(badgeX, badgeY, badgeW, badgeH);
-  ctx.fill();
-  ctx.stroke();
-  // "ABC-123" small label
-  ctx.fillStyle = "#555";
-  ctx.font = "bold 15px monospace, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText("ABC-123", badgeX + 10, badgeY + 27);
-  // Digit + city
-  ctx.fillStyle = "#D4A843";
-  ctx.font = "bold 21px Inter, sans-serif";
-  ctx.fillText(lastDigit, badgeX + 120, badgeY + 28);
-  ctx.fillStyle = "#bbb";
-  ctx.font = "21px Inter, sans-serif";
-  ctx.fillText(" | " + v.cityRegistration.toUpperCase(), badgeX + 142, badgeY + 28);
+  /* ── Right column ── */
+  const colRX = Math.round(W * 0.665);
 
-  // TECNO + SOAT (right, below badge)
-  ctx.textAlign = "right";
-  ctx.font = "24px Inter, sans-serif";
-  ctx.fillStyle = "#555";
-  ctx.fillText("TECNO: ", rX - ctx.measureText(techno).width, ROW1 + 38);
-  ctx.fillStyle = "#aaa";
-  ctx.fillText(techno, rX, ROW1 + 38);
-  ctx.fillStyle = "#555";
-  ctx.fillText("SOAT: ", rX - ctx.measureText(v.soatDue || "—").width, ROW1 + 68);
-  ctx.fillStyle = "#aaa";
-  ctx.fillText(v.soatDue || "—", rX, ROW1 + 68);
+  // Plate badge (yellow, like Colombian plate)
+  const plateBY = pY + 93;
+  const plateBW = 74;
+  const plateBH = 36;
+  ctx.fillStyle = "#E8C547";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(colRX, plateBY, plateBW, plateBH, 5);
+  else ctx.rect(colRX, plateBY, plateBW, plateBH);
+  ctx.fill();
+  ctx.strokeStyle = "#b89c30";
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(colRX + 2, plateBY + 2, plateBW - 4, plateBH - 4, 3);
+  else ctx.rect(colRX + 2, plateBY + 2, plateBW - 4, plateBH - 4);
+  ctx.stroke();
+  ctx.fillStyle = "#1a1000";
+  ctx.font      = "bold 15px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("ABC-123", colRX + plateBW / 2, plateBY + plateBH * 0.7);
+
+  // Digit + city
+  const afterPlateX = colRX + plateBW + 14;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#D4A843";
+  ctx.font      = "bold 30px Inter, sans-serif";
+  ctx.fillText(lastDigit, afterPlateX, plateBY + 27);
+  const digitW = ctx.measureText(lastDigit).width;
+  ctx.fillStyle = "#ababab";
+  ctx.font      = "28px Inter, sans-serif";
+  ctx.fillText(" | " + v.cityRegistration.toUpperCase(), afterPlateX + digitW, plateBY + 27);
+
+  // TECNO + SOAT
+  ctx.textAlign = "left";
+  ctx.font      = "26px Inter, sans-serif";
+  ctx.fillStyle = "#555555";
+  ctx.fillText("TECNO: ", colRX, pY + 162);
+  ctx.fillStyle = "#b8b8b8";
+  ctx.fillText(techno, colRX + ctx.measureText("TECNO: ").width, pY + 162);
+  ctx.fillStyle = "#555555";
+  ctx.fillText("SOAT: ", colRX, pY + 196);
+  ctx.fillStyle = "#b8b8b8";
+  ctx.fillText(v.soatDue || "—", colRX + ctx.measureText("SOAT: ").width, pY + 196);
 
   /* ── Price badge ── */
-  const badgePriceY = pY + 318;
-  const badgePriceH = 116;
-  const hPad = 40;
-  const priceGrd = ctx.createLinearGradient(hPad, badgePriceY, W - hPad, badgePriceY);
-  priceGrd.addColorStop(0, "#8A6520");
-  priceGrd.addColorStop(0.4, "#D4A843");
-  priceGrd.addColorStop(0.6, "#D4A843");
-  priceGrd.addColorStop(1, "#8A6520");
+  const priceText = "$" + v.targetPrice.toLocaleString("es-CO");
+  const priceFs   = priceText.length > 14 ? 52 : 64;
+  const badgeH    = 90;
+  const badgeY    = H - 132;
+  const hPad      = 44;
+
+  const priceGrd = ctx.createLinearGradient(hPad, 0, W - hPad, 0);
+  priceGrd.addColorStop(0,    "#6b4c10");
+  priceGrd.addColorStop(0.3,  "#D4A843");
+  priceGrd.addColorStop(0.7,  "#D4A843");
+  priceGrd.addColorStop(1,    "#6b4c10");
   ctx.fillStyle = priceGrd;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(hPad, badgePriceY, W - hPad * 2, badgePriceH, 18);
-  else ctx.rect(hPad, badgePriceY, W - hPad * 2, badgePriceH);
+  if (ctx.roundRect) ctx.roundRect(hPad, badgeY, W - hPad * 2, badgeH, 16);
+  else ctx.rect(hPad, badgeY, W - hPad * 2, badgeH);
   ctx.fill();
-  const priceText = "$" + v.targetPrice.toLocaleString("es-CO");
+
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.4)";
-  ctx.shadowBlur = 8;
-  ctx.fillStyle = "white";
-  ctx.font = `bold ${priceText.length > 14 ? 56 : 66}px Inter, sans-serif`;
-  ctx.textAlign = "center";
-  ctx.fillText(priceText, W / 2, badgePriceY + badgePriceH * 0.68);
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur  = 10;
+  ctx.fillStyle   = "#ffffff";
+  ctx.font        = `bold ${priceFs}px Inter, sans-serif`;
+  ctx.textAlign   = "center";
+  ctx.fillText(priceText, W / 2, badgeY + badgeH * 0.67);
   ctx.restore();
 
   return canvas;
 }
 
-/* ── CSS Preview Card ────────────────────────────────────────────────── */
+/* ── CSS Preview ─────────────────────────────────────────────────────── */
 
 function DesignPreview({ v, photoUrl, fmt }: { v: Vehicle; photoUrl?: string; fmt: Format }) {
-  const lastDigit = v.plate.replace(/\D/g, "").at(-1) ?? "—";
-  const techno = v.technoDue?.trim() || "N/A";
-  const priceText = "$" + v.targetPrice.toLocaleString("es-CO");
+  const lastDigit   = v.plate.replace(/\D/g, "").at(-1) ?? "—";
+  const techno      = v.technoDue?.trim() || "N/A";
+  const priceText   = "$" + v.targetPrice.toLocaleString("es-CO");
+  const subtitleTxt = [v.line, v.version?.trim()].filter(Boolean).join(" ");
 
   return (
-    <div className={cn("relative w-full overflow-hidden rounded-2xl bg-[#0d0d0d] shadow-elevated select-none", fmt === "post" ? "aspect-[4/5]" : "aspect-[9/16]")}>
+    <div className={cn(
+      "relative w-full overflow-hidden rounded-2xl select-none bg-[#0d0d0d]",
+      fmt === "post" ? "aspect-[4/5]" : "aspect-[9/16]"
+    )}>
 
-      {/* Photo */}
-      <div className="absolute inset-x-0 top-0" style={{ height: "60%" }}>
+      {/* Photo area – top ~61% */}
+      <div className="absolute inset-x-0 top-0" style={{ height: "61%" }}>
         {photoUrl
           ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
-          : <div className="flex h-full w-full items-center justify-center bg-zinc-900"><span className="text-xs text-zinc-600">Sin foto</span></div>
+          : <div className="h-full w-full bg-gradient-to-b from-[#909090] via-[#d8d8d8] to-white" />
         }
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40" />
+        {/* Gradient overlay so logo is always readable */}
+        <div className="absolute inset-x-0 top-0 h-[38%] bg-gradient-to-b from-black/50 to-transparent" />
       </div>
 
-      {/* Logo + handle */}
-      <div className="absolute left-1/2 top-3 flex -translate-x-1/2 flex-col items-center gap-0.5">
-        <img src="/logo-ah.jpeg" alt="AH" className="h-8 w-8 object-cover [mix-blend-mode:screen]" />
-        <p className="text-[9px] font-semibold text-white drop-shadow-lg">@autohausmed</p>
+      {/* AH logo + handle */}
+      <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 flex-col items-center gap-0.5">
+        <img src="/logo-ah.jpeg" alt="AH" className="h-9 w-9 object-cover [mix-blend-mode:screen]" />
+        <p className="text-[9px] font-semibold text-white [text-shadow:0_1px_8px_rgba(0,0,0,1)]">@autohausmed</p>
       </div>
 
-      {/* Gold separator */}
-      <div className="absolute left-0 right-0 bg-[#D4A843]" style={{ top: "59.3%", height: "2px", transform: "skewY(-0.6deg)", transformOrigin: "left" }} />
+      {/* Gold diagonal band (/) — wider than card so rotation doesn't leave gaps */}
+      <div
+        className="absolute z-10 bg-[#D4A843]"
+        style={{
+          left: "-8%",
+          right: "-8%",
+          top: "59.5%",
+          height: "2%",
+          transform: "rotate(-2.4deg)",
+          transformOrigin: "0% center",
+        }}
+      />
 
       {/* Dark info panel */}
-      <div className="absolute bottom-0 left-0 right-0 flex flex-col" style={{ top: "61%" }}>
-        <div className="flex flex-1 px-3 pt-1.5 pb-1">
+      <div className="absolute inset-x-0 bottom-0 flex flex-col" style={{ top: "62%" }}>
+        <div className="flex flex-1 gap-1 px-3 pt-2">
+
           {/* Left column */}
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-lg font-black uppercase leading-tight text-white">{v.line}</h2>
-            <p className="text-[9px] leading-none text-zinc-500">
-              {v.version && <span>{v.version} </span>}
+            <p className="truncate text-xl font-black uppercase leading-tight tracking-wide text-white">
+              {v.brand}
+            </p>
+            <p className="mt-0.5 text-[8px] leading-none text-zinc-500">
+              {subtitleTxt && <>{subtitleTxt} </>}
               <span className="text-[#D4A843]">{v.year}</span>
             </p>
-            <div className="my-1 h-px bg-zinc-800" />
-            <div className="space-y-0.5 text-[8.5px] text-zinc-400 leading-none">
-              <p className="truncate">⊙ {v.mileage.toLocaleString("es-CO")} KM &nbsp;|&nbsp; ⚙ {v.transmission}</p>
-              <p className="truncate">▣ {v.motor}{v.traction ? ` | ✦ ${v.traction}` : ""} | ⛽ {v.fuel}</p>
+            <div className="my-1 h-px bg-zinc-800" style={{ width: "62%" }} />
+            <div className="space-y-0.5 text-[7.5px] leading-none text-zinc-400">
+              <p className="truncate">
+                ⊙ {v.mileage.toLocaleString("es-CO")} KM&nbsp;|&nbsp;⚙ {v.transmission}
+                {v.motor ? <>&nbsp;|&nbsp;▣ {v.motor}</> : null}
+              </p>
+              <p className="truncate">
+                {v.traction ? <>✦ {v.traction}&nbsp;|&nbsp;</> : null}⛽ {v.fuel}
+              </p>
             </div>
           </div>
+
           {/* Right column */}
-          <div className="w-24 shrink-0 pl-2 pt-0.5">
-            <div className="inline-flex items-center gap-0.5 rounded border border-[#D4A843]/40 bg-[#D4A843]/10 px-1 py-0.5">
-              <span className="text-[7px] text-zinc-500">ABC</span>
+          <div className="w-[40%] shrink-0 pt-0.5">
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="rounded bg-[#E8C547] px-1 py-0.5 font-mono text-[6px] font-bold text-black">ABC-123</span>
               <span className="text-[10px] font-bold text-[#D4A843]">{lastDigit}</span>
-              <span className="text-[7px] text-zinc-500">|{v.cityRegistration.slice(0, 8)}</span>
+              <span className="text-[8px] text-zinc-400">| {v.cityRegistration.slice(0, 8).toUpperCase()}</span>
             </div>
-            <div className="mt-0.5 text-[7px] leading-tight text-zinc-500">
-              <p>TECNO: <span className="text-zinc-400">{techno}</span></p>
-              <p>SOAT: <span className="text-zinc-400">{v.soatDue || "—"}</span></p>
+            <div className="mt-1 text-[7.5px] leading-snug text-zinc-500">
+              <p>TECNO: <span className="text-zinc-300">{techno}</span></p>
+              <p>SOAT: <span className="text-zinc-300">{v.soatDue || "—"}</span></p>
             </div>
           </div>
         </div>
+
         {/* Price badge */}
-        <div className="mx-3 mb-2 flex items-center justify-center rounded-xl bg-[linear-gradient(135deg,#8A6520,#D4A843,#8A6520)] py-2 shadow-gold-sm">
-          <span className="text-sm font-black text-white drop-shadow">{priceText}</span>
+        <div className="mx-3 mb-2 mt-1 flex items-center justify-center rounded-xl bg-[linear-gradient(90deg,#6b4c10,#D4A843_30%,#D4A843_70%,#6b4c10)] py-2 shadow">
+          <span className="text-base font-black text-white drop-shadow">{priceText}</span>
         </div>
       </div>
     </div>
@@ -335,7 +390,7 @@ function DesignPreview({ v, photoUrl, fmt }: { v: Vehicle; photoUrl?: string; fm
 /* ── Main component ──────────────────────────────────────────────────── */
 
 export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photos: VehiclePhoto[] }) {
-  const [fmt, setFmt] = useState<Format>("post");
+  const [fmt, setFmt]         = useState<Format>("post");
   const [photoIdx, setPhotoIdx] = useState(0);
   const [downloading, setDownloading] = useState(false);
   const [dlError, setDlError] = useState<string | null>(null);
@@ -369,17 +424,36 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
       {/* Format toggle */}
       <div className="flex gap-1 rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[#0a0a0a] p-1.5">
         {(["post", "story"] as Format[]).map((f) => (
-          <button key={f} type="button" onClick={() => setFmt(f)} className={cn("flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm font-medium transition-all duration-150", fmt === f ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300")}>
-            {f === "post" ? <><LayoutTemplate className="h-4 w-4" />Post 4:5</> : <><Maximize2 className="h-4 w-4" />Story 9:16</>}
+          <button
+            key={f}
+            type="button"
+            onClick={() => setFmt(f)}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm font-medium transition-all duration-150",
+              fmt === f ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+            )}
+          >
+            {f === "post"
+              ? <><LayoutTemplate className="h-4 w-4" />Post 4:5</>
+              : <><Maximize2 className="h-4 w-4" />Story 9:16</>
+            }
           </button>
         ))}
       </div>
 
       {/* Photo selector */}
       {photos.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
           {photos.map((p, i) => (
-            <button key={p.id} type="button" onClick={() => setPhotoIdx(i)} className={cn("h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 transition-all", photoIdx === i ? "border-[#D4A843]" : "border-transparent opacity-50 hover:opacity-80")}>
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setPhotoIdx(i)}
+              className={cn(
+                "h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 transition-all",
+                photoIdx === i ? "border-[#D4A843]" : "border-transparent opacity-50 hover:opacity-80"
+              )}
+            >
               <img src={p.fileUrl} alt="" className="h-full w-full object-cover" />
             </button>
           ))}
@@ -387,16 +461,17 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
       )}
 
       {photos.length === 0 && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-xs text-amber-400">
+        <p className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-xs text-amber-400">
           Sin fotos — sube fotos en la pestaña <strong>Documentos</strong> para el diseño completo.
-        </div>
+        </p>
       )}
 
       {/* Preview */}
       <DesignPreview v={vehicle} photoUrl={primaryPhoto} fmt={fmt} />
 
-      {/* Error */}
-      {dlError && <p className="rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-2 text-xs text-red-400">{dlError}</p>}
+      {dlError && (
+        <p className="rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-2 text-xs text-red-400">{dlError}</p>
+      )}
 
       {/* Download */}
       <Button size="md" variant="primary" className="w-full" disabled={downloading} onClick={handleDownload}>
@@ -406,7 +481,9 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
         }
       </Button>
 
-      <p className="text-center text-[11px] text-zinc-600">PNG de alta resolución listo para publicar · datos actualizados automáticamente</p>
+      <p className="text-center text-[11px] text-zinc-600">
+        PNG de alta resolución · datos del vehículo actualizados automáticamente
+      </p>
     </div>
   );
 }
