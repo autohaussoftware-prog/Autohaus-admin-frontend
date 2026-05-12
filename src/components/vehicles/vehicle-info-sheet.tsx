@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, MessageCircle, Share2 } from "lucide-react";
+import { Check, Copy, MessageCircle, Phone, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import type { Vehicle } from "@/types/vehicle";
 
 function InstagramIcon({ className }: { className?: string }) {
   return (
@@ -12,13 +16,10 @@ function InstagramIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import type { Vehicle } from "@/types/vehicle";
 
 /* ── Status maps ─────────────────────────────────────────────────────── */
 
-const STATUS_LINES: Partial<Record<string, string>> = {
+const STATUS_LINE: Partial<Record<string, string>> = {
   "Disponible":                 "✅ DISPONIBLE",
   "Publicado":                  "✅ DISPONIBLE",
   "Separado":                   "🟡 RESERVADO",
@@ -32,39 +33,28 @@ const STATUS_LINES: Partial<Record<string, string>> = {
   "Papeles pendientes":         "📄 PAPELES PENDIENTES",
 };
 
-const STATUS_EMOJI: Partial<Record<string, string>> = {
-  "Disponible":   "🟢",
-  "Publicado":    "🟢",
-  "Separado":     "🟡",
-  "Vendido":      "🔴",
-  "Entregado":    "🔴",
-  "Vendido por el propietario": "⚫",
-  "En reparación": "🔧",
-};
-
 /* ── Helpers ─────────────────────────────────────────────────────────── */
 
-function fmtPrice(amount: number): string {
-  return "$" + amount.toLocaleString("es-CO");
+function fmtPrice(n: number) {
+  return "$" + n.toLocaleString("es-CO");
 }
 
-function lastDigit(plate: string): string {
-  const digits = plate.replace(/\D/g, "");
-  return digits.at(-1) ?? "—";
+function lastDigit(plate: string) {
+  return plate.replace(/\D/g, "").at(-1) ?? "—";
 }
 
 function toTag(word: string) {
-  return "#" + word.replace(/[\s-]/g, "");
+  return "#" + word.replace(/[\s\-().]/g, "");
 }
 
 /* ── Text builders ───────────────────────────────────────────────────── */
 
 function buildStandardText(v: Vehicle): string {
-  const statusLine = STATUS_LINES[v.status] ?? v.status.toUpperCase();
-  const techno = v.technoDue?.trim() ? v.technoDue : "N/A";
+  const status = STATUS_LINE[v.status] ?? v.status.toUpperCase();
+  const techno = v.technoDue?.trim() || "N/A";
 
   return [
-    statusLine,
+    status,
     "",
     `🚗 ${v.brand} ${v.line} ${v.version} 🚗`,
     "",
@@ -84,37 +74,45 @@ function buildStandardText(v: Vehicle): string {
   ].join("\n");
 }
 
-function buildInstagramText(v: Vehicle): string {
-  const emoji = STATUS_EMOJI[v.status] ?? "🔵";
-  const techno = v.technoDue?.trim() ? v.technoDue : "N/A";
+function buildInstagramText(v: Vehicle, phone: string): string {
+  const status = STATUS_LINE[v.status] ?? v.status.toUpperCase();
+  const techno = v.technoDue?.trim() || "N/A";
   const tags = [
     "#Autohaus",
+    "#Vehiculos",
+    "#CarrosUsados",
+    "#Medellin",
+    "#AutosColombia",
     toTag(v.brand),
     toTag(v.line),
-    "#VentaDeCarros",
-    "#CarrosUsados",
-    "#CarrosDeLujo",
-    "#Colombia",
-    "#Medellín",
   ].join(" ");
 
   return [
-    `🏎️ ${v.brand} ${v.line} ${v.version} · ${v.year}`,
+    status,
+    "",
+    `🚗 ${v.brand} ${v.line} ${v.version} 🚗`,
     "",
     `💰 Precio: ${fmtPrice(v.targetPrice)}`,
-    `🛣️ ${v.mileage.toLocaleString("es-CO")} km  ·  ⚙️ ${v.transmission}`,
-    `⚡ ${v.motor}  ·  ⛽ ${v.fuel}`,
-    v.traction ? `🔄 ${v.traction}` : "",
-    `📍 ${v.cityRegistration}`,
-    `📋 SOAT: ${v.soatDue || "—"}  ·  Tecno: ${techno}`,
+    `📅 Modelo: ${v.year}`,
+    `🛣️ Kilometraje: ${v.mileage.toLocaleString("es-CO")} km`,
+    `⚙️ Transmisión: ${v.transmission}`,
+    `🔥 Motor: ${v.motor}`,
+    `⛽ Combustible: ${v.fuel}`,
+    v.traction ? `🛞 Tracción: ${v.traction}` : "",
+    `📍 Tránsito: ${v.cityRegistration}`,
     "",
-    `${emoji} ${v.status.toUpperCase()}`,
+    `📄 SOAT: ${v.soatDue || "—"}`,
+    `🔧 Tecno: ${techno}`,
     "",
-    "¿Te interesa? ¡Escríbenos y lo separamos hoy! 🤝",
-    "👇 Más info en el link de la bio",
+    "✨ Recibimos tu vehículo en parte de pago",
+    "🏦 Financiación disponible",
+    "🛡️ Seguro vehicular con excelentes tasas",
+    "",
+    `📲 Más información al: ${phone || "[teléfono]"}`,
+    "📍 Autohaus - Medellín",
     "",
     tags,
-  ].filter(Boolean).join("\n");
+  ].filter((l) => l !== undefined && l !== null && !(l === "" && false)).join("\n");
 }
 
 /* ── Mode toggle ─────────────────────────────────────────────────────── */
@@ -132,10 +130,8 @@ function ModeTab({ active, onClick, icon: Icon, label }: {
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm font-medium transition-all duration-150",
-        active
-          ? "bg-white text-black shadow-sm"
-          : "text-zinc-500 hover:text-zinc-300"
+        "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all duration-150",
+        active ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"
       )}
     >
       <Icon className="h-4 w-4" />
@@ -149,10 +145,11 @@ function ModeTab({ active, onClick, icon: Icon, label }: {
 export function VehicleInfoSheet({ vehicle }: { vehicle: Vehicle }) {
   const [mode, setMode] = useState<Mode>("estandar");
   const [copied, setCopied] = useState(false);
+  const [phone, setPhone] = useState("");
 
   const text = mode === "estandar"
     ? buildStandardText(vehicle)
-    : buildInstagramText(vehicle);
+    : buildInstagramText(vehicle, phone);
 
   async function handleCopy() {
     try {
@@ -188,20 +185,34 @@ export function VehicleInfoSheet({ vehicle }: { vehicle: Vehicle }) {
         />
       </div>
 
+      {/* Phone field — only in Instagram mode */}
+      {mode === "instagram" && (
+        <label className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.07)] bg-[#0f0f0f] px-4 py-2.5">
+          <Phone className="h-4 w-4 shrink-0 text-[#D4A843]" />
+          <Input
+            type="tel"
+            placeholder="Teléfono de contacto (ej: 300 123 4567)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="h-auto border-0 bg-transparent p-0 text-sm focus:ring-0 focus:border-0"
+          />
+        </label>
+      )}
+
       {/* Mode hint */}
       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
         {mode === "estandar"
           ? "Ficha técnica completa · lista para WhatsApp"
-          : "Descripción comercial · optimizada para Instagram"}
+          : "Descripción comercial · lista para Instagram"}
       </p>
 
-      {/* Preview card */}
+      {/* Preview */}
       <div className="relative rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[#0a0a0a] p-6 shadow-card">
         <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_60%_40%_at_0%_0%,rgba(212,168,67,0.06),transparent)]" />
         {mode === "instagram" && (
-          <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_40%_30%_at_100%_0%,rgba(131,58,180,0.07),transparent)]" />
+          <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_50%_35%_at_100%_0%,rgba(131,58,180,0.08),transparent)]" />
         )}
-        <pre className="relative whitespace-pre-wrap font-sans text-[14px] leading-[1.85] text-zinc-200 select-text">
+        <pre className="relative whitespace-pre-wrap font-sans text-[14px] leading-[1.9] text-zinc-200 select-text">
           {text}
         </pre>
       </div>
