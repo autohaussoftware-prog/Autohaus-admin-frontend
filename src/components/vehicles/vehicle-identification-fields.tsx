@@ -26,6 +26,45 @@ type Props = {
 
 const OTHER = "__other__";
 
+const MOTOR_OPTIONS = [
+  "1.0L",
+  "1.0L Turbo",
+  "1.2L",
+  "1.2L Turbo",
+  "1.4L",
+  "1.4L Turbo",
+  "1.5L",
+  "1.5L Turbo",
+  "1.6L",
+  "1.6L Turbo",
+  "1.8L",
+  "1.8L Turbo",
+  "2.0L",
+  "2.0L Turbo",
+  "2.0L TDI",
+  "2.4L",
+  "2.5L",
+  "2.5L Turbo",
+  "3.0L",
+  "3.0L Turbo",
+  "3.0L V6",
+  "3.5L V6",
+  "3.8L V6",
+  "4.0L V8",
+  "4.0L V8 Turbo",
+  "5.0L V8",
+  "6.2L V8",
+  "Eléctrico",
+  "Híbrido 1.8L",
+  "Híbrido 2.0L",
+];
+
+function initMotorState(defaultMotor: string): { sel: string; custom: string } {
+  if (!defaultMotor) return { sel: "", custom: "" };
+  if (MOTOR_OPTIONS.includes(defaultMotor)) return { sel: defaultMotor, custom: "" };
+  return { sel: OTHER, custom: defaultMotor };
+}
+
 export function VehicleIdentificationFields({
   defaultBrand = "",
   defaultLine = "",
@@ -51,7 +90,11 @@ export function VehicleIdentificationFields({
   const versions = getVersionsForLine(activeBrand, activeLine);
   const colors = getColorsForBrand(activeBrand);
 
-  const [motor, setMotor] = useState(defaultMotor);
+  const initMotor = initMotorState(defaultMotor);
+  const [selectedMotor, setSelectedMotor] = useState(initMotor.sel);
+  const [customMotor, setCustomMotor] = useState(initMotor.custom);
+  const activeMotor = selectedMotor === OTHER ? customMotor : selectedMotor;
+
   const [fuel, setFuel] = useState(defaultFuel);
 
   const initTransmission = (): "Manual" | "Automática" | "" => {
@@ -75,7 +118,8 @@ export function VehicleIdentificationFields({
     setCustomBrand("");
     setSelectedLine("");
     setCustomLine("");
-    setMotor("");
+    setSelectedMotor("");
+    setCustomMotor("");
     setFuel("");
     setTransmission("");
     setTraction("");
@@ -89,7 +133,14 @@ export function VehicleIdentificationFields({
     if (value && value !== OTHER) {
       const specs = getSpecsForLine(activeBrand, value);
       if (specs) {
-        setMotor(specs.motor);
+        const motorFromSpec = specs.motor;
+        if (MOTOR_OPTIONS.includes(motorFromSpec)) {
+          setSelectedMotor(motorFromSpec);
+          setCustomMotor("");
+        } else {
+          setSelectedMotor(OTHER);
+          setCustomMotor(motorFromSpec);
+        }
         setFuel(specs.fuel);
         setTransmission(normalizeTransmission(specs.transmission));
         setTraction(specs.traction);
@@ -200,18 +251,38 @@ export function VehicleIdentificationFields({
         )}
       </label>
 
-      {/* ── Motor ───────────────────────────────────────────────── */}
+      {/* ── Motor (dropdown) ────────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">Motor</span>
-        <Input
-          name="motor"
-          placeholder="Ej: 3.0L TwinPower Turbo"
-          value={motor}
-          onChange={(e) => setMotor(e.target.value)}
-        />
+        <Select
+          name={selectedMotor === OTHER ? undefined : "motor"}
+          value={selectedMotor}
+          onChange={(e) => {
+            setSelectedMotor(e.target.value);
+            if (e.target.value !== OTHER) setCustomMotor("");
+          }}
+        >
+          <option value="" disabled>Selecciona motor</option>
+          {MOTOR_OPTIONS.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+          <option value={OTHER}>Otro motor…</option>
+        </Select>
+        <input type="hidden" name="motor" value={activeMotor} />
       </label>
 
-      {/* ── Transmisión (exclusiva: Manual o Automática) ─────────── */}
+      {selectedMotor === OTHER && (
+        <label className="block">
+          <span className="mb-2 block text-sm text-zinc-400">Motor (escribir)</span>
+          <Input
+            placeholder="Ej: 3.0L TwinPower Turbo"
+            value={customMotor}
+            onChange={(e) => setCustomMotor(e.target.value)}
+          />
+        </label>
+      )}
+
+      {/* ── Transmisión ─────────────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">
           Transmisión <span className="text-red-400">*</span>
