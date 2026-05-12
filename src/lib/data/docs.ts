@@ -1,5 +1,6 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import type { VehiclePhoto } from "@/types/vehicle";
 export { LEGAL_DOC_TYPES, type LegalDocType } from "@/lib/domain/vehicle-docs-config";
 
 export type VehicleDoc = {
@@ -57,6 +58,28 @@ export async function saveVehicleDoc(
 
   if (error || !data) throw new Error(error?.message ?? "Error guardando documento.");
   return data.id as string;
+}
+
+export async function getVehiclePhotos(vehicleId: string): Promise<VehiclePhoto[]> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) return [];
+
+  const { data } = await supabase
+    .from("vehicle_documents")
+    .select("id,vehicle_id,file_url,file_name,uploaded_at")
+    .eq("vehicle_id", vehicleId)
+    .eq("document_type", "foto_vehiculo")
+    .order("uploaded_at", { ascending: true });
+
+  if (!data) return [];
+
+  return data.map((d: any) => ({
+    id: d.id as string,
+    vehicleId: d.vehicle_id as string,
+    fileUrl: d.file_url as string,
+    fileName: (d.file_name as string) ?? "foto",
+    uploadedAt: (d.uploaded_at as string) ?? "",
+  }));
 }
 
 export async function deleteVehicleDoc(docId: string): Promise<void> {

@@ -4,7 +4,7 @@ import { VehicleDetailTabs } from "@/components/vehicles/vehicle-detail-tabs";
 import { VehicleStatusChanger } from "@/components/vehicles/vehicle-status-changer";
 import { getVehicleById, getVehicleMovementsByVehicleId } from "@/lib/data/vehicles";
 import { getVehicleCosts } from "@/lib/data/costs";
-import { getVehicleDocs } from "@/lib/data/docs";
+import { getVehicleDocs, getVehiclePhotos } from "@/lib/data/docs";
 import { getVehicleInvestors } from "@/lib/data/investors";
 import { getVehicleExpenses } from "@/lib/data/expenses";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
@@ -29,10 +29,11 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
     ["owner", "partner", "admin", "gerente"].includes(role) ||
     (vehicle.createdByUserId !== undefined && vehicle.createdByUserId === profile.id);
 
-  const [movements, costs, legalDocs, investors, expenses] = await Promise.all([
+  const [movements, costs, legalDocs, photos, investors, expenses] = await Promise.all([
     getVehicleMovementsByVehicleId(vehicle.id),
     getVehicleCosts(vehicle.id),
     getVehicleDocs(vehicle.id),
+    getVehiclePhotos(vehicle.id),
     showFinancials ? getVehicleInvestors(vehicle.id) : Promise.resolve([]),
     showFinancials ? getVehicleExpenses(vehicle.id) : Promise.resolve([]),
   ]);
@@ -57,6 +58,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         movements={movements}
         costs={costs}
         legalDocs={legalDocs}
+        photos={photos}
         investors={investors}
         expenses={expenses}
         showFinancials={showFinancials}
@@ -64,6 +66,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         canDeleteDocs={canDeleteDocs}
         canManageInvestments={canManageInvestments}
         canEditPrice={canEditPrice}
+        canManagePhotos={canEdit}
       />
     </>
   );

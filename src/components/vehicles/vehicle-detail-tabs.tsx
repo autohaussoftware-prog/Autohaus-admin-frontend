@@ -11,15 +11,19 @@ import {
   MapPin,
   Share2,
   ShieldCheck,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { VehicleCosts } from "@/components/vehicles/vehicle-costs";
+import { VehicleDesignCard } from "@/components/vehicles/vehicle-design-card";
 import { VehicleDocuments } from "@/components/vehicles/vehicle-documents";
 import { VehicleExpenses } from "@/components/vehicles/vehicle-expenses";
 import { VehicleInfoSheet } from "@/components/vehicles/vehicle-info-sheet";
+import { VehiclePhotos } from "@/components/vehicles/vehicle-photos";
+import type { VehiclePhoto } from "@/types/vehicle";
 import { VehicleStatusBadge } from "@/components/vehicles/vehicle-status-badge";
 import { EditPriceButton } from "@/components/vehicles/edit-price-button";
 import { compactCOP, currencyCOP, percentage } from "@/lib/utils";
@@ -29,7 +33,7 @@ import type { VehicleDoc } from "@/lib/data/docs";
 import type { VehicleInvestor } from "@/lib/data/investors";
 import type { VehicleExpense } from "@/lib/data/expenses";
 
-type Tab = "info" | "costos" | "inversion" | "documentos" | "historial" | "informacion";
+type Tab = "info" | "costos" | "inversion" | "documentos" | "historial" | "informacion" | "disenos";
 
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
@@ -83,6 +87,7 @@ export function VehicleDetailTabs({
   movements,
   costs,
   legalDocs,
+  photos = [],
   investors = [],
   expenses = [],
   showFinancials,
@@ -90,11 +95,13 @@ export function VehicleDetailTabs({
   canDeleteDocs,
   canManageInvestments = false,
   canEditPrice = false,
+  canManagePhotos = false,
 }: {
   vehicle: Vehicle;
   movements: VehicleMovement[];
   costs: VehicleCost[];
   legalDocs: VehicleDoc[];
+  photos?: VehiclePhoto[];
   investors?: VehicleInvestor[];
   expenses?: VehicleExpense[];
   showFinancials: boolean;
@@ -102,6 +109,7 @@ export function VehicleDetailTabs({
   canDeleteDocs: boolean;
   canManageInvestments?: boolean;
   canEditPrice?: boolean;
+  canManagePhotos?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("info");
 
@@ -152,6 +160,13 @@ export function VehicleDetailTabs({
           onClick={() => setTab("informacion")}
           icon={Share2}
           label="Información"
+        />
+        <TabButton
+          active={tab === "disenos"}
+          onClick={() => setTab("disenos")}
+          icon={Sparkles}
+          label="Diseños"
+          count={photos.length || undefined}
         />
       </div>
 
@@ -365,7 +380,15 @@ export function VehicleDetailTabs({
 
       {/* Tab: Documentos */}
       {tab === "documentos" && (
-        <VehicleDocuments vehicleId={vehicle.id} docs={legalDocs} canDelete={canDeleteDocs} />
+        <div className="space-y-6">
+          <VehiclePhotos vehicleId={vehicle.id} photos={photos} />
+          <VehicleDocuments vehicleId={vehicle.id} docs={legalDocs} canDelete={canDeleteDocs} />
+        </div>
+      )}
+
+      {/* Tab: Diseños */}
+      {tab === "disenos" && (
+        <VehicleDesignCard vehicle={vehicle} photos={photos} />
       )}
 
       {/* Tab: Información */}
