@@ -7,6 +7,47 @@ import { cn } from "@/lib/utils";
 import type { Vehicle, VehiclePhoto } from "@/types/vehicle";
 
 type Format = "post" | "story";
+type Theme  = "bmw" | "rockse";
+
+interface ThemeCfg {
+  label:       string;
+  dot:         string;
+  panelBg:     string;
+  accent:      string;
+  accentDark:  string;
+  divider:     string;
+  specText:    string;
+  plateBg:     string;
+  plateBorder: string;
+  plateText:   string;
+}
+
+const THEMES: Record<Theme, ThemeCfg> = {
+  bmw: {
+    label:       "BMW · Negro",
+    dot:         "#D4A843",
+    panelBg:     "#0d0d0d",
+    accent:      "#D4A843",
+    accentDark:  "#6b4c10",
+    divider:     "#242424",
+    specText:    "#c0c0c0",
+    plateBg:     "#E8C547",
+    plateBorder: "#b89c30",
+    plateText:   "#1a1000",
+  },
+  rockse: {
+    label:       "ROCKS-E · Gris",
+    dot:         "#F5C518",
+    panelBg:     "#1b1b1b",
+    accent:      "#F5C518",
+    accentDark:  "#7a6200",
+    divider:     "#2d2d2d",
+    specText:    "#c8c8c8",
+    plateBg:     "#F5C518",
+    plateBorder: "#c4a000",
+    plateText:   "#1a1400",
+  },
+};
 
 /* ── SVG icons ───────────────────────────────────────────────────────── */
 
@@ -40,7 +81,11 @@ function photoImg(src: string): Promise<HTMLImageElement> {
   });
 }
 
-function coverDraw(ctx: CanvasRenderingContext2D, img: HTMLImageElement, dx: number, dy: number, dw: number, dh: number) {
+function coverDraw(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  dx: number, dy: number, dw: number, dh: number,
+) {
   const scale = Math.max(dw / img.width, dh / img.height);
   const sw = dw / scale, sh = dh / scale;
   ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, dx, dy, dw, dh);
@@ -48,7 +93,13 @@ function coverDraw(ctx: CanvasRenderingContext2D, img: HTMLImageElement, dx: num
 
 /* ── Canvas renderer ─────────────────────────────────────────────────── */
 
-async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: Format): Promise<HTMLCanvasElement> {
+async function renderToCanvas(
+  v: Vehicle,
+  photoUrl: string | undefined,
+  fmt: Format,
+  theme: Theme,
+): Promise<HTMLCanvasElement> {
+  const T = THEMES[theme];
   const W = 1080;
   const H = fmt === "post" ? 1350 : 1920;
 
@@ -67,21 +118,23 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
     svgImg("traction"),
     svgImg("fuel"),
   ]);
-  const get = (i: number) => settled[i].status === "fulfilled" ? (settled[i] as PromiseFulfilledResult<HTMLImageElement>).value : null;
-  const [carImg, logoImg, iSpeed, iGear, iEngine, iTraction, iFuel] = [get(0), get(1), get(2), get(3), get(4), get(5), get(6)];
+  const get = (i: number) =>
+    settled[i].status === "fulfilled"
+      ? (settled[i] as PromiseFulfilledResult<HTMLImageElement>).value
+      : null;
+  const [carImg, logoImg, iSpeed, iGear, iEngine, iTraction, iFuel] =
+    [get(0), get(1), get(2), get(3), get(4), get(5), get(6)];
 
-  // Diagonal band: rises from lower-left to upper-right (/)
-  // diagLY = where left edge of photo area ends (lower)
-  // diagRY = where right edge of photo area ends (higher)
-  const diagLY = Math.round(H * 0.607);
-  const diagRY = Math.round(H * 0.562);
+  // Diagonal: rises from lower-left to upper-right (/)
+  const diagLY = Math.round(H * 0.607); // left edge
+  const diagRY = Math.round(H * 0.562); // right edge
   const bandH  = 22;
 
-  /* ── 1. Dark base (entire canvas) ── */
-  ctx.fillStyle = "#0d0d0d";
+  /* 1 — Dark base */
+  ctx.fillStyle = T.panelBg;
   ctx.fillRect(0, 0, W, H);
 
-  /* ── 2. Photo area (clipped above diagonal) ── */
+  /* 2 — Photo area clipped to diagonal trapezoid */
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(0, 0);
@@ -93,14 +146,12 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
 
   if (carImg) {
     coverDraw(ctx, carImg, 0, 0, W, diagLY);
-    // Top dark gradient so logo is legible over any photo
     const gOver = ctx.createLinearGradient(0, 0, 0, H * 0.28);
     gOver.addColorStop(0, "rgba(0,0,0,0.52)");
     gOver.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = gOver;
     ctx.fillRect(0, 0, W, H * 0.28);
   } else {
-    // Blank template: gray → white gradient
     const gTop = ctx.createLinearGradient(0, 0, 0, diagLY);
     gTop.addColorStop(0,    "#909090");
     gTop.addColorStop(0.22, "#c8c8c8");
@@ -111,7 +162,7 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
   }
   ctx.restore();
 
-  /* ── 3. AH logo (screen blend mode) ── */
+  /* 3 — AH logo (screen blend) */
   if (logoImg) {
     const sz = 108;
     ctx.save();
@@ -120,7 +171,7 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
     ctx.restore();
   }
 
-  /* ── 4. @autohausmed ── */
+  /* 4 — @autohausmed */
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)";
   ctx.shadowBlur  = 20;
@@ -130,9 +181,9 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
   ctx.fillText("@autohausmed", W / 2, 192);
   ctx.restore();
 
-  /* ── 5. Gold diagonal band ── */
+  /* 5 — Diagonal accent band */
   ctx.save();
-  ctx.fillStyle = "#D4A843";
+  ctx.fillStyle = T.accent;
   ctx.beginPath();
   ctx.moveTo(0, diagLY - bandH);
   ctx.lineTo(W, diagRY - bandH);
@@ -142,10 +193,10 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
   ctx.fill();
   ctx.restore();
 
-  /* ── 6. Dark panel content ── */
-  const pY  = diagLY;  // left edge Y where panel begins
-  const lX  = 52;
-  const rX  = W - 52;
+  /* 6 — Info panel text */
+  const pY    = diagLY;
+  const lX    = 52;
+  const colRX = Math.round(W * 0.665);
 
   const lastDigit   = v.plate.replace(/\D/g, "").at(-1) ?? "—";
   const techno      = v.technoDue?.trim() || "N/A";
@@ -159,7 +210,7 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
   ctx.font      = `900 ${brandFs}px Inter, sans-serif`;
   ctx.fillText(brandText, lX, pY + 88);
 
-  // Subtitle: line + version (gray) + year (gold)
+  // Subtitle: line + version (gray) + year (accent)
   ctx.font = "36px Inter, sans-serif";
   let subX = lX;
   if (subtitleTxt) {
@@ -167,11 +218,11 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
     ctx.fillText(subtitleTxt, lX, pY + 130);
     subX = lX + ctx.measureText(subtitleTxt + " ").width;
   }
-  ctx.fillStyle = "#D4A843";
+  ctx.fillStyle = T.accent;
   ctx.fillText(String(v.year), subX, pY + 130);
 
-  // Horizontal divider (left ~60% only)
-  ctx.strokeStyle = "#242424";
+  // Horizontal divider (left portion)
+  ctx.strokeStyle = T.divider;
   ctx.lineWidth   = 1;
   ctx.beginPath();
   ctx.moveTo(lX, pY + 152);
@@ -185,9 +236,9 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
       ctx.drawImage(icon, x, y - IS + 5, IS, IS);
       x += IS + 7;
     }
-    ctx.fillStyle   = "#c0c0c0";
-    ctx.font        = "bold 26px Inter, sans-serif";
-    ctx.textAlign   = "left";
+    ctx.fillStyle = T.specText;
+    ctx.font      = "bold 26px Inter, sans-serif";
+    ctx.textAlign = "left";
     ctx.fillText(text.toUpperCase(), x, y);
     return x + ctx.measureText(text.toUpperCase()).width;
   }
@@ -220,25 +271,23 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
   }
   specUnit(iFuel, v.fuel, x, ROW2);
 
-  /* ── Right column ── */
-  const colRX = Math.round(W * 0.665);
-
-  // Plate badge (yellow, like Colombian plate)
+  /* Right column — plate badge */
   const plateBY = pY + 93;
   const plateBW = 74;
   const plateBH = 36;
-  ctx.fillStyle = "#E8C547";
+
+  ctx.fillStyle = T.plateBg;
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(colRX, plateBY, plateBW, plateBH, 5);
   else ctx.rect(colRX, plateBY, plateBW, plateBH);
   ctx.fill();
-  ctx.strokeStyle = "#b89c30";
+  ctx.strokeStyle = T.plateBorder;
   ctx.lineWidth   = 1.5;
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(colRX + 2, plateBY + 2, plateBW - 4, plateBH - 4, 3);
   else ctx.rect(colRX + 2, plateBY + 2, plateBW - 4, plateBH - 4);
   ctx.stroke();
-  ctx.fillStyle = "#1a1000";
+  ctx.fillStyle = T.plateText;
   ctx.font      = "bold 15px monospace";
   ctx.textAlign = "center";
   ctx.fillText("ABC-123", colRX + plateBW / 2, plateBY + plateBH * 0.7);
@@ -246,13 +295,13 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
   // Digit + city
   const afterPlateX = colRX + plateBW + 14;
   ctx.textAlign = "left";
-  ctx.fillStyle = "#D4A843";
+  ctx.fillStyle = T.accent;
   ctx.font      = "bold 30px Inter, sans-serif";
   ctx.fillText(lastDigit, afterPlateX, plateBY + 27);
-  const digitW = ctx.measureText(lastDigit).width;
+  const dw = ctx.measureText(lastDigit).width;
   ctx.fillStyle = "#ababab";
   ctx.font      = "28px Inter, sans-serif";
-  ctx.fillText(" | " + v.cityRegistration.toUpperCase(), afterPlateX + digitW, plateBY + 27);
+  ctx.fillText(" | " + v.cityRegistration.toUpperCase(), afterPlateX + dw, plateBY + 27);
 
   // TECNO + SOAT
   ctx.textAlign = "left";
@@ -266,7 +315,7 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
   ctx.fillStyle = "#b8b8b8";
   ctx.fillText(v.soatDue || "—", colRX + ctx.measureText("SOAT: ").width, pY + 196);
 
-  /* ── Price badge ── */
+  /* Price badge */
   const priceText = "$" + v.targetPrice.toLocaleString("es-CO");
   const priceFs   = priceText.length > 14 ? 52 : 64;
   const badgeH    = 90;
@@ -274,10 +323,10 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
   const hPad      = 44;
 
   const priceGrd = ctx.createLinearGradient(hPad, 0, W - hPad, 0);
-  priceGrd.addColorStop(0,    "#6b4c10");
-  priceGrd.addColorStop(0.3,  "#D4A843");
-  priceGrd.addColorStop(0.7,  "#D4A843");
-  priceGrd.addColorStop(1,    "#6b4c10");
+  priceGrd.addColorStop(0,   T.accentDark);
+  priceGrd.addColorStop(0.3, T.accent);
+  priceGrd.addColorStop(0.7, T.accent);
+  priceGrd.addColorStop(1,   T.accentDark);
   ctx.fillStyle = priceGrd;
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(hPad, badgeY, W - hPad * 2, badgeH, 16);
@@ -298,48 +347,53 @@ async function renderToCanvas(v: Vehicle, photoUrl: string | undefined, fmt: For
 
 /* ── CSS Preview ─────────────────────────────────────────────────────── */
 
-function DesignPreview({ v, photoUrl, fmt }: { v: Vehicle; photoUrl?: string; fmt: Format }) {
+function DesignPreview({
+  v, photoUrl, fmt, theme,
+}: {
+  v: Vehicle; photoUrl?: string; fmt: Format; theme: Theme;
+}) {
+  const T = THEMES[theme];
   const lastDigit   = v.plate.replace(/\D/g, "").at(-1) ?? "—";
   const techno      = v.technoDue?.trim() || "N/A";
   const priceText   = "$" + v.targetPrice.toLocaleString("es-CO");
   const subtitleTxt = [v.line, v.version?.trim()].filter(Boolean).join(" ");
 
   return (
-    <div className={cn(
-      "relative w-full overflow-hidden rounded-2xl select-none bg-[#0d0d0d]",
-      fmt === "post" ? "aspect-[4/5]" : "aspect-[9/16]"
-    )}>
-
-      {/* Photo area – top ~61% */}
+    <div
+      className={cn(
+        "relative w-full overflow-hidden rounded-2xl select-none",
+        fmt === "post" ? "aspect-[4/5]" : "aspect-[9/16]",
+      )}
+      style={{ background: T.panelBg }}
+    >
+      {/* Photo area — top ~61% */}
       <div className="absolute inset-x-0 top-0" style={{ height: "61%" }}>
         {photoUrl
           ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
           : <div className="h-full w-full bg-gradient-to-b from-[#909090] via-[#d8d8d8] to-white" />
         }
-        {/* Gradient overlay so logo is always readable */}
         <div className="absolute inset-x-0 top-0 h-[38%] bg-gradient-to-b from-black/50 to-transparent" />
       </div>
 
-      {/* AH logo + handle */}
+      {/* Logo + @autohausmed */}
       <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 flex-col items-center gap-0.5">
         <img src="/logo-ah.jpeg" alt="AH" className="h-9 w-9 object-cover [mix-blend-mode:screen]" />
         <p className="text-[9px] font-semibold text-white [text-shadow:0_1px_8px_rgba(0,0,0,1)]">@autohausmed</p>
       </div>
 
-      {/* Gold diagonal band (/) — wider than card so rotation doesn't leave gaps */}
+      {/* Diagonal accent band — extends past card edges so rotation doesn't gap */}
       <div
-        className="absolute z-10 bg-[#D4A843]"
+        className="absolute z-10"
         style={{
-          left: "-8%",
-          right: "-8%",
-          top: "59.5%",
-          height: "2%",
+          left: "-8%", right: "-8%",
+          top: "59.5%", height: "2%",
+          backgroundColor: T.accent,
           transform: "rotate(-2.4deg)",
           transformOrigin: "0% center",
         }}
       />
 
-      {/* Dark info panel */}
+      {/* Info panel */}
       <div className="absolute inset-x-0 bottom-0 flex flex-col" style={{ top: "62%" }}>
         <div className="flex flex-1 gap-1 px-3 pt-2">
 
@@ -350,9 +404,9 @@ function DesignPreview({ v, photoUrl, fmt }: { v: Vehicle; photoUrl?: string; fm
             </p>
             <p className="mt-0.5 text-[8px] leading-none text-zinc-500">
               {subtitleTxt && <>{subtitleTxt} </>}
-              <span className="text-[#D4A843]">{v.year}</span>
+              <span style={{ color: T.accent }}>{v.year}</span>
             </p>
-            <div className="my-1 h-px bg-zinc-800" style={{ width: "62%" }} />
+            <div className="my-1 h-px" style={{ width: "62%", background: T.divider }} />
             <div className="space-y-0.5 text-[7.5px] leading-none text-zinc-400">
               <p className="truncate">
                 ⊙ {v.mileage.toLocaleString("es-CO")} KM&nbsp;|&nbsp;⚙ {v.transmission}
@@ -367,8 +421,13 @@ function DesignPreview({ v, photoUrl, fmt }: { v: Vehicle; photoUrl?: string; fm
           {/* Right column */}
           <div className="w-[40%] shrink-0 pt-0.5">
             <div className="flex flex-wrap items-center gap-1">
-              <span className="rounded bg-[#E8C547] px-1 py-0.5 font-mono text-[6px] font-bold text-black">ABC-123</span>
-              <span className="text-[10px] font-bold text-[#D4A843]">{lastDigit}</span>
+              <span
+                className="rounded px-1 py-0.5 font-mono text-[6px] font-bold"
+                style={{ background: T.plateBg, color: T.plateText }}
+              >
+                ABC-123
+              </span>
+              <span className="text-[10px] font-bold" style={{ color: T.accent }}>{lastDigit}</span>
               <span className="text-[8px] text-zinc-400">| {v.cityRegistration.slice(0, 8).toUpperCase()}</span>
             </div>
             <div className="mt-1 text-[7.5px] leading-snug text-zinc-500">
@@ -379,7 +438,12 @@ function DesignPreview({ v, photoUrl, fmt }: { v: Vehicle; photoUrl?: string; fm
         </div>
 
         {/* Price badge */}
-        <div className="mx-3 mb-2 mt-1 flex items-center justify-center rounded-xl bg-[linear-gradient(90deg,#6b4c10,#D4A843_30%,#D4A843_70%,#6b4c10)] py-2 shadow">
+        <div
+          className="mx-3 mb-2 mt-1 flex items-center justify-center rounded-xl py-2 shadow"
+          style={{
+            background: `linear-gradient(90deg, ${T.accentDark}, ${T.accent} 30%, ${T.accent} 70%, ${T.accentDark})`,
+          }}
+        >
           <span className="text-base font-black text-white drop-shadow">{priceText}</span>
         </div>
       </div>
@@ -390,10 +454,11 @@ function DesignPreview({ v, photoUrl, fmt }: { v: Vehicle; photoUrl?: string; fm
 /* ── Main component ──────────────────────────────────────────────────── */
 
 export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photos: VehiclePhoto[] }) {
-  const [fmt, setFmt]         = useState<Format>("post");
-  const [photoIdx, setPhotoIdx] = useState(0);
+  const [fmt, setFmt]             = useState<Format>("post");
+  const [theme, setTheme]         = useState<Theme>("bmw");
+  const [photoIdx, setPhotoIdx]   = useState(0);
   const [downloading, setDownloading] = useState(false);
-  const [dlError, setDlError] = useState<string | null>(null);
+  const [dlError, setDlError]     = useState<string | null>(null);
 
   const primaryPhoto = photos[photoIdx]?.fileUrl;
 
@@ -401,13 +466,13 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
     setDownloading(true);
     setDlError(null);
     try {
-      const canvas = await renderToCanvas(vehicle, primaryPhoto, fmt);
+      const canvas = await renderToCanvas(vehicle, primaryPhoto, fmt, theme);
       canvas.toBlob((blob) => {
         if (!blob) { setDlError("Error generando imagen."); return; }
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${vehicle.brand}-${vehicle.line}-${vehicle.year}-${fmt}.png`;
+        a.download = `${vehicle.brand}-${vehicle.line}-${vehicle.year}-${theme}-${fmt}.png`;
         a.click();
         URL.revokeObjectURL(url);
       }, "image/png");
@@ -421,7 +486,25 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
   return (
     <div className="mx-auto max-w-sm space-y-4 animate-in">
 
-      {/* Format toggle */}
+      {/* Theme toggle: BMW vs ROCKS-E */}
+      <div className="flex gap-1 rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[#0a0a0a] p-1.5">
+        {(Object.entries(THEMES) as [Theme, ThemeCfg][]).map(([key, t]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTheme(key)}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-[12px] font-semibold transition-all duration-150",
+              theme === key ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300",
+            )}
+          >
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: t.dot }} />
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Format toggle: Post vs Story */}
       <div className="flex gap-1 rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[#0a0a0a] p-1.5">
         {(["post", "story"] as Format[]).map((f) => (
           <button
@@ -430,7 +513,7 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
             onClick={() => setFmt(f)}
             className={cn(
               "flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm font-medium transition-all duration-150",
-              fmt === f ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+              fmt === f ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300",
             )}
           >
             {f === "post"
@@ -451,7 +534,7 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
               onClick={() => setPhotoIdx(i)}
               className={cn(
                 "h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 transition-all",
-                photoIdx === i ? "border-[#D4A843]" : "border-transparent opacity-50 hover:opacity-80"
+                photoIdx === i ? "border-[#D4A843]" : "border-transparent opacity-50 hover:opacity-80",
               )}
             >
               <img src={p.fileUrl} alt="" className="h-full w-full object-cover" />
@@ -466,14 +549,16 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
         </p>
       )}
 
-      {/* Preview */}
-      <DesignPreview v={vehicle} photoUrl={primaryPhoto} fmt={fmt} />
+      {/* Live preview */}
+      <DesignPreview v={vehicle} photoUrl={primaryPhoto} fmt={fmt} theme={theme} />
 
       {dlError && (
-        <p className="rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-2 text-xs text-red-400">{dlError}</p>
+        <p className="rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-2 text-xs text-red-400">
+          {dlError}
+        </p>
       )}
 
-      {/* Download */}
+      {/* Download button */}
       <Button size="md" variant="primary" className="w-full" disabled={downloading} onClick={handleDownload}>
         {downloading
           ? <><Loader2 className="h-4 w-4 animate-spin" />Generando…</>
