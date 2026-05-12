@@ -9,6 +9,7 @@ import {
   FileText,
   Gauge,
   MapPin,
+  Share2,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import { Progress } from "@/components/ui/progress";
 import { VehicleCosts } from "@/components/vehicles/vehicle-costs";
 import { VehicleDocuments } from "@/components/vehicles/vehicle-documents";
 import { VehicleExpenses } from "@/components/vehicles/vehicle-expenses";
+import { VehicleInfoSheet } from "@/components/vehicles/vehicle-info-sheet";
 import { VehicleStatusBadge } from "@/components/vehicles/vehicle-status-badge";
 import { EditPriceButton } from "@/components/vehicles/edit-price-button";
 import { compactCOP, currencyCOP, percentage } from "@/lib/utils";
@@ -27,7 +29,7 @@ import type { VehicleDoc } from "@/lib/data/docs";
 import type { VehicleInvestor } from "@/lib/data/investors";
 import type { VehicleExpense } from "@/lib/data/expenses";
 
-type Tab = "info" | "costos" | "inversion" | "documentos" | "historial";
+type Tab = "info" | "costos" | "inversion" | "documentos" | "historial" | "informacion";
 
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
@@ -144,6 +146,12 @@ export function VehicleDetailTabs({
           icon={Clock}
           label="Historial"
           count={movements.length}
+        />
+        <TabButton
+          active={tab === "informacion"}
+          onClick={() => setTab("informacion")}
+          icon={Share2}
+          label="Información"
         />
       </div>
 
@@ -358,6 +366,11 @@ export function VehicleDetailTabs({
       {/* Tab: Documentos */}
       {tab === "documentos" && (
         <VehicleDocuments vehicleId={vehicle.id} docs={legalDocs} canDelete={canDeleteDocs} />
+      )}
+
+      {/* Tab: Información */}
+      {tab === "informacion" && (
+        <VehicleInfoSheet vehicle={vehicle} />
       )}
 
       {/* Tab: Historial */}
