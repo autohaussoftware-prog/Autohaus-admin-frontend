@@ -41,7 +41,7 @@ export default async function CashPage({
         <StatCard label="Egresos efectivo" value={compactCOP(outcome)} helper={params.dateFrom || params.dateTo ? "Filtrado por fecha" : "Periodo visible"} icon={TrendingDown} tone="red" />
       </div>
       <DateFilter />
-      <MovementsTable title="Registro de efectivo" description="Movimientos separados por ubicación y responsable." movements={cashMovements} canDelete={canDelete} />
+      <MovementsTable title="Registro de efectivo" description="Movimientos separados por ubicación y responsable." movements={cashMovements} canDelete={canDelete} canEdit={canDelete} />
     </>
   );
 }

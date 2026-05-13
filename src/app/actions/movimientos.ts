@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createFinanceMovement, deleteFinanceMovement } from "@/lib/data/finance";
+import { createFinanceMovement, deleteFinanceMovement, updateFinanceMovement } from "@/lib/data/finance";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { ROLES, requireRole } from "@/lib/security";
 
@@ -38,6 +38,33 @@ export async function createMovimientoAction(formData: FormData) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se pudo registrar el movimiento.";
     redirect("/movimientos/nuevo?error=" + encodeURIComponent(message));
+  }
+
+  revalidatePath("/banco");
+  revalidatePath("/efectivo");
+  revalidatePath("/");
+  redirect("/banco");
+}
+
+export async function updateMovimientoAction(formData: FormData) {
+  const id = formData.get("id") as string;
+  if (!id) return;
+
+  const role = await getUserRole();
+  const denied = requireRole(role, ROLES.FINANCE_WRITE, "Sin permisos para editar movimientos financieros.");
+  if (denied) redirect(`/movimientos/${id}/editar?error=` + encodeURIComponent(denied.error));
+
+  const parsed = movimientoSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message ?? "Datos inválidos.";
+    redirect(`/movimientos/${id}/editar?error=` + encodeURIComponent(msg));
+  }
+
+  try {
+    await updateFinanceMovement(id, parsed.data);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "No se pudo actualizar el movimiento.";
+    redirect(`/movimientos/${id}/editar?error=` + encodeURIComponent(message));
   }
 
   revalidatePath("/banco");

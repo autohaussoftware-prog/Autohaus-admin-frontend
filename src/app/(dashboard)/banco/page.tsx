@@ -40,7 +40,7 @@ export default async function BankPage({
         <StatCard label="Movimientos" value={`${bankMovements.length}`} helper={params.dateFrom || params.dateTo ? "Filtrado por fecha" : "Total registros"} icon={WalletCards} tone="gold" />
       </div>
       <DateFilter />
-      <MovementsTable title="Registro bancario" description="Movimientos bancarios con trazabilidad por responsable y concepto." movements={bankMovements} canDelete={canDelete} />
+      <MovementsTable title="Registro bancario" description="Movimientos bancarios con trazabilidad por responsable y concepto." movements={bankMovements} canDelete={canDelete} canEdit={canDelete} />
     </>
   );
 }

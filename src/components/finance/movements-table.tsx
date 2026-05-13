@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { compactCOP } from "@/lib/utils";
@@ -9,11 +11,13 @@ export function MovementsTable({
   description,
   movements,
   canDelete = false,
+  canEdit = false,
 }: {
   title: string;
   description: string;
   movements: FinanceMovement[];
   canDelete?: boolean;
+  canEdit?: boolean;
 }) {
   return (
     <Card>
@@ -33,7 +37,7 @@ export function MovementsTable({
                 <th className="px-5 py-4 font-medium">Concepto</th>
                 <th className="px-5 py-4 font-medium">Responsable</th>
                 <th className="px-5 py-4 text-right font-medium">Monto</th>
-                {canDelete && <th className="px-3 py-4 font-medium" />}
+                {(canEdit || canDelete) && <th className="px-3 py-4 font-medium" />}
               </tr>
             </thead>
             <tbody>
@@ -48,9 +52,19 @@ export function MovementsTable({
                   <td className={`px-5 py-4 text-right font-medium ${movement.type === "Ingreso" ? "text-emerald-300" : "text-red-300"}`}>
                     {movement.type === "Ingreso" ? "+" : "−"}{compactCOP(movement.amount)}
                   </td>
-                  {canDelete && (
+                  {(canEdit || canDelete) && (
                     <td className="px-3 py-4">
-                      <DeleteMovementButton movement={movement} />
+                      <div className="flex items-center gap-1">
+                        {canEdit && (
+                          <Link
+                            href={`/movimientos/${movement.id}/editar`}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Link>
+                        )}
+                        {canDelete && <DeleteMovementButton movement={movement} />}
+                      </div>
                     </td>
                   )}
                 </tr>
