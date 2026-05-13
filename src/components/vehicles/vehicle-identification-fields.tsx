@@ -323,6 +323,8 @@ export function VehicleIdentificationFields({
         <span className="mb-2 block text-sm text-zinc-400">Tracción</span>
         <Select name="traction" value={traction} onChange={(e) => setTraction(e.target.value)}>
           <option value="">Selecciona o deja en blanco</option>
+          <option value="4x2">4x2</option>
+          <option value="4x4">4x4</option>
           <option value="FWD">FWD (delantera)</option>
           <option value="RWD">RWD (trasera)</option>
           <option value="AWD">AWD (automática)</option>
