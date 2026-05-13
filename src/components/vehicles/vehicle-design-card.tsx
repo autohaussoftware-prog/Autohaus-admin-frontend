@@ -136,27 +136,28 @@ async function renderToCanvas(
   const diagLY = Math.round(H * (isPost ? 0.812 : 0.755)); // band left lower corner
   const diagRY = Math.round(H * (isPost ? 0.784 : 0.727)); // band right (higher)
   const panelY = diagLY;
+  const scale  = H / 1350;                   // proportional scaler
 
   const lX    = 54;                          // left text margin
-  const colRX = Math.round(W * 0.520);       // right column x (~561px)
+  const colRX = Math.round(W * 0.570);       // right column x — divider
 
   // @autohausmed / logo positions (from template)
   const handleY = Math.round(H * (isPost ? 0.189 : 0.161));
   const logoSz  = Math.round(H * 0.075);
   const logoTop = handleY - logoSz - Math.round(H * 0.008);
 
-  // Panel text baselines
-  const headerY = panelY + Math.round(H * 0.037);
-  const subY    = panelY + Math.round(H * 0.078);
-  const spec1Y  = panelY + Math.round(H * 0.114);
-  const spec2Y  = panelY + Math.round(H * 0.141);
+  // Panel text baselines (scaled from 1350-height reference)
+  const headerY = panelY + Math.round(58  * scale);
+  const subY    = panelY + Math.round(100 * scale);
+  const spec1Y  = panelY + Math.round(148 * scale);
+  const spec2Y  = panelY + Math.round(188 * scale);
 
   // Right column
-  const plateBW  = Math.round(80 * (W / 1080));
-  const plateBH  = Math.round(28 * (H / 1350));
-  const plateAbsY = panelY + Math.round(H * 0.010);
-  const tecnoY   = panelY + Math.round(H * 0.075);
-  const soatY    = tecnoY  + Math.round(32 * (H / 1350));
+  const plateBW  = Math.round(96 * (W / 1080));
+  const plateBH  = Math.round(36 * scale);
+  const plateTop = panelY + Math.round(18 * scale);
+  const tecnoY   = panelY + Math.round(144 * scale);  // ≈ spec1Y
+  const soatY    = tecnoY  + Math.round(38  * scale);
 
   // ── Draw ───────────────────────────────────────────────────────────
 
@@ -256,16 +257,15 @@ async function renderToCanvas(
   ctx.fillText(String(v.year), lX + ctx.measureText(versionLabel).width, subY);
 
   // Spec helpers
-  const specFs    = Math.round(20 * (H / 1350));
-  const iconSz    = specFs;
-  const pipeGap   = Math.round(24 * (W / 1080));
+  const specFs    = Math.round(22 * scale);
+  const iconSz    = Math.round(26 * scale);
   const specFsStr = `600 ${specFs}px Inter, sans-serif`;
-  const pipeFsStr = `${specFs}px Inter, sans-serif`;
+  const pipeFsStr = `400 ${specFs}px Inter, sans-serif`;
 
   function specUnit(icon: HTMLImageElement | null, text: string, x: number, y: number): number {
     if (icon) {
-      ctx.drawImage(icon, x, y - iconSz + 2, iconSz, iconSz);
-      x += iconSz + 4;
+      ctx.drawImage(icon, x, y - Math.round(specFs * 0.78), iconSz, iconSz);
+      x += iconSz + 6;
     }
     ctx.fillStyle = T.specText;
     ctx.font      = specFsStr;
@@ -275,11 +275,12 @@ async function renderToCanvas(
   }
 
   function pipe(x: number, y: number): number {
-    ctx.fillStyle = "#888888";
+    const pipeStr = "  |  ";
+    ctx.fillStyle = "#555555";
     ctx.font      = pipeFsStr;
     ctx.textAlign = "left";
-    ctx.fillText(" | ", x + 2, y);
-    return x + pipeGap;
+    ctx.fillText(pipeStr, x, y);
+    return x + ctx.measureText(pipeStr).width;
   }
 
   // Row 1: KM | Transmission | Motor  /
@@ -304,45 +305,48 @@ async function renderToCanvas(
   }
   specUnit(iFuel, v.fuel, x, spec2Y);
 
-  /* Right column */
+  /* Right column — plate badge */
   ctx.fillStyle = T.plateBg;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(colRX, plateAbsY, plateBW, plateBH, 4);
-  else ctx.rect(colRX, plateAbsY, plateBW, plateBH);
+  if (ctx.roundRect) ctx.roundRect(colRX, plateTop, plateBW, plateBH, 5);
+  else ctx.rect(colRX, plateTop, plateBW, plateBH);
   ctx.fill();
   ctx.strokeStyle = T.plateBorder;
   ctx.lineWidth   = 1.5;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(colRX + 2, plateAbsY + 2, plateBW - 4, plateBH - 4, 2);
-  else ctx.rect(colRX + 2, plateAbsY + 2, plateBW - 4, plateBH - 4);
+  if (ctx.roundRect) ctx.roundRect(colRX + 2, plateTop + 2, plateBW - 4, plateBH - 4, 3);
+  else ctx.rect(colRX + 2, plateTop + 2, plateBW - 4, plateBH - 4);
   ctx.stroke();
   ctx.fillStyle = T.plateText;
-  ctx.font      = `bold ${Math.round(10 * (H / 1350))}px monospace`;
+  ctx.font      = `bold ${Math.round(13 * scale)}px monospace`;
   ctx.textAlign = "center";
-  ctx.fillText(v.plate.toUpperCase(), colRX + plateBW / 2, plateAbsY + plateBH * 0.74);
+  ctx.fillText(v.plate.toUpperCase(), colRX + plateBW / 2, plateTop + plateBH * 0.72);
 
-  const afterX  = colRX + plateBW + 10;
-  const digitFs = Math.round(22 * (H / 1350));
-  ctx.textAlign = "left";
-  ctx.fillStyle = T.accent;
-  ctx.font      = `bold ${digitFs}px Inter, sans-serif`;
-  ctx.fillText(lastDigit, afterX, plateAbsY + plateBH * 0.84);
+  /* Digit | City — below badge */
+  const digitFs  = Math.round(22 * scale);
+  const digitY   = plateTop + plateBH + Math.round(28 * scale);
+  ctx.textAlign  = "left";
+  ctx.fillStyle  = T.accent;
+  ctx.font       = `bold ${digitFs}px Inter, sans-serif`;
+  ctx.fillText(lastDigit, colRX, digitY);
   const dw = ctx.measureText(lastDigit).width;
-  ctx.fillStyle = "#aaaaaa";
-  ctx.font      = `${Math.round(18 * (H / 1350))}px Inter, sans-serif`;
-  ctx.fillText(" | " + v.cityRegistration.toUpperCase(), afterX + dw, plateAbsY + plateBH * 0.84);
+  ctx.fillStyle = "#999999";
+  ctx.font      = `${Math.round(18 * scale)}px Inter, sans-serif`;
+  ctx.fillText("  ·  " + v.cityRegistration.toUpperCase(), colRX + dw, digitY);
 
-  const infoFs = Math.round(18 * (H / 1350));
-  ctx.font      = `${infoFs}px Inter, sans-serif`;
+  /* TECNO / SOAT — aligned with spec rows */
+  const infoFs  = Math.round(19 * scale);
+  const labelFs = `${infoFs}px Inter, sans-serif`;
+  ctx.font      = labelFs;
   ctx.textAlign = "left";
-  ctx.fillStyle = "#666666";
-  ctx.fillText("TECNO: ", colRX, tecnoY);
+  ctx.fillStyle = "#585858";
+  ctx.fillText("TECNO ", colRX, tecnoY);
   ctx.fillStyle = "#cccccc";
-  ctx.fillText(techno, colRX + ctx.measureText("TECNO: ").width, tecnoY);
-  ctx.fillStyle = "#666666";
-  ctx.fillText("SOAT: ", colRX, soatY);
+  ctx.fillText(techno, colRX + ctx.measureText("TECNO ").width, tecnoY);
+  ctx.fillStyle = "#585858";
+  ctx.fillText("SOAT  ", colRX, soatY);
   ctx.fillStyle = "#cccccc";
-  ctx.fillText(v.soatDue || "—", colRX + ctx.measureText("SOAT: ").width, soatY);
+  ctx.fillText(v.soatDue || "—", colRX + ctx.measureText("SOAT  ").width, soatY);
 
   /* 7 — Price badge (story only — POST template has no price slot) */
   if (!isPost) {
@@ -441,47 +445,50 @@ function DesignPreview({
         style={{ top: `${diagL}%`, zIndex: 10 }}
       >
         {/* Header */}
-        <p className="truncate text-[18px] font-black uppercase leading-tight text-white pt-[3%]">
+        <p className="truncate text-[11px] font-black uppercase leading-tight text-white mt-[4%]">
           {headerText}
         </p>
 
         {/* Subtitle */}
-        <p className="mt-0.5 text-[7.5px] leading-none">
+        <p className="mt-[1%] text-[7px] leading-none">
           {v.version?.trim() && <span className="text-zinc-400">{v.version.trim()} </span>}
           <span style={{ color: T.accent }}>{v.year}</span>
         </p>
 
         {/* Two-column layout */}
-        <div className="mt-1 flex gap-2">
-          {/* Left: specs */}
-          <div className="min-w-0 flex-1 space-y-0.5 text-[6.5px] leading-none text-zinc-400">
+        <div className="mt-[2%] flex gap-1">
+          {/* Left: specs (57% width to match canvas colRX at 57%) */}
+          <div className="min-w-0 space-y-[2%] text-[6px] leading-snug text-zinc-400" style={{ width: "57%" }}>
             <p className="truncate">
-              ⊙ {v.mileage.toLocaleString("es-CO")} KM
-              <span className="text-zinc-600"> | </span>⚙ {v.transmission}
-              {v.motor ? <><span className="text-zinc-600"> | </span>▣ {v.motor}</> : null}
+              {v.mileage.toLocaleString("es-CO")} KM
+              <span className="text-zinc-600">  |  </span>{v.transmission}
+              {v.motor ? <><span className="text-zinc-600">  |  </span>{v.motor}</> : null}
               <span style={{ color: T.accent }}> /</span>
             </p>
             <p className="truncate">
-              {v.traction ? <>{v.traction}<span className="text-zinc-600"> | </span></> : null}
-              ⛽ {v.fuel}
+              {v.traction ? <>{v.traction}<span className="text-zinc-600">  |  </span></> : null}
+              {v.fuel}
             </p>
           </div>
 
           {/* Right: plate / city / dates */}
-          <div className="w-[44%] shrink-0 text-[6px]">
-            <div className="flex flex-wrap items-center gap-0.5">
-              <span
-                className="rounded px-1 py-0.5 font-mono text-[5px] font-bold"
-                style={{ background: T.plateBg, color: T.plateText }}
-              >
-                {v.plate.toUpperCase()}
-              </span>
+          <div className="min-w-0 flex-1 text-[5.5px]">
+            {/* Plate badge */}
+            <span
+              className="inline-block rounded px-1 py-[1px] font-mono text-[5px] font-bold"
+              style={{ background: T.plateBg, color: T.plateText }}
+            >
+              {v.plate.toUpperCase()}
+            </span>
+            {/* Digit · City */}
+            <p className="mt-[1%] truncate">
               <span className="font-bold" style={{ color: T.accent }}>{lastDigit}</span>
-              <span className="text-zinc-400">| {v.cityRegistration.slice(0, 8).toUpperCase()}</span>
-            </div>
-            <div className="mt-0.5 text-zinc-500 leading-snug">
-              <p>TECNO: <span className="text-zinc-300">{techno}</span></p>
-              <p>SOAT: <span className="text-zinc-300">{v.soatDue || "—"}</span></p>
+              <span className="text-zinc-400"> · {v.cityRegistration.slice(0, 9).toUpperCase()}</span>
+            </p>
+            {/* Dates — pushed down to align with spec rows */}
+            <div className="mt-[4%] leading-snug text-zinc-500">
+              <p>TECNO <span className="text-zinc-300">{techno}</span></p>
+              <p>SOAT  <span className="text-zinc-300">{v.soatDue || "—"}</span></p>
             </div>
           </div>
         </div>
