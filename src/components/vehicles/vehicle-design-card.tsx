@@ -87,14 +87,15 @@ function photoImg(src: string): Promise<HTMLImageElement> {
   });
 }
 
-function coverDraw(
+function containDraw(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
   dx: number, dy: number, dw: number, dh: number,
 ) {
-  const scale = Math.max(dw / img.width, dh / img.height);
-  const sw = dw / scale, sh = dh / scale;
-  ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, dx, dy, dw, dh);
+  const scale = Math.min(dw / img.width, dh / img.height);
+  const sw = img.width * scale;
+  const sh = img.height * scale;
+  ctx.drawImage(img, dx + (dw - sw) / 2, dy + (dh - sh) / 2, sw, sh);
 }
 
 /* ── Canvas renderer ─────────────────────────────────────────────────── */
@@ -181,12 +182,7 @@ async function renderToCanvas(
   ctx.closePath();
   ctx.clip();
   if (carImg) {
-    coverDraw(ctx, carImg, 0, 0, W, diagLY);
-    const gTop = ctx.createLinearGradient(0, 0, 0, H * 0.28);
-    gTop.addColorStop(0, "rgba(0,0,0,0.70)");
-    gTop.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = gTop;
-    ctx.fillRect(0, 0, W, H * 0.28);
+    containDraw(ctx, carImg, 0, 0, W, diagLY);
   } else {
     const gGray = ctx.createLinearGradient(0, 0, 0, diagLY);
     gGray.addColorStop(0, "#505050");
@@ -243,24 +239,28 @@ async function renderToCanvas(
   const techno     = v.technoDue?.trim() || "N/A";
   const headerText = [v.brand, v.line].filter(Boolean).join(" ").toUpperCase();
 
-  // Header: brand + line (starts at lXtext=196, pixel-scanned)
+  // Header: brand + line — CENTERED (as shown in template)
   const hLen     = headerText.length;
   const headerFs = Math.round(
     (hLen > 14 ? 52 : hLen > 11 ? 64 : hLen > 8 ? 68 : 84) * (H / 1350)
   );
-  ctx.textAlign = "left";
+  ctx.textAlign = "center";
   ctx.fillStyle = "#ffffff";
   ctx.font      = `900 ${headerFs}px Inter, sans-serif`;
-  ctx.fillText(headerText, lXtext, headerY);
+  ctx.fillText(headerText, W / 2, headerY);
 
-  // Subtitle: version (gray) + year (accent) — starts at lXtext=196
+  // Subtitle: version (gray) + year (accent) — CENTERED as a unit
   const subFs = Math.round(30 * (H / 1350));
   ctx.font = `400 ${subFs}px Inter, sans-serif`;
   const versionLabel = v.version?.trim() ? v.version.trim() + " " : "";
+  const yearLabel    = String(v.year);
+  const totalSubW    = ctx.measureText(versionLabel + yearLabel).width;
+  const subStartX    = (W - totalSubW) / 2;
   ctx.fillStyle = "#bbbbbb";
-  ctx.fillText(versionLabel, lXtext, subY);
+  ctx.textAlign = "left";
+  ctx.fillText(versionLabel, subStartX, subY);
   ctx.fillStyle = T.accent;
-  ctx.fillText(String(v.year), lXtext + ctx.measureText(versionLabel).width, subY);
+  ctx.fillText(yearLabel, subStartX + ctx.measureText(versionLabel).width, subY);
 
   // Spec helpers
   const specFs    = Math.round(22 * scale);
@@ -451,10 +451,9 @@ function DesignPreview({
         }}
       >
         {photoUrl
-          ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+          ? <img src={photoUrl} alt="" className="h-full w-full object-contain" />
           : <div className="h-full w-full bg-gradient-to-b from-[#505050] via-[#b8b8b8] to-[#e0e0e0]" />
         }
-        <div className="absolute inset-x-0 top-0 h-[30%] bg-gradient-to-b from-black/65 to-transparent" />
       </div>
 
       {/* z=10 — @autohausmed */}
@@ -467,13 +466,12 @@ function DesignPreview({
         </p>
       </div>
 
-      {/* z=10 — Panel text */}
-      {/* Header + subtitle: left-margin mirrors lXtext=196 (≈18.1% of 1080) */}
+      {/* z=10 — Panel text: header + subtitle CENTERED */}
       <div
-        className="absolute"
-        style={{ top: `${diagL}%`, left: "18.1%", right: "5%", zIndex: 10 }}
+        className="absolute inset-x-0 text-center"
+        style={{ top: `${diagL}%`, zIndex: 10 }}
       >
-        <p className="truncate text-[11px] font-black uppercase leading-tight text-white mt-[3.6%]">
+        <p className="truncate px-4 text-[11px] font-black uppercase leading-tight text-white mt-[3.6%]">
           {headerText}
         </p>
         <p className="mt-[1%] text-[7px] leading-none">
