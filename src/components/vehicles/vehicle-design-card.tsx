@@ -109,9 +109,16 @@ async function renderToCanvas(
   const ctx = canvas.getContext("2d")!;
   await document.fonts.ready;
 
+  // Template PNG measured from blank design files:
+  // Post  (1080×1350): gold band left at 81.2%, right at 78.4%
+  // Story (1080×1920): gold band left at 75.5%, right at 72.7%
+  const isPost = fmt === "post";
+  const templateUrl = isPost ? "/template-post.png" : "/template-story.png";
+
   const settled = await Promise.allSettled([
     photoUrl ? photoImg(photoUrl) : Promise.reject(),
     photoImg("/logo-ah.jpeg"),
+    photoImg(templateUrl),
     svgImg("speed"),
     svgImg("gear"),
     svgImg("engine"),
@@ -122,34 +129,42 @@ async function renderToCanvas(
     settled[i].status === "fulfilled"
       ? (settled[i] as PromiseFulfilledResult<HTMLImageElement>).value
       : null;
-  const [carImg, logoImg, iSpeed, iGear, iEngine, iTraction, iFuel] =
-    [get(0), get(1), get(2), get(3), get(4), get(5), get(6)];
+  const [carImg, logoImg, templateImg, iSpeed, iGear, iEngine, iTraction, iFuel] =
+    [get(0), get(1), get(2), get(3), get(4), get(5), get(6), get(7)];
 
-  // ── Layout proportions (derived from reference images)
-  // Photo occupies top ~67%, info panel bottom ~33%, diagonal at boundary
-  const diagLY = Math.round(H * 0.700); // left lower corner of diagonal  (945px)
-  const diagRY = Math.round(H * 0.660); // right lower corner (upper-right) (891px)
-  const bandH  = Math.round(H * 0.028); // gold band thickness               (38px)
-  const panelY = diagLY;                 // info panel solid start
+  // ── Layout (from blank template measurements) ──────────────────────
+  const diagLY = Math.round(H * (isPost ? 0.812 : 0.755)); // band left lower corner
+  const diagRY = Math.round(H * (isPost ? 0.784 : 0.727)); // band right (higher)
+  const panelY = diagLY;
 
-  // Left text margin / right column
-  const lX    = 54;
-  const colRX = Math.round(W * 0.680);   // 734px
+  const lX    = 54;                          // left text margin
+  const colRX = Math.round(W * 0.520);       // right column x (~561px)
 
-  // Text baselines (absolute canvas Y, from reference proportions)
-  const brandAbsY  = panelY + Math.round(H * 0.061); // ~1027px  brand baseline
-  const subAbsY    = panelY + Math.round(H * 0.107); // ~1090px  subtitle
-  const spec1AbsY  = panelY + Math.round(H * 0.158); // ~1145px  spec row 1
-  const spec2AbsY  = panelY + Math.round(H * 0.207); // ~1195px  spec row 2
-  const plateAbsX  = colRX;
-  const plateAbsY  = panelY + Math.round(H * 0.005); // ~952px   plate badge top
-  const tecnoAbsY  = panelY + Math.round(H * 0.094); // ~1072px  TECNO baseline
+  // @autohausmed / logo positions (from template)
+  const handleY = Math.round(H * (isPost ? 0.189 : 0.161));
+  const logoSz  = Math.round(H * 0.075);
+  const logoTop = handleY - logoSz - Math.round(H * 0.008);
+
+  // Panel text baselines
+  const headerY = panelY + Math.round(H * 0.037);
+  const subY    = panelY + Math.round(H * 0.078);
+  const spec1Y  = panelY + Math.round(H * 0.114);
+  const spec2Y  = panelY + Math.round(H * 0.141);
+
+  // Right column
+  const plateBW  = Math.round(80 * (W / 1080));
+  const plateBH  = Math.round(28 * (H / 1350));
+  const plateAbsY = panelY + Math.round(H * 0.010);
+  const tecnoY   = panelY + Math.round(H * 0.075);
+  const soatY    = tecnoY  + Math.round(32 * (H / 1350));
+
+  // ── Draw ───────────────────────────────────────────────────────────
 
   /* 1 — Dark base */
-  ctx.fillStyle = T.panelBg;
+  ctx.fillStyle = "#111111";
   ctx.fillRect(0, 0, W, H);
 
-  /* 2 — Vehicle photo clipped to diagonal trapezoid (lower-left → upper-right /) */
+  /* 2 — Vehicle photo clipped to photo polygon */
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(0, 0);
@@ -160,99 +175,97 @@ async function renderToCanvas(
   ctx.clip();
   if (carImg) {
     coverDraw(ctx, carImg, 0, 0, W, diagLY);
-    // Top gradient so AH logo is readable
-    const gTop = ctx.createLinearGradient(0, 0, 0, H * 0.25);
-    gTop.addColorStop(0, "rgba(0,0,0,0.62)");
+    const gTop = ctx.createLinearGradient(0, 0, 0, H * 0.28);
+    gTop.addColorStop(0, "rgba(0,0,0,0.70)");
     gTop.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = gTop;
-    ctx.fillRect(0, 0, W, H * 0.25);
+    ctx.fillRect(0, 0, W, H * 0.28);
   } else {
     const gGray = ctx.createLinearGradient(0, 0, 0, diagLY);
-    gGray.addColorStop(0,    "#606060");
-    gGray.addColorStop(0.35, "#c0c0c0");
-    gGray.addColorStop(0.7,  "#f0f0f0");
-    gGray.addColorStop(1,    "#e8e8e8");
+    gGray.addColorStop(0, "#505050");
+    gGray.addColorStop(0.4, "#b8b8b8");
+    gGray.addColorStop(1, "#e0e0e0");
     ctx.fillStyle = gGray;
     ctx.fillRect(0, 0, W, diagLY);
   }
   ctx.restore();
 
-  /* 3 — AH logo + @autohausmed (centered near top of photo) */
+  /* 3 — Template panel overlay (actual design PNG, clipped to panel area) */
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(0, diagLY - 4);
+  ctx.lineTo(W, diagRY - 4);
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+  ctx.clip();
+  if (templateImg) {
+    ctx.drawImage(templateImg, 0, 0, W, H);
+  } else {
+    // Fallback: solid panel + gold band
+    ctx.fillStyle = T.panelBg;
+    ctx.fillRect(0, diagLY, W, H - diagLY);
+    ctx.fillStyle = T.accent;
+    ctx.beginPath();
+    ctx.moveTo(0, diagLY - 20); ctx.lineTo(W, diagRY - 20);
+    ctx.lineTo(W, diagRY); ctx.lineTo(0, diagLY);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  /* 4 — AH logo (screen blend over photo) */
   if (logoImg) {
-    const sz = Math.round(H * 0.082); // ~111px
     ctx.save();
     ctx.globalCompositeOperation = "screen";
-    ctx.drawImage(logoImg, (W - sz) / 2, Math.round(H * 0.036), sz, sz);
+    ctx.drawImage(logoImg, (W - logoSz) / 2, logoTop, logoSz, logoSz);
     ctx.restore();
   }
+
+  /* 5 — @autohausmed */
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)";
   ctx.shadowBlur  = 18;
   ctx.fillStyle   = "rgba(255,255,255,0.92)";
-  ctx.font        = `600 ${Math.round(H * 0.026)}px Inter, sans-serif`;
+  ctx.font        = `600 ${Math.round(H * 0.022)}px Inter, sans-serif`;
   ctx.textAlign   = "center";
-  ctx.fillText("@autohausmed", W / 2, Math.round(H * 0.162));
+  ctx.fillText("@autohausmed", W / 2, handleY);
   ctx.restore();
 
-  /* 4 — Info panel dark background */
-  ctx.fillStyle = T.panelBg;
-  ctx.fillRect(0, panelY, W, H - panelY);
-
-  /* 5 — Diagonal accent band */
-  ctx.save();
-  ctx.fillStyle = T.accent;
-  ctx.beginPath();
-  ctx.moveTo(0, diagLY - bandH);
-  ctx.lineTo(W, diagRY - bandH);
-  ctx.lineTo(W, diagRY);
-  ctx.lineTo(0, diagLY);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-
-  /* 6 — Info panel content */
-  const lastDigit   = v.plate.replace(/\D/g, "").at(-1) ?? "—";
-  const techno      = v.technoDue?.trim() || "N/A";
-  // Header: brand + line (e.g., "FORD F150", "HONDA")
-  // Subtitle: version (gray) + year (gold)
+  /* 6 — Panel info text */
+  const lastDigit  = v.plate.replace(/\D/g, "").at(-1) ?? "—";
+  const techno     = v.technoDue?.trim() || "N/A";
   const headerText = [v.brand, v.line].filter(Boolean).join(" ").toUpperCase();
 
-  // Model name — large bold white
+  // Header: brand + line
+  const hLen     = headerText.length;
   const headerFs = Math.round(
-    (headerText.length > 12 ? 62 : headerText.length > 9 ? 74 : headerText.length > 7 ? 84 : 96) * (H / 1350)
+    (hLen > 14 ? 52 : hLen > 11 ? 64 : hLen > 8 ? 76 : 90) * (H / 1350)
   );
   ctx.textAlign = "left";
   ctx.fillStyle = "#ffffff";
   ctx.font      = `900 ${headerFs}px Inter, sans-serif`;
-  ctx.fillText(headerText, lX, brandAbsY);
+  ctx.fillText(headerText, lX, headerY);
 
-  // Subtitle: version (gray) + year (accent gold)
-  const subFs = Math.round(34 * (H / 1350));
-  ctx.font = `600 ${subFs}px Inter, sans-serif`;
+  // Subtitle: version (gray) + year (accent)
+  const subFs = Math.round(30 * (H / 1350));
+  ctx.font = `400 ${subFs}px Inter, sans-serif`;
   const versionLabel = v.version?.trim() ? v.version.trim() + " " : "";
-  ctx.fillStyle = "#888888";
-  ctx.fillText(versionLabel, lX, subAbsY);
+  ctx.fillStyle = "#bbbbbb";
+  ctx.fillText(versionLabel, lX, subY);
   ctx.fillStyle = T.accent;
-  ctx.fillText(String(v.year), lX + ctx.measureText(versionLabel).width, subAbsY);
-
-  // Horizontal divider
-  ctx.strokeStyle = T.divider;
-  ctx.lineWidth   = 1;
-  ctx.beginPath();
-  ctx.moveTo(lX, subAbsY + 16);
-  ctx.lineTo(colRX - 20, subAbsY + 16);
-  ctx.stroke();
+  ctx.fillText(String(v.year), lX + ctx.measureText(versionLabel).width, subY);
 
   // Spec helpers
-  const iconSz = Math.round(22 * (H / 1350));
-  const specFsStr = `bold ${Math.round(22 * (H / 1350))}px Inter, sans-serif`;
-  const pipeFsStr = `${Math.round(22 * (H / 1350))}px Inter, sans-serif`;
-  const pipeGap   = Math.round(26 * (W / 1080));
+  const specFs    = Math.round(20 * (H / 1350));
+  const iconSz    = specFs;
+  const pipeGap   = Math.round(24 * (W / 1080));
+  const specFsStr = `600 ${specFs}px Inter, sans-serif`;
+  const pipeFsStr = `${specFs}px Inter, sans-serif`;
 
   function specUnit(icon: HTMLImageElement | null, text: string, x: number, y: number): number {
     if (icon) {
-      ctx.drawImage(icon, x, y - iconSz + 3, iconSz, iconSz);
-      x += iconSz + 5;
+      ctx.drawImage(icon, x, y - iconSz + 2, iconSz, iconSz);
+      x += iconSz + 4;
     }
     ctx.fillStyle = T.specText;
     ctx.font      = specFsStr;
@@ -271,99 +284,94 @@ async function renderToCanvas(
 
   // Row 1: KM | Transmission | Motor  /
   let x = lX;
-  x = specUnit(iSpeed, v.mileage.toLocaleString("es-CO") + " KM", x, spec1AbsY);
-  x = pipe(x, spec1AbsY);
-  x = specUnit(iGear, v.transmission, x, spec1AbsY);
+  x = specUnit(iSpeed, v.mileage.toLocaleString("es-CO") + " KM", x, spec1Y);
+  x = pipe(x, spec1Y);
+  x = specUnit(iGear, v.transmission, x, spec1Y);
   if (v.motor) {
-    x = pipe(x, spec1AbsY);
-    x = specUnit(iEngine, v.motor, x, spec1AbsY);
+    x = pipe(x, spec1Y);
+    x = specUnit(iEngine, v.motor, x, spec1Y);
   }
-  // Decorative gold slash at end of row 1
   ctx.fillStyle = T.accent;
-  ctx.font      = `bold ${Math.round(22 * (H / 1350))}px Inter, sans-serif`;
+  ctx.font      = `bold ${specFs}px Inter, sans-serif`;
   ctx.textAlign = "left";
-  ctx.fillText(" /", x, spec1AbsY);
+  ctx.fillText(" /", x, spec1Y);
 
   // Row 2: Traction | Fuel
   x = lX;
   if (v.traction) {
-    x = specUnit(iTraction, v.traction, x, spec2AbsY);
-    x = pipe(x, spec2AbsY);
+    x = specUnit(iTraction, v.traction, x, spec2Y);
+    x = pipe(x, spec2Y);
   }
-  specUnit(iFuel, v.fuel, x, spec2AbsY);
+  specUnit(iFuel, v.fuel, x, spec2Y);
 
-  /* Right column — plate badge */
-  const plateBW = Math.round(80 * (W / 1080));
-  const plateBH = Math.round(30 * (H / 1350));
-
+  /* Right column */
   ctx.fillStyle = T.plateBg;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(plateAbsX, plateAbsY, plateBW, plateBH, 4);
-  else ctx.rect(plateAbsX, plateAbsY, plateBW, plateBH);
+  if (ctx.roundRect) ctx.roundRect(colRX, plateAbsY, plateBW, plateBH, 4);
+  else ctx.rect(colRX, plateAbsY, plateBW, plateBH);
   ctx.fill();
   ctx.strokeStyle = T.plateBorder;
   ctx.lineWidth   = 1.5;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(plateAbsX + 2, plateAbsY + 2, plateBW - 4, plateBH - 4, 2);
-  else ctx.rect(plateAbsX + 2, plateAbsY + 2, plateBW - 4, plateBH - 4);
+  if (ctx.roundRect) ctx.roundRect(colRX + 2, plateAbsY + 2, plateBW - 4, plateBH - 4, 2);
+  else ctx.rect(colRX + 2, plateAbsY + 2, plateBW - 4, plateBH - 4);
   ctx.stroke();
   ctx.fillStyle = T.plateText;
-  ctx.font      = `bold ${Math.round(11 * (H / 1350))}px monospace`;
+  ctx.font      = `bold ${Math.round(10 * (H / 1350))}px monospace`;
   ctx.textAlign = "center";
-  ctx.fillText(v.plate.toUpperCase(), plateAbsX + plateBW / 2, plateAbsY + plateBH * 0.74);
+  ctx.fillText(v.plate.toUpperCase(), colRX + plateBW / 2, plateAbsY + plateBH * 0.74);
 
-  // Last digit | city (right of badge)
-  const afterPlateX = plateAbsX + plateBW + 12;
-  const digitFs2    = Math.round(24 * (H / 1350));
+  const afterX  = colRX + plateBW + 10;
+  const digitFs = Math.round(22 * (H / 1350));
   ctx.textAlign = "left";
   ctx.fillStyle = T.accent;
-  ctx.font      = `bold ${digitFs2}px Inter, sans-serif`;
-  ctx.fillText(lastDigit, afterPlateX, plateAbsY + plateBH * 0.82);
-  const dw2 = ctx.measureText(lastDigit).width;
-  ctx.fillStyle = "#ababab";
-  ctx.font      = `${Math.round(20 * (H / 1350))}px Inter, sans-serif`;
-  ctx.fillText(" | " + v.cityRegistration.toUpperCase(), afterPlateX + dw2, plateAbsY + plateBH * 0.82);
+  ctx.font      = `bold ${digitFs}px Inter, sans-serif`;
+  ctx.fillText(lastDigit, afterX, plateAbsY + plateBH * 0.84);
+  const dw = ctx.measureText(lastDigit).width;
+  ctx.fillStyle = "#aaaaaa";
+  ctx.font      = `${Math.round(18 * (H / 1350))}px Inter, sans-serif`;
+  ctx.fillText(" | " + v.cityRegistration.toUpperCase(), afterX + dw, plateAbsY + plateBH * 0.84);
 
-  // TECNO + SOAT
-  const infoFs2 = Math.round(21 * (H / 1350));
+  const infoFs = Math.round(18 * (H / 1350));
+  ctx.font      = `${infoFs}px Inter, sans-serif`;
   ctx.textAlign = "left";
-  ctx.font      = `${infoFs2}px Inter, sans-serif`;
-  ctx.fillStyle = "#555555";
-  ctx.fillText("TECNO: ", colRX, tecnoAbsY);
-  ctx.fillStyle = "#b0b0b0";
-  ctx.fillText(techno, colRX + ctx.measureText("TECNO: ").width, tecnoAbsY);
-  const soatY2 = tecnoAbsY + Math.round(32 * (H / 1350));
-  ctx.fillStyle = "#555555";
-  ctx.fillText("SOAT: ", colRX, soatY2);
-  ctx.fillStyle = "#b0b0b0";
-  ctx.fillText(v.soatDue || "—", colRX + ctx.measureText("SOAT: ").width, soatY2);
+  ctx.fillStyle = "#666666";
+  ctx.fillText("TECNO: ", colRX, tecnoY);
+  ctx.fillStyle = "#cccccc";
+  ctx.fillText(techno, colRX + ctx.measureText("TECNO: ").width, tecnoY);
+  ctx.fillStyle = "#666666";
+  ctx.fillText("SOAT: ", colRX, soatY);
+  ctx.fillStyle = "#cccccc";
+  ctx.fillText(v.soatDue || "—", colRX + ctx.measureText("SOAT: ").width, soatY);
 
-  /* Price badge */
-  const priceText = "$" + v.targetPrice.toLocaleString("es-CO");
-  const priceFs   = Math.round((priceText.length > 14 ? 44 : 54) * (H / 1350));
-  const badgeH2   = Math.round(78 * (H / 1350));
-  const badgeY2   = H - Math.round(100 * (H / 1350));
-  const hPad      = Math.round(44 * (W / 1080));
+  /* 7 — Price badge (story only — POST template has no price slot) */
+  if (!isPost) {
+    const priceText = "$" + v.targetPrice.toLocaleString("es-CO");
+    const priceFs   = Math.round((priceText.length > 14 ? 42 : 52) * (H / 1350));
+    const badgeH    = Math.round(80 * (H / 1350));
+    const badgeY    = H - Math.round(118 * (H / 1350));
+    const hPad      = Math.round(58 * (W / 1080));
 
-  const priceGrd = ctx.createLinearGradient(hPad, 0, W - hPad, 0);
-  priceGrd.addColorStop(0,   T.accentDark);
-  priceGrd.addColorStop(0.3, T.accent);
-  priceGrd.addColorStop(0.7, T.accent);
-  priceGrd.addColorStop(1,   T.accentDark);
-  ctx.fillStyle = priceGrd;
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(hPad, badgeY2, W - hPad * 2, badgeH2, 14);
-  else ctx.rect(hPad, badgeY2, W - hPad * 2, badgeH2);
-  ctx.fill();
+    const grd = ctx.createLinearGradient(hPad, 0, W - hPad, 0);
+    grd.addColorStop(0, T.accentDark);
+    grd.addColorStop(0.3, T.accent);
+    grd.addColorStop(0.7, T.accent);
+    grd.addColorStop(1, T.accentDark);
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(hPad, badgeY, W - hPad * 2, badgeH, badgeH / 2);
+    else ctx.rect(hPad, badgeY, W - hPad * 2, badgeH);
+    ctx.fill();
 
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.5)";
-  ctx.shadowBlur  = 10;
-  ctx.fillStyle   = "#ffffff";
-  ctx.font        = `bold ${priceFs}px Inter, sans-serif`;
-  ctx.textAlign   = "center";
-  ctx.fillText(priceText, W / 2, badgeY2 + badgeH2 * 0.67);
-  ctx.restore();
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.5)";
+    ctx.shadowBlur  = 10;
+    ctx.fillStyle   = "#ffffff";
+    ctx.font        = `bold ${priceFs}px Inter, sans-serif`;
+    ctx.textAlign   = "center";
+    ctx.fillText(priceText, W / 2, badgeY + badgeH * 0.67);
+    ctx.restore();
+  }
 
   return canvas;
 }
@@ -376,104 +384,122 @@ function DesignPreview({
   v: Vehicle; photoUrl?: string; fmt: Format; theme: Theme;
 }) {
   const T = THEMES[theme];
+  const isPost     = fmt === "post";
   const lastDigit  = v.plate.replace(/\D/g, "").at(-1) ?? "—";
   const techno     = v.technoDue?.trim() || "N/A";
   const priceText  = "$" + v.targetPrice.toLocaleString("es-CO");
   const headerText = [v.brand, v.line].filter(Boolean).join(" ").toUpperCase();
 
+  // Diagonal percentages from blank template measurements
+  const diagL = isPost ? 81.2 : 75.5; // left lower (%)
+  const diagR = isPost ? 78.4 : 72.7; // right lower (%) — higher = less %
+  const handlePct = isPost ? 18.9 : 16.1; // @autohausmed top (%)
+
   return (
     <div
       className={cn(
-        "relative w-full overflow-hidden rounded-2xl select-none",
-        fmt === "post" ? "aspect-[4/5]" : "aspect-[9/16]",
+        "relative w-full overflow-hidden rounded-2xl select-none bg-[#111]",
+        isPost ? "aspect-[4/5]" : "aspect-[9/16]",
       )}
-      style={{ background: T.panelBg }}
     >
-      {/* Photo area — top 70% (canvas diagLY = H×0.700) */}
-      <div className="absolute inset-x-0 top-0" style={{ height: "70%" }}>
-        {photoUrl
-          ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
-          : <div className="h-full w-full bg-gradient-to-b from-[#707070] via-[#c8c8c8] to-white" />
-        }
-        <div className="absolute inset-x-0 top-0 h-[38%] bg-gradient-to-b from-black/55 to-transparent" />
-      </div>
-
-      {/* @autohausmed centered near top of photo */}
-      <div className="absolute inset-x-0 top-[16%] z-10 flex justify-center">
-        <p className="text-[9px] font-semibold text-white [text-shadow:0_1px_8px_rgba(0,0,0,1)]">@autohausmed</p>
-      </div>
-
-      {/* Diagonal accent band — left at 70%, right at 66% (canvas diagLY/diagRY) */}
-      <div
-        className="absolute z-10 w-[116%]"
-        style={{
-          left: "-8%",
-          top: "68.5%",
-          height: "2%",
-          backgroundColor: T.accent,
-          transform: "rotate(-2.3deg)",
-          transformOrigin: "0% 100%",
-        }}
+      {/* z=1 — Template PNG (dark panel + gold band) */}
+      <img
+        src={`/template-${fmt}.png`}
+        alt=""
+        className="absolute inset-0 h-full w-full object-fill"
+        style={{ zIndex: 1 }}
       />
 
-      {/* Info panel — starts at 70% */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col" style={{ top: "70%" }}>
-        <div className="flex flex-1 gap-1 px-3 pt-2">
+      {/* z=2 — Car photo clipped to photo polygon */}
+      <div
+        className="absolute inset-0"
+        style={{
+          zIndex: 2,
+          clipPath: `polygon(0 0, 100% 0, 100% ${diagR}%, 0 ${diagL}%)`,
+        }}
+      >
+        {photoUrl
+          ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+          : <div className="h-full w-full bg-gradient-to-b from-[#505050] via-[#b8b8b8] to-[#e0e0e0]" />
+        }
+        <div className="absolute inset-x-0 top-0 h-[30%] bg-gradient-to-b from-black/65 to-transparent" />
+      </div>
 
-          {/* Left column */}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xl font-black uppercase leading-tight tracking-wide text-white">
-              {headerText}
+      {/* z=10 — @autohausmed */}
+      <div
+        className="absolute inset-x-0 flex justify-center"
+        style={{ top: `${handlePct}%`, zIndex: 10 }}
+      >
+        <p className="text-[8px] font-semibold text-white [text-shadow:0_1px_8px_rgba(0,0,0,1)]">
+          @autohausmed
+        </p>
+      </div>
+
+      {/* z=10 — Panel text */}
+      <div
+        className="absolute inset-x-0 px-[5%]"
+        style={{ top: `${diagL}%`, zIndex: 10 }}
+      >
+        {/* Header */}
+        <p className="truncate text-[18px] font-black uppercase leading-tight text-white pt-[3%]">
+          {headerText}
+        </p>
+
+        {/* Subtitle */}
+        <p className="mt-0.5 text-[7.5px] leading-none">
+          {v.version?.trim() && <span className="text-zinc-400">{v.version.trim()} </span>}
+          <span style={{ color: T.accent }}>{v.year}</span>
+        </p>
+
+        {/* Two-column layout */}
+        <div className="mt-1 flex gap-2">
+          {/* Left: specs */}
+          <div className="min-w-0 flex-1 space-y-0.5 text-[6.5px] leading-none text-zinc-400">
+            <p className="truncate">
+              ⊙ {v.mileage.toLocaleString("es-CO")} KM
+              <span className="text-zinc-600"> | </span>⚙ {v.transmission}
+              {v.motor ? <><span className="text-zinc-600"> | </span>▣ {v.motor}</> : null}
+              <span style={{ color: T.accent }}> /</span>
             </p>
-            <p className="mt-0.5 text-[8px] leading-none">
-              {v.version?.trim() && <span className="text-zinc-500">{v.version.trim()} </span>}
-              <span style={{ color: T.accent }}>{v.year}</span>
+            <p className="truncate">
+              {v.traction ? <>{v.traction}<span className="text-zinc-600"> | </span></> : null}
+              ⛽ {v.fuel}
             </p>
-            <div className="my-1 h-px" style={{ width: "62%", background: T.divider }} />
-            <div className="space-y-0.5 text-[7.5px] leading-none text-zinc-400">
-              <p className="truncate">
-                ⊙ {v.mileage.toLocaleString("es-CO")} KM
-                <span className="text-zinc-500">&nbsp;|&nbsp;</span>
-                ⚙ {v.transmission}
-                {v.motor ? <><span className="text-zinc-500">&nbsp;|&nbsp;</span>▣ {v.motor}</> : null}
-                <span style={{ color: T.accent }}>&nbsp;/</span>
-              </p>
-              <p className="truncate">
-                {v.traction ? <>✦ {v.traction}<span className="text-zinc-500">&nbsp;|&nbsp;</span></> : null}
-                ⛽ {v.fuel}
-              </p>
-            </div>
           </div>
 
-          {/* Right column */}
-          <div className="w-[40%] shrink-0 pt-0.5">
-            <div className="flex flex-wrap items-center gap-1">
+          {/* Right: plate / city / dates */}
+          <div className="w-[44%] shrink-0 text-[6px]">
+            <div className="flex flex-wrap items-center gap-0.5">
               <span
-                className="rounded px-1 py-0.5 font-mono text-[6px] font-bold"
+                className="rounded px-1 py-0.5 font-mono text-[5px] font-bold"
                 style={{ background: T.plateBg, color: T.plateText }}
               >
                 {v.plate.toUpperCase()}
               </span>
-              <span className="text-[10px] font-bold" style={{ color: T.accent }}>{lastDigit}</span>
-              <span className="text-[8px] text-zinc-400">| {v.cityRegistration.slice(0, 8).toUpperCase()}</span>
+              <span className="font-bold" style={{ color: T.accent }}>{lastDigit}</span>
+              <span className="text-zinc-400">| {v.cityRegistration.slice(0, 8).toUpperCase()}</span>
             </div>
-            <div className="mt-1 text-[7.5px] leading-snug text-zinc-500">
+            <div className="mt-0.5 text-zinc-500 leading-snug">
               <p>TECNO: <span className="text-zinc-300">{techno}</span></p>
               <p>SOAT: <span className="text-zinc-300">{v.soatDue || "—"}</span></p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Price badge */}
+      {/* z=10 — Price badge (story only) */}
+      {!isPost && (
         <div
-          className="mx-3 mb-2 mt-1 flex items-center justify-center rounded-xl py-2 shadow"
+          className="absolute inset-x-[6%] flex items-center justify-center rounded-full py-1.5 shadow"
           style={{
+            bottom: "5%",
+            zIndex: 10,
             background: `linear-gradient(90deg, ${T.accentDark}, ${T.accent} 30%, ${T.accent} 70%, ${T.accentDark})`,
           }}
         >
-          <span className="text-base font-black text-white drop-shadow">{priceText}</span>
+          <span className="text-sm font-black text-white drop-shadow">{priceText}</span>
         </div>
-      </div>
+      )}
     </div>
   );
 }
