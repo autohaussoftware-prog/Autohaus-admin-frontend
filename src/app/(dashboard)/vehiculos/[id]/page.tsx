@@ -67,6 +67,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         canManageInvestments={canManageInvestments}
         canEditPrice={canEditPrice}
         canManagePhotos={canEdit}
+      canEdit={canEdit}
       />
     </>
   );

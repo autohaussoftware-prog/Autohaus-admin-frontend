@@ -9,11 +9,13 @@ import {
   FileText,
   Gauge,
   MapPin,
+  Pencil,
   Share2,
   ShieldCheck,
   Sparkles,
   UserRound,
 } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -96,6 +98,7 @@ export function VehicleDetailTabs({
   canManageInvestments = false,
   canEditPrice = false,
   canManagePhotos = false,
+  canEdit = false,
 }: {
   vehicle: Vehicle;
   movements: VehicleMovement[];
@@ -110,6 +113,7 @@ export function VehicleDetailTabs({
   canManageInvestments?: boolean;
   canEditPrice?: boolean;
   canManagePhotos?: boolean;
+  canEdit?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("info");
 
@@ -183,6 +187,15 @@ export function VehicleDetailTabs({
                       <Badge tone={vehicle.ownerType === "Propio" ? "gold" : "blue"}>{vehicle.ownerType}</Badge>
                       {vehicle.entryType && <Badge tone="neutral">{vehicle.entryType}</Badge>}
                       {vehicle.alert && <Badge tone="amber">{vehicle.alert}</Badge>}
+                      {canEdit && (
+                        <Link
+                          href={`/vehiculos/${vehicle.id}/editar`}
+                          className="ml-1 flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:border-zinc-500 hover:text-white"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Editar información
+                        </Link>
+                      )}
                     </div>
                     <CardTitle className="text-2xl">{vehicle.brand} {vehicle.line}</CardTitle>
                     <CardDescription>{vehicle.version} · {vehicle.year} · Placa {vehicle.plate}</CardDescription>
