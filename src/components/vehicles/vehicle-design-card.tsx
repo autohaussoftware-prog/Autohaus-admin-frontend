@@ -111,7 +111,6 @@ async function renderToCanvas(
 
   const settled = await Promise.allSettled([
     photoUrl ? photoImg(photoUrl) : Promise.reject(),
-    photoImg("/logo-ah.jpeg"),
     svgImg("speed"),
     svgImg("gear"),
     svgImg("engine"),
@@ -122,122 +121,137 @@ async function renderToCanvas(
     settled[i].status === "fulfilled"
       ? (settled[i] as PromiseFulfilledResult<HTMLImageElement>).value
       : null;
-  const [carImg, logoImg, iSpeed, iGear, iEngine, iTraction, iFuel] =
-    [get(0), get(1), get(2), get(3), get(4), get(5), get(6)];
+  const [carImg, iSpeed, iGear, iEngine, iTraction, iFuel] =
+    [get(0), get(1), get(2), get(3), get(4), get(5)];
 
-  // Diagonal: rises from lower-left to upper-right (/)
-  const diagLY = Math.round(H * 0.607); // left edge
-  const diagRY = Math.round(H * 0.562); // right edge
-  const bandH  = 22;
+  // SVG template coordinate system: viewBox 810×1012.5, canvas W×H
+  // All positions derived from SVG element analysis (× scaleX or scaleY)
+  const scaleX = W / 810;
+  const scaleY = H / 1012.5;
+
+  // Photo area ends at SVG y=471 (rectangular clip, per clipPath analysis)
+  const photoEndY = Math.round(471 * scaleY);  // 628px for post
+  // Info panel starts at SVG y=534 (rectangular clip)
+  const panelY    = Math.round(534 * scaleY);  // 712px for post
+  // Diagonal accent band height
+  const bandH     = Math.round(20 * scaleY);
+
+  // Left text margin: SVG x=141 (from brand name group translate)
+  const lX     = Math.round(141 * scaleX);     // 188px
+  // Right column x: SVG x=567 (from plate badge group translate)
+  const colRX  = Math.round(567 * scaleX);     // 756px
+
+  // Absolute canvas y for text elements (from SVG glyph translate analysis)
+  const brandAbsY  = Math.round(757 * scaleY); // 1009px — brand name baseline
+  const subAbsY    = Math.round(849 * scaleY); // 1132px — subtitle baseline
+  const spec1AbsY  = Math.round(898 * scaleY); // 1197px — spec row 1 baseline
+  const spec2AbsY  = Math.round(935 * scaleY); // 1246px — spec row 2 baseline
+  const plateAbsX  = Math.round(567 * scaleX); // 756px  — plate badge left
+  const plateAbsY  = Math.round(815 * scaleY); // 1086px — plate badge top
+  const tecnoAbsY  = Math.round(904 * scaleY); // 1205px — TECNO label baseline
 
   /* 1 — Dark base */
   ctx.fillStyle = T.panelBg;
   ctx.fillRect(0, 0, W, H);
 
-  /* 2 — Photo area clipped to diagonal trapezoid */
+  /* 2 — Photo area (horizontal clip to SVG photo zone) */
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(W, 0);
-  ctx.lineTo(W, diagRY - bandH);
-  ctx.lineTo(0, diagLY - bandH);
-  ctx.closePath();
+  ctx.rect(0, 0, W, photoEndY);
   ctx.clip();
-
   if (carImg) {
-    coverDraw(ctx, carImg, 0, 0, W, diagLY);
-    const gOver = ctx.createLinearGradient(0, 0, 0, H * 0.28);
-    gOver.addColorStop(0, "rgba(0,0,0,0.52)");
+    coverDraw(ctx, carImg, 0, 0, W, photoEndY);
+    const gOver = ctx.createLinearGradient(0, 0, 0, H * 0.22);
+    gOver.addColorStop(0, "rgba(0,0,0,0.55)");
     gOver.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = gOver;
-    ctx.fillRect(0, 0, W, H * 0.28);
+    ctx.fillRect(0, 0, W, H * 0.22);
   } else {
-    const gTop = ctx.createLinearGradient(0, 0, 0, diagLY);
-    gTop.addColorStop(0,    "#909090");
-    gTop.addColorStop(0.22, "#c8c8c8");
-    gTop.addColorStop(0.55, "#ffffff");
-    gTop.addColorStop(1,    "#f0f0f0");
+    const gTop = ctx.createLinearGradient(0, 0, 0, photoEndY);
+    gTop.addColorStop(0,    "#707070");
+    gTop.addColorStop(0.35, "#c8c8c8");
+    gTop.addColorStop(0.65, "#ffffff");
+    gTop.addColorStop(1,    "#efefef");
     ctx.fillStyle = gTop;
-    ctx.fillRect(0, 0, W, diagLY);
+    ctx.fillRect(0, 0, W, photoEndY);
   }
   ctx.restore();
 
-  /* 3 — AH logo (screen blend) */
-  if (logoImg) {
-    const sz = 108;
-    ctx.save();
-    ctx.globalCompositeOperation = "screen";
-    ctx.drawImage(logoImg, (W - sz) / 2, 52, sz, sz);
-    ctx.restore();
-  }
-
-  /* 4 — @autohausmed */
+  /* 3 — @autohausmed (SVG group at x=293, y=173 → canvas x=391, y=231) */
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)";
   ctx.shadowBlur  = 20;
   ctx.fillStyle   = "rgba(255,255,255,0.95)";
-  ctx.font        = "600 38px Inter, sans-serif";
+  ctx.font        = `600 ${Math.round(34 * scaleY)}px Inter, sans-serif`;
   ctx.textAlign   = "center";
-  ctx.fillText("@autohausmed", W / 2, 192);
+  ctx.fillText("@autohausmed", W / 2, Math.round(210 * scaleY));
   ctx.restore();
 
-  /* 5 — Diagonal accent band */
+  /* 4 — Info panel solid background (covers transition zone + panel area) */
+  ctx.fillStyle = T.panelBg;
+  ctx.fillRect(0, panelY, W, H - panelY);
+
+  /* 5 — Diagonal accent band (lower-left → upper-right across transition zone)
+         Left edge:  y=panelY (712)   to y=panelY-bandH (692)
+         Right edge: y=photoEndY (628) to y=photoEndY-bandH (608)           */
   ctx.save();
   ctx.fillStyle = T.accent;
   ctx.beginPath();
-  ctx.moveTo(0, diagLY - bandH);
-  ctx.lineTo(W, diagRY - bandH);
-  ctx.lineTo(W, diagRY);
-  ctx.lineTo(0, diagLY);
+  ctx.moveTo(0, panelY - bandH);        // upper-left
+  ctx.lineTo(W, photoEndY - bandH);     // upper-right
+  ctx.lineTo(W, photoEndY);             // lower-right
+  ctx.lineTo(0, panelY);                // lower-left
   ctx.closePath();
   ctx.fill();
   ctx.restore();
 
-  /* 6 — Info panel text */
-  const pY    = diagLY;
-  const lX    = 52;
-  const colRX = Math.round(W * 0.665);
-
+  /* 6 — Info panel content */
   const lastDigit   = v.plate.replace(/\D/g, "").at(-1) ?? "—";
   const techno      = v.technoDue?.trim() || "N/A";
   const subtitleTxt = [v.line, v.version?.trim()].filter(Boolean).join(" ");
 
-  // Brand name (large, bold)
+  // Brand name — SVG x=141, y=757
   const brandText = v.brand.toUpperCase();
-  const brandFs   = brandText.length > 9 ? 86 : brandText.length > 7 ? 102 : 118;
+  const brandFs   = Math.round(
+    (brandText.length > 9 ? 72 : brandText.length > 7 ? 88 : 104) * scaleY
+  );
   ctx.textAlign = "left";
   ctx.fillStyle = "#ffffff";
   ctx.font      = `900 ${brandFs}px Inter, sans-serif`;
-  ctx.fillText(brandText, lX, pY + 88);
+  ctx.fillText(brandText, lX, brandAbsY);
 
-  // Subtitle: line + version (gray) + year (accent)
-  ctx.font = "36px Inter, sans-serif";
+  // Subtitle: line + version (gray) + year (accent) — SVG y=849
+  const subFs = Math.round(30 * scaleY);
+  ctx.font = `${subFs}px Inter, sans-serif`;
   let subX = lX;
   if (subtitleTxt) {
     ctx.fillStyle = "#888888";
-    ctx.fillText(subtitleTxt, lX, pY + 130);
+    ctx.fillText(subtitleTxt, lX, subAbsY);
     subX = lX + ctx.measureText(subtitleTxt + " ").width;
   }
   ctx.fillStyle = T.accent;
-  ctx.fillText(String(v.year), subX, pY + 130);
+  ctx.fillText(String(v.year), subX, subAbsY);
 
-  // Horizontal divider (left portion)
+  // Horizontal divider (left portion only)
   ctx.strokeStyle = T.divider;
   ctx.lineWidth   = 1;
   ctx.beginPath();
-  ctx.moveTo(lX, pY + 152);
-  ctx.lineTo(W * 0.61, pY + 152);
+  ctx.moveTo(lX, subAbsY + Math.round(18 * scaleY));
+  ctx.lineTo(W * 0.61, subAbsY + Math.round(18 * scaleY));
   ctx.stroke();
 
-  // Spec helpers
+  // Spec helpers — scaled icon + text
+  const iconSz = Math.round(24 * scaleY);
+  const specFs = `bold ${Math.round(22 * scaleY)}px Inter, sans-serif`;
+  const pipeFs = `${Math.round(22 * scaleY)}px Inter, sans-serif`;
+
   function specUnit(icon: HTMLImageElement | null, text: string, x: number, y: number): number {
-    const IS = 30;
     if (icon) {
-      ctx.drawImage(icon, x, y - IS + 5, IS, IS);
-      x += IS + 7;
+      ctx.drawImage(icon, x, y - iconSz + 3, iconSz, iconSz);
+      x += iconSz + 6;
     }
     ctx.fillStyle = T.specText;
-    ctx.font      = "bold 26px Inter, sans-serif";
+    ctx.font      = specFs;
     ctx.textAlign = "left";
     ctx.fillText(text.toUpperCase(), x, y);
     return x + ctx.measureText(text.toUpperCase()).width;
@@ -245,82 +259,82 @@ async function renderToCanvas(
 
   function pipe(x: number, y: number): number {
     ctx.fillStyle = "#333333";
-    ctx.font      = "26px Inter, sans-serif";
+    ctx.font      = pipeFs;
     ctx.textAlign = "left";
-    ctx.fillText("|", x + 9, y);
-    return x + 34;
+    ctx.fillText("|", x + Math.round(8 * scaleX), y);
+    return x + Math.round(28 * scaleX);
   }
 
-  // Row 1: KM | Transmission | Motor
-  const ROW1 = pY + 203;
+  // Row 1: KM | Transmission | Motor  — SVG y=898
   let x = lX;
-  x = specUnit(iSpeed, v.mileage.toLocaleString("es-CO") + " KM", x, ROW1);
-  x = pipe(x, ROW1);
-  x = specUnit(iGear, v.transmission, x, ROW1);
+  x = specUnit(iSpeed, v.mileage.toLocaleString("es-CO") + " KM", x, spec1AbsY);
+  x = pipe(x, spec1AbsY);
+  x = specUnit(iGear, v.transmission, x, spec1AbsY);
   if (v.motor) {
-    x = pipe(x, ROW1);
-    specUnit(iEngine, v.motor, x, ROW1);
+    x = pipe(x, spec1AbsY);
+    specUnit(iEngine, v.motor, x, spec1AbsY);
   }
 
-  // Row 2: Traction | Fuel
-  const ROW2 = pY + 254;
+  // Row 2: Traction | Fuel  — SVG y=935
   x = lX;
   if (v.traction) {
-    x = specUnit(iTraction, v.traction, x, ROW2);
-    x = pipe(x, ROW2);
+    x = specUnit(iTraction, v.traction, x, spec2AbsY);
+    x = pipe(x, spec2AbsY);
   }
-  specUnit(iFuel, v.fuel, x, ROW2);
+  specUnit(iFuel, v.fuel, x, spec2AbsY);
 
-  /* Right column — plate badge */
-  const plateBY = pY + 93;
-  const plateBW = 74;
-  const plateBH = 36;
+  /* Right column — plate badge  (SVG x=567, y=836) */
+  const plateBW = Math.round(72 * scaleX);
+  const plateBH = Math.round(32 * scaleY);
 
   ctx.fillStyle = T.plateBg;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(colRX, plateBY, plateBW, plateBH, 5);
-  else ctx.rect(colRX, plateBY, plateBW, plateBH);
+  if (ctx.roundRect) ctx.roundRect(plateAbsX, plateAbsY, plateBW, plateBH, 4);
+  else ctx.rect(plateAbsX, plateAbsY, plateBW, plateBH);
   ctx.fill();
   ctx.strokeStyle = T.plateBorder;
   ctx.lineWidth   = 1.5;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(colRX + 2, plateBY + 2, plateBW - 4, plateBH - 4, 3);
-  else ctx.rect(colRX + 2, plateBY + 2, plateBW - 4, plateBH - 4);
+  if (ctx.roundRect) ctx.roundRect(plateAbsX + 2, plateAbsY + 2, plateBW - 4, plateBH - 4, 2);
+  else ctx.rect(plateAbsX + 2, plateAbsY + 2, plateBW - 4, plateBH - 4);
   ctx.stroke();
   ctx.fillStyle = T.plateText;
-  ctx.font      = "bold 15px monospace";
+  ctx.font      = `bold ${Math.round(12 * scaleY)}px monospace`;
   ctx.textAlign = "center";
-  ctx.fillText("ABC-123", colRX + plateBW / 2, plateBY + plateBH * 0.7);
+  ctx.fillText(v.plate.toUpperCase(), plateAbsX + plateBW / 2, plateAbsY + plateBH * 0.72);
 
-  // Digit + city
-  const afterPlateX = colRX + plateBW + 14;
+  // Last digit + city (right of plate badge)
+  const afterPlateX = plateAbsX + plateBW + Math.round(12 * scaleX);
+  const digitFs = Math.round(26 * scaleY);
   ctx.textAlign = "left";
   ctx.fillStyle = T.accent;
-  ctx.font      = "bold 30px Inter, sans-serif";
-  ctx.fillText(lastDigit, afterPlateX, plateBY + 27);
+  ctx.font      = `bold ${digitFs}px Inter, sans-serif`;
+  ctx.fillText(lastDigit, afterPlateX, plateAbsY + plateBH * 0.82);
   const dw = ctx.measureText(lastDigit).width;
   ctx.fillStyle = "#ababab";
-  ctx.font      = "28px Inter, sans-serif";
-  ctx.fillText(" | " + v.cityRegistration.toUpperCase(), afterPlateX + dw, plateBY + 27);
+  ctx.font      = `${Math.round(22 * scaleY)}px Inter, sans-serif`;
+  ctx.fillText(" | " + v.cityRegistration.toUpperCase(), afterPlateX + dw, plateAbsY + plateBH * 0.82);
 
-  // TECNO + SOAT
+  // TECNO + SOAT  — SVG y=904
+  const infoFs = Math.round(22 * scaleY);
   ctx.textAlign = "left";
-  ctx.font      = "26px Inter, sans-serif";
+  ctx.font      = `${infoFs}px Inter, sans-serif`;
   ctx.fillStyle = "#555555";
-  ctx.fillText("TECNO: ", colRX, pY + 162);
+  ctx.fillText("TECNO: ", colRX, tecnoAbsY);
   ctx.fillStyle = "#b8b8b8";
-  ctx.fillText(techno, colRX + ctx.measureText("TECNO: ").width, pY + 162);
+  ctx.fillText(techno, colRX + ctx.measureText("TECNO: ").width, tecnoAbsY);
+  const soatY = tecnoAbsY + Math.round(36 * scaleY);
   ctx.fillStyle = "#555555";
-  ctx.fillText("SOAT: ", colRX, pY + 196);
+  ctx.fillText("SOAT: ", colRX, soatY);
   ctx.fillStyle = "#b8b8b8";
-  ctx.fillText(v.soatDue || "—", colRX + ctx.measureText("SOAT: ").width, pY + 196);
+  ctx.fillText(v.soatDue || "—", colRX + ctx.measureText("SOAT: ").width, soatY);
 
-  /* Price badge */
+  /* Price badge (near bottom of canvas) */
   const priceText = "$" + v.targetPrice.toLocaleString("es-CO");
-  const priceFs   = priceText.length > 14 ? 52 : 64;
-  const badgeH    = 90;
-  const badgeY    = H - 132;
-  const hPad      = 44;
+  const priceFs   = Math.round((priceText.length > 14 ? 44 : 54) * scaleY);
+  const badgeH    = Math.round(80 * scaleY);
+  const badgeY    = H - Math.round(112 * scaleY);
+  const hPad      = Math.round(44 * scaleX);
 
   const priceGrd = ctx.createLinearGradient(hPad, 0, W - hPad, 0);
   priceGrd.addColorStop(0,   T.accentDark);
@@ -329,7 +343,7 @@ async function renderToCanvas(
   priceGrd.addColorStop(1,   T.accentDark);
   ctx.fillStyle = priceGrd;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(hPad, badgeY, W - hPad * 2, badgeH, 16);
+  if (ctx.roundRect) ctx.roundRect(hPad, badgeY, W - hPad * 2, badgeH, 14);
   else ctx.rect(hPad, badgeY, W - hPad * 2, badgeH);
   ctx.fill();
 
@@ -366,35 +380,35 @@ function DesignPreview({
       )}
       style={{ background: T.panelBg }}
     >
-      {/* Photo area — top ~61% */}
-      <div className="absolute inset-x-0 top-0" style={{ height: "61%" }}>
+      {/* Photo area — top 46.5% (SVG clip y=0-471 / 1012.5 = 46.5%) */}
+      <div className="absolute inset-x-0 top-0" style={{ height: "46.5%" }}>
         {photoUrl
           ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
-          : <div className="h-full w-full bg-gradient-to-b from-[#909090] via-[#d8d8d8] to-white" />
+          : <div className="h-full w-full bg-gradient-to-b from-[#707070] via-[#c8c8c8] to-white" />
         }
-        <div className="absolute inset-x-0 top-0 h-[38%] bg-gradient-to-b from-black/50 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-[38%] bg-gradient-to-b from-black/55 to-transparent" />
       </div>
 
-      {/* Logo + @autohausmed */}
-      <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 flex-col items-center gap-0.5">
-        <img src="/logo-ah.jpeg" alt="AH" className="h-9 w-9 object-cover [mix-blend-mode:screen]" />
+      {/* @autohausmed (SVG y=173/1012.5=17.1% of height) */}
+      <div className="absolute inset-x-0 top-[17%] z-10 flex justify-center">
         <p className="text-[9px] font-semibold text-white [text-shadow:0_1px_8px_rgba(0,0,0,1)]">@autohausmed</p>
       </div>
 
-      {/* Diagonal accent band — extends past card edges so rotation doesn't gap */}
+      {/* Diagonal accent band — top: 52.7%−bandH, bottom-left: 52.7%, bottom-right: 46.5% */}
       <div
-        className="absolute z-10"
+        className="absolute z-10 w-[116%]"
         style={{
-          left: "-8%", right: "-8%",
-          top: "59.5%", height: "2%",
+          left: "-8%",
+          top: "50%",
+          height: "2%",
           backgroundColor: T.accent,
-          transform: "rotate(-2.4deg)",
-          transformOrigin: "0% center",
+          transform: "rotate(-3.8deg)",
+          transformOrigin: "0% 100%",
         }}
       />
 
-      {/* Info panel */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col" style={{ top: "62%" }}>
+      {/* Info panel — starts at 52.7% (SVG y=534/1012.5) */}
+      <div className="absolute inset-x-0 bottom-0 flex flex-col" style={{ top: "52.7%" }}>
         <div className="flex flex-1 gap-1 px-3 pt-2">
 
           {/* Left column */}
@@ -425,7 +439,7 @@ function DesignPreview({
                 className="rounded px-1 py-0.5 font-mono text-[6px] font-bold"
                 style={{ background: T.plateBg, color: T.plateText }}
               >
-                ABC-123
+                {v.plate.toUpperCase()}
               </span>
               <span className="text-[10px] font-bold" style={{ color: T.accent }}>{lastDigit}</span>
               <span className="text-[8px] text-zinc-400">| {v.cityRegistration.slice(0, 8).toUpperCase()}</span>
