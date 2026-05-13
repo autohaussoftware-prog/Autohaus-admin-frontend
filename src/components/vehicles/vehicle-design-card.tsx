@@ -213,12 +213,11 @@ async function renderToCanvas(
   /* 6 — Info panel content */
   const lastDigit   = v.plate.replace(/\D/g, "").at(-1) ?? "—";
   const techno      = v.technoDue?.trim() || "N/A";
-  // Header: line + version (model identifier)
-  // Subtitle: brand (gray) + year (accent)
-  const headerTxt  = [v.line, v.version?.trim()].filter(Boolean).join(" ");
-  const headerText = (headerTxt || v.brand).toUpperCase();
+  // Header: brand + line (e.g., "FORD F150", "HONDA")
+  // Subtitle: version (gray) + year (gold)
+  const headerText = [v.brand, v.line].filter(Boolean).join(" ").toUpperCase();
 
-  // Brand / model name — large bold white
+  // Model name — large bold white
   const headerFs = Math.round(
     (headerText.length > 12 ? 62 : headerText.length > 9 ? 74 : headerText.length > 7 ? 84 : 96) * (H / 1350)
   );
@@ -227,14 +226,14 @@ async function renderToCanvas(
   ctx.font      = `900 ${headerFs}px Inter, sans-serif`;
   ctx.fillText(headerText, lX, brandAbsY);
 
-  // Subtitle: brand (gray) + year (accent gold)
+  // Subtitle: version (gray) + year (accent gold)
   const subFs = Math.round(34 * (H / 1350));
   ctx.font = `600 ${subFs}px Inter, sans-serif`;
+  const versionLabel = v.version?.trim() ? v.version.trim() + " " : "";
   ctx.fillStyle = "#888888";
-  const brandLabel = v.brand.toUpperCase() + " ";
-  ctx.fillText(brandLabel, lX, subAbsY);
+  ctx.fillText(versionLabel, lX, subAbsY);
   ctx.fillStyle = T.accent;
-  ctx.fillText(String(v.year), lX + ctx.measureText(brandLabel).width, subAbsY);
+  ctx.fillText(String(v.year), lX + ctx.measureText(versionLabel).width, subAbsY);
 
   // Horizontal divider
   ctx.strokeStyle = T.divider;
@@ -263,22 +262,27 @@ async function renderToCanvas(
   }
 
   function pipe(x: number, y: number): number {
-    ctx.fillStyle = T.accent;
+    ctx.fillStyle = "#888888";
     ctx.font      = pipeFsStr;
     ctx.textAlign = "left";
-    ctx.fillText("/", x + 8, y);
+    ctx.fillText(" | ", x + 2, y);
     return x + pipeGap;
   }
 
-  // Row 1: KM | Transmission | Motor
+  // Row 1: KM | Transmission | Motor  /
   let x = lX;
   x = specUnit(iSpeed, v.mileage.toLocaleString("es-CO") + " KM", x, spec1AbsY);
   x = pipe(x, spec1AbsY);
   x = specUnit(iGear, v.transmission, x, spec1AbsY);
   if (v.motor) {
     x = pipe(x, spec1AbsY);
-    specUnit(iEngine, v.motor, x, spec1AbsY);
+    x = specUnit(iEngine, v.motor, x, spec1AbsY);
   }
+  // Decorative gold slash at end of row 1
+  ctx.fillStyle = T.accent;
+  ctx.font      = `bold ${Math.round(22 * (H / 1350))}px Inter, sans-serif`;
+  ctx.textAlign = "left";
+  ctx.fillText(" /", x, spec1AbsY);
 
   // Row 2: Traction | Fuel
   x = lX;
@@ -375,8 +379,7 @@ function DesignPreview({
   const lastDigit  = v.plate.replace(/\D/g, "").at(-1) ?? "—";
   const techno     = v.technoDue?.trim() || "N/A";
   const priceText  = "$" + v.targetPrice.toLocaleString("es-CO");
-  const headerTxt  = [v.line, v.version?.trim()].filter(Boolean).join(" ");
-  const headerText = (headerTxt || v.brand).toUpperCase();
+  const headerText = [v.brand, v.line].filter(Boolean).join(" ").toUpperCase();
 
   return (
     <div
@@ -423,19 +426,20 @@ function DesignPreview({
               {headerText}
             </p>
             <p className="mt-0.5 text-[8px] leading-none">
-              <span className="text-zinc-500">{v.brand.toUpperCase()} </span>
+              {v.version?.trim() && <span className="text-zinc-500">{v.version.trim()} </span>}
               <span style={{ color: T.accent }}>{v.year}</span>
             </p>
             <div className="my-1 h-px" style={{ width: "62%", background: T.divider }} />
             <div className="space-y-0.5 text-[7.5px] leading-none text-zinc-400">
               <p className="truncate">
                 ⊙ {v.mileage.toLocaleString("es-CO")} KM
-                <span style={{ color: T.accent }}>&nbsp;/&nbsp;</span>
+                <span className="text-zinc-500">&nbsp;|&nbsp;</span>
                 ⚙ {v.transmission}
-                {v.motor ? <><span style={{ color: T.accent }}>&nbsp;/&nbsp;</span>▣ {v.motor}</> : null}
+                {v.motor ? <><span className="text-zinc-500">&nbsp;|&nbsp;</span>▣ {v.motor}</> : null}
+                <span style={{ color: T.accent }}>&nbsp;/</span>
               </p>
               <p className="truncate">
-                {v.traction ? <>✦ {v.traction}<span style={{ color: T.accent }}>&nbsp;/&nbsp;</span></> : null}
+                {v.traction ? <>✦ {v.traction}<span className="text-zinc-500">&nbsp;|&nbsp;</span></> : null}
                 ⛽ {v.fuel}
               </p>
             </div>
