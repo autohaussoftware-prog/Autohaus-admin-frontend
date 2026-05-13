@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient, getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
+import { deleteVehicle } from "@/lib/data/vehicles";
 
 export async function updateVehiclePriceAction(
   vehicleId: string,
@@ -66,4 +68,36 @@ export async function updateVehiclePriceAction(
   revalidatePath("/vehiculos");
   revalidatePath("/");
   return { error: null, attempt: next };
+}
+
+export async function deleteVehicleAction(
+  vehicleId: string,
+  reason?: string
+): Promise<{ error?: string }> {
+  const { id: userId, name, role } = await getCurrentUserProfile();
+
+  // Permissions: admin roles OR the creator
+  const canByRole = ["owner", "partner", "admin", "gerente"].includes(role);
+  if (!canByRole) {
+    const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+    if (!supabase) return { error: "Sin conexión." };
+    const { data: v } = await supabase
+      .from("vehicles")
+      .select("created_by_user_id")
+      .eq("id", vehicleId)
+      .single();
+    if (!v || v.created_by_user_id !== userId) {
+      return { error: "Sin permisos para eliminar este vehículo." };
+    }
+  }
+
+  try {
+    await deleteVehicle(vehicleId, name, reason);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "No se pudo eliminar el vehículo." };
+  }
+
+  revalidatePath("/vehiculos");
+  revalidatePath("/");
+  redirect("/vehiculos");
 }

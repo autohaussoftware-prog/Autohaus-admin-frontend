@@ -195,7 +195,11 @@ export async function getVehicles(viewer?: { userId: string; role: string }) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return mockVehicles;
 
-  const { data, error } = await supabase.from("vehicles").select("*").order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select("*")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
   if (error || !data) {
     console.error("No se pudieron cargar vehículos desde Supabase:", error?.message);
     return mockVehicles;
@@ -209,7 +213,7 @@ export async function getVehicleById(id: string, viewer?: { userId: string; role
   const supabase = await getSupabaseServerClient();
   if (!supabase) return mockVehicles.find((vehicle) => vehicle.id === id) ?? null;
 
-  const { data, error } = await supabase.from("vehicles").select("*").eq("id", id).single();
+  const { data, error } = await supabase.from("vehicles").select("*").eq("id", id).is("deleted_at", null).single();
   if (error || !data) {
     console.error("No se pudo cargar el vehículo desde Supabase:", error?.message);
     return mockVehicles.find((vehicle) => vehicle.id === id) ?? null;
@@ -424,4 +428,60 @@ export async function updateVehicleStatus(vehicleId: string, status: VehicleStat
     new_status: status,
     metadata: { userName: responsible },
   });
+}
+
+// Requires columns in Supabase:
+// ALTER TABLE vehicles
+//   ADD COLUMN IF NOT EXISTS deleted_at   TIMESTAMPTZ DEFAULT NULL,
+//   ADD COLUMN IF NOT EXISTS deleted_by   TEXT        DEFAULT NULL,
+//   ADD COLUMN IF NOT EXISTS delete_reason TEXT       DEFAULT NULL;
+export async function deleteVehicle(
+  vehicleId: string,
+  deletedBy: string,
+  reason?: string
+): Promise<{ softDeleted: boolean }> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  // Check related records (active sales, finance movements)
+  const [salesRes, movementsRes] = await Promise.all([
+    supabase
+      .from("sales")
+      .select("id", { count: "exact", head: true })
+      .eq("vehicle_id", vehicleId)
+      .neq("status", "Cancelado"),
+    supabase
+      .from("finance_movements")
+      .select("id", { count: "exact", head: true })
+      .eq("vehicle_id", vehicleId)
+      .is("deleted_at", null),
+  ]);
+
+  const hasRelated = (salesRes.count ?? 0) > 0 || (movementsRes.count ?? 0) > 0;
+
+  if (hasRelated) {
+    // Soft delete: keep record but hide it
+    const { error } = await supabase
+      .from("vehicles")
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: deletedBy,
+        delete_reason: reason?.trim() || null,
+      })
+      .eq("id", vehicleId);
+    if (error) throw new Error(error.message ?? "No se pudo eliminar el vehículo.");
+    return { softDeleted: true };
+  } else {
+    // No related records → soft delete anyway for auditability
+    const { error } = await supabase
+      .from("vehicles")
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: deletedBy,
+        delete_reason: reason?.trim() || null,
+      })
+      .eq("id", vehicleId);
+    if (error) throw new Error(error.message ?? "No se pudo eliminar el vehículo.");
+    return { softDeleted: false };
+  }
 }

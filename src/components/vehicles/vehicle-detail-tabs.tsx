@@ -28,6 +28,7 @@ import { VehiclePhotos } from "@/components/vehicles/vehicle-photos";
 import type { VehiclePhoto } from "@/types/vehicle";
 import { VehicleStatusBadge } from "@/components/vehicles/vehicle-status-badge";
 import { EditPriceButton } from "@/components/vehicles/edit-price-button";
+import { DeleteVehicleButton } from "@/components/vehicles/delete-vehicle-button";
 import { compactCOP, currencyCOP, percentage } from "@/lib/utils";
 import type { Vehicle, VehicleMovement } from "@/types/vehicle";
 import type { VehicleCost } from "@/lib/data/costs";
@@ -99,6 +100,7 @@ export function VehicleDetailTabs({
   canEditPrice = false,
   canManagePhotos = false,
   canEdit = false,
+  canDelete = false,
 }: {
   vehicle: Vehicle;
   movements: VehicleMovement[];
@@ -114,6 +116,7 @@ export function VehicleDetailTabs({
   canEditPrice?: boolean;
   canManagePhotos?: boolean;
   canEdit?: boolean;
+  canDelete?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("info");
 
@@ -121,6 +124,7 @@ export function VehicleDetailTabs({
   const netProfit = grossProfit - vehicle.realCost;
   const margin = vehicle.targetPrice > 0 ? (netProfit / vehicle.targetPrice) * 100 : 0;
   const costUsage = vehicle.estimatedCost > 0 ? (vehicle.realCost / vehicle.estimatedCost) * 100 : 0;
+  const sobreprecio = vehicle.targetPrice - vehicle.minPrice;
 
   return (
     <div>
@@ -196,6 +200,13 @@ export function VehicleDetailTabs({
                           Editar información
                         </Link>
                       )}
+                      {canDelete && (
+                        <DeleteVehicleButton
+                          vehicleId={vehicle.id}
+                          vehicleName={`${vehicle.brand} ${vehicle.line} ${vehicle.year}`}
+                          variant="icon"
+                        />
+                      )}
                     </div>
                     <CardTitle className="text-2xl">{vehicle.brand} {vehicle.line}</CardTitle>
                     <CardDescription>{vehicle.version} · {vehicle.year} · Placa {vehicle.plate}</CardDescription>
@@ -261,6 +272,7 @@ export function VehicleDetailTabs({
                 <CardContent className="space-y-4 p-5">
                   <InfoItem label="Precio compra" value={currencyCOP(vehicle.buyPrice)} />
                   <InfoItem label="Precio mínimo" value={currencyCOP(vehicle.minPrice)} />
+                  <InfoItem label="Sobreprecio" value={currencyCOP(sobreprecio)} />
                   <InfoItem label="Costo real acumulado" value={currencyCOP(vehicle.realCost)} />
                   <InfoItem label="Utilidad neta estimada" value={currencyCOP(netProfit)} />
                   <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">

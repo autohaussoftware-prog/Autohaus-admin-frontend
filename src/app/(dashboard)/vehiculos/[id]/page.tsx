@@ -30,6 +30,9 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   const canEditPrice =
     ["owner", "partner", "admin", "gerente"].includes(role) ||
     (vehicle.createdByUserId !== undefined && vehicle.createdByUserId === profile.id);
+  const canDelete =
+    ["owner", "partner", "admin", "gerente"].includes(role) ||
+    (vehicle.createdByUserId !== undefined && vehicle.createdByUserId === profile.id);
 
   const [movements, costs, legalDocs, photos, investors, expenses] = await Promise.all([
     getVehicleMovementsByVehicleId(vehicle.id),
@@ -70,6 +73,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         canEditPrice={canEditPrice}
         canManagePhotos={canEdit}
       canEdit={canEdit}
+      canDelete={canDelete}
       />
     </>
   );
