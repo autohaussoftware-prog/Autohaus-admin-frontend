@@ -147,22 +147,23 @@ async function renderToCanvas(
   const panelY  = isPost ? 1035 : 1160;  // dark panel start, left edge (px)
   const scale   = H / 1350;              // only used for text sizing/spacing
 
-  const lX    = 54;                          // left text margin
-  const colRX = Math.round(W * 0.600);       // right column — aligns with "/" decorative
+  const lX     = 54;   // spec rows left margin
+  const lXtext = 196;  // header + subtitle left margin (pixel-scanned from reference)
+  const colRX  = 560;  // right column start (pixel-scanned: badge at x=560–626)
 
   const logoSz  = Math.round(H * 0.075);
   const logoTop = handleY - logoSz - Math.round(H * 0.008);
 
-  // Panel text baselines — offsets from panelY, scaled by H/1350
-  const headerY = panelY + Math.round(62  * scale);
-  const subY    = panelY + Math.round(104 * scale);
-  const spec1Y  = panelY + Math.round(152 * scale);
-  const spec2Y  = panelY + Math.round(192 * scale);
+  // Panel text baselines — pixel-scanned from Ford F150 reference (1080×1350)
+  const headerY = panelY + Math.round(49  * scale);  // was 62
+  const subY    = panelY + Math.round(97  * scale);  // was 104
+  const spec1Y  = panelY + Math.round(162 * scale);  // was 152
+  const spec2Y  = panelY + Math.round(225 * scale);  // was 192
 
-  // Right column — plate badge width computed from text
+  // Right column — plate badge
   const plateFontPx = Math.round(13 * scale);
   const plateText   = formatPlate(v.plate);
-  const plateBH     = Math.round(36 * scale);
+  const plateBH     = Math.round(20 * scale);  // badge height (was 36)
 
   // ── Draw ───────────────────────────────────────────────────────────
 
@@ -242,24 +243,24 @@ async function renderToCanvas(
   const techno     = v.technoDue?.trim() || "N/A";
   const headerText = [v.brand, v.line].filter(Boolean).join(" ").toUpperCase();
 
-  // Header: brand + line
+  // Header: brand + line (starts at lXtext=196, pixel-scanned)
   const hLen     = headerText.length;
   const headerFs = Math.round(
-    (hLen > 14 ? 52 : hLen > 11 ? 64 : hLen > 8 ? 76 : 90) * (H / 1350)
+    (hLen > 14 ? 52 : hLen > 11 ? 64 : hLen > 8 ? 68 : 84) * (H / 1350)
   );
   ctx.textAlign = "left";
   ctx.fillStyle = "#ffffff";
   ctx.font      = `900 ${headerFs}px Inter, sans-serif`;
-  ctx.fillText(headerText, lX, headerY);
+  ctx.fillText(headerText, lXtext, headerY);
 
-  // Subtitle: version (gray) + year (accent)
+  // Subtitle: version (gray) + year (accent) — starts at lXtext=196
   const subFs = Math.round(30 * (H / 1350));
   ctx.font = `400 ${subFs}px Inter, sans-serif`;
   const versionLabel = v.version?.trim() ? v.version.trim() + " " : "";
   ctx.fillStyle = "#bbbbbb";
-  ctx.fillText(versionLabel, lX, subY);
+  ctx.fillText(versionLabel, lXtext, subY);
   ctx.fillStyle = T.accent;
-  ctx.fillText(String(v.year), lX + ctx.measureText(versionLabel).width, subY);
+  ctx.fillText(String(v.year), lXtext + ctx.measureText(versionLabel).width, subY);
 
   // Spec helpers
   const specFs    = Math.round(22 * scale);
@@ -306,19 +307,19 @@ async function renderToCanvas(
   specUnit(iFuel, v.fuel, x, spec2Y);
 
   /* ── Right column ────────────────────────────────────────────────── */
-  // Line 1: [ABC-123]  7 | MEDELLÍN  — at header level
-  // Line 2: TECNO: value             — at subtitle level
-  // Line 3: SOAT:  value             — below TECNO
+  // Line 1: [ABC-123]  7 | MEDELLÍN  — at subtitle level (y=subY, badge top=panelY+76)
+  // Line 2: TECNO: value             — at panelY+108
+  // Line 3: SOAT:  value             — at spec1Y
 
   // Measure plate text to size badge exactly
   ctx.font = `bold ${plateFontPx}px monospace`;
   const plateTextW   = ctx.measureText(plateText).width;
-  const hPad         = Math.round(10 * scale);
+  const hPad         = Math.round(8 * scale);
   const plateBW      = plateTextW + hPad * 2;
 
-  // Badge top — align its baseline with the header baseline
-  const plateBadgeTop      = Math.round(headerY - plateBH * 0.82);
-  const plateBadgeBaseline = plateBadgeTop + Math.round(plateBH * 0.72);
+  // Badge positioned at subtitle level (pixel-scanned: badge top y=1111=panelY+76)
+  const plateBadgeTop      = panelY + Math.round(76 * scale);
+  const plateBadgeBaseline = plateBadgeTop + Math.round(14 * scale);
 
   // Draw plate badge (gold rectangle, rounded, inner border)
   const radius = Math.round(6 * scale);
@@ -341,9 +342,9 @@ async function renderToCanvas(
   ctx.fillText(plateText, colRX + plateBW / 2, plateBadgeBaseline);
 
   // Last digit (accent) + " | " + city — to the right of badge, same baseline
-  const afterBadge = colRX + plateBW + Math.round(10 * scale);
-  const digitFs    = Math.round(22 * scale);
-  const infoLineFs = Math.round(18 * scale);
+  const afterBadge = colRX + plateBW + Math.round(8 * scale);
+  const digitFs    = Math.round(20 * scale);
+  const infoLineFs = Math.round(16 * scale);
 
   ctx.textAlign = "left";
   ctx.fillStyle = T.accent;
@@ -360,8 +361,9 @@ async function renderToCanvas(
   ctx.fillStyle = "#cccccc";
   ctx.fillText(v.cityRegistration.toUpperCase(), afterBadge + dw + pw, plateBadgeBaseline);
 
-  // TECNO / SOAT — at subtitle level (below badge line)
-  const infoFs   = Math.round(19 * scale);
+  // TECNO — at panelY+108 (pixel-scanned); SOAT — at spec1Y
+  const tecnoY = panelY + Math.round(108 * scale);
+  const infoFs = Math.round(18 * scale);
   const labelFont = `400 ${infoFs}px Inter, sans-serif`;
   const valueFont = `500 ${infoFs}px Inter, sans-serif`;
   ctx.textAlign  = "left";
@@ -371,18 +373,17 @@ async function renderToCanvas(
   const soatLabelW  = ctx.measureText("SOAT:  ").width;
 
   ctx.fillStyle = "#585858";
-  ctx.fillText("TECNO: ", colRX, subY);
+  ctx.fillText("TECNO: ", colRX, tecnoY);
   ctx.font      = valueFont;
   ctx.fillStyle = "#cccccc";
-  ctx.fillText(techno, colRX + tecnoLabelW, subY);
+  ctx.fillText(techno, colRX + tecnoLabelW, tecnoY);
 
-  const soatInfoY = subY + Math.round(30 * scale);
   ctx.font      = labelFont;
   ctx.fillStyle = "#585858";
-  ctx.fillText("SOAT:  ", colRX, soatInfoY);
+  ctx.fillText("SOAT:  ", colRX, spec1Y);
   ctx.font      = valueFont;
   ctx.fillStyle = "#cccccc";
-  ctx.fillText(v.soatDue || "—", colRX + soatLabelW, soatInfoY);
+  ctx.fillText(v.soatDue || "—", colRX + soatLabelW, spec1Y);
 
   /* 7 — Price text (story only — template already has the gold pill shape)
      Pill measured from template: y=1642–1778, center y=1710, x=137–964 */
@@ -467,25 +468,29 @@ function DesignPreview({
       </div>
 
       {/* z=10 — Panel text */}
+      {/* Header + subtitle: left-margin mirrors lXtext=196 (≈18.1% of 1080) */}
       <div
-        className="absolute inset-x-0 px-[5%]"
-        style={{ top: `${diagL}%`, zIndex: 10 }}
+        className="absolute"
+        style={{ top: `${diagL}%`, left: "18.1%", right: "5%", zIndex: 10 }}
       >
-        {/* Header */}
-        <p className="truncate text-[11px] font-black uppercase leading-tight text-white mt-[4%]">
+        <p className="truncate text-[11px] font-black uppercase leading-tight text-white mt-[3.6%]">
           {headerText}
         </p>
-
-        {/* Subtitle */}
         <p className="mt-[1%] text-[7px] leading-none">
           {v.version?.trim() && <span className="text-zinc-400">{v.version.trim()} </span>}
           <span style={{ color: T.accent }}>{v.year}</span>
         </p>
+      </div>
 
-        {/* Two-column layout */}
-        <div className="mt-[1%] flex gap-1">
-          {/* Left specs — 61% of inner width (colRX=60% of W, 5% padding each side) */}
-          <div className="min-w-0 space-y-[2%] text-[6px] leading-snug text-zinc-400" style={{ width: "61%" }}>
+      {/* Spec rows: left-margin mirrors lX=54 (≈5% of 1080) */}
+      <div
+        className="absolute"
+        style={{ top: `${diagL + (isPost ? 11.9 : 8.4)}%`, left: "5%", right: "5%", zIndex: 10 }}
+      >
+        {/* Two-column: left specs | right plate+TECNO+SOAT */}
+        <div className="flex gap-1">
+          {/* Left specs — colRX=560 ≈ 51.9% of W; subtract 5% left margin → ~47% of container */}
+          <div className="min-w-0 space-y-[3%] text-[6px] leading-snug text-zinc-400" style={{ width: "47%" }}>
             <p className="truncate">
               {v.mileage.toLocaleString("es-CO")} KM
               <span className="text-zinc-600"> | </span>{v.transmission}
@@ -497,12 +502,12 @@ function DesignPreview({
             </p>
           </div>
 
-          {/* Right: [ABC-123] digit | city on ONE line, TECNO/SOAT below */}
-          <div className="min-w-0 flex-1 text-[5.5px]">
-            {/* Line 1: plate badge + digit + city */}
-            <div className="flex items-center gap-[3px]">
+          {/* Right column: badge+digit+city, then TECNO, then SOAT */}
+          <div className="min-w-0 flex-1">
+            {/* Badge row — at subtitle level (badge occupies same vertical space as subtitle) */}
+            <div className="flex items-center gap-[3px] text-[5.5px]" style={{ marginTop: "-7%" }}>
               <span
-                className="shrink-0 rounded-[2px] border px-[3px] py-[1px] font-mono text-[4.5px] font-bold leading-none"
+                className="shrink-0 rounded-[2px] border px-[3px] py-[0.5px] font-mono text-[4.5px] font-bold leading-none"
                 style={{ background: T.plateBg, color: T.plateText, borderColor: T.plateBorder }}
               >
                 {plateLabel}
@@ -511,9 +516,12 @@ function DesignPreview({
               <span className="shrink-0 text-zinc-600">|</span>
               <span className="truncate text-zinc-300">{v.cityRegistration.slice(0, 9).toUpperCase()}</span>
             </div>
-            {/* Lines 2-3: TECNO / SOAT */}
-            <div className="mt-[4%] leading-snug text-[5px] text-zinc-500">
+            {/* TECNO — between subtitle and spec1 */}
+            <div className="mt-[5%] text-[5px] leading-snug text-zinc-500">
               <p>TECNO: <span className="text-zinc-300">{techno}</span></p>
+            </div>
+            {/* SOAT — at spec1 level */}
+            <div className="mt-[5%] text-[5px] text-zinc-500">
               <p>SOAT: <span className="text-zinc-300">{v.soatDue || "—"}</span></p>
             </div>
           </div>
