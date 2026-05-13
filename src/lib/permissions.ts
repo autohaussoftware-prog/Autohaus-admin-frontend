@@ -21,7 +21,7 @@ const ROUTE_PERMISSIONS: { prefix: string; allowed: UserRole[] }[] = [
   { prefix: "/mis-inversiones",  allowed: ["inversionista", "owner", "admin"] },
 ];
 
-const EDIT_VEHICLE_ROLES: UserRole[] = ["owner", "partner", "admin", "gerente", "accounting"];
+const EDIT_VEHICLE_ROLES: UserRole[] = ["owner", "partner", "admin", "gerente", "accounting", "advisor"];
 
 export function canAccessRoute(role: UserRole, pathname: string): boolean {
   // Editar vehículo: ruta dinámica /vehiculos/[id]/editar — solo roles superiores

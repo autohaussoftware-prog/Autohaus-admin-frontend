@@ -21,7 +21,9 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   const showFinancials = role !== "advisor";
   const canChangeStatus = role !== "viewer";
-  const canEdit = !["advisor", "viewer"].includes(role);
+  const canEdit =
+    !["advisor", "viewer"].includes(role) ||
+    (vehicle.createdByUserId !== undefined && vehicle.createdByUserId === profile.id);
   const canDeleteCosts = ["owner", "partner", "admin"].includes(role);
   const canDeleteDocs = ["owner", "partner", "admin"].includes(role);
   const canManageInvestments = ["owner", "partner", "admin", "gerente", "accounting"].includes(role);

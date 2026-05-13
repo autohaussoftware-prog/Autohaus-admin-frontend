@@ -2,7 +2,6 @@ import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { getVehicleById, getVehicleFormOptions } from "@/lib/data/vehicles";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
-import { canAccessRoute } from "@/lib/permissions";
 import { EditVehicleForm } from "@/components/vehicles/edit-vehicle-form";
 
 export default async function EditVehiclePage({
@@ -14,7 +13,8 @@ export default async function EditVehiclePage({
   const profile = await getCurrentUserProfile();
   const role = profile.role;
 
-  if (!canAccessRoute(role, `/vehiculos/${id}/editar`)) redirect("/vehiculos");
+  // viewer nunca puede editar; redirigimos antes de cargar datos
+  if (role === "viewer") redirect("/vehiculos");
 
   const [vehicle, { locations, advisors }] = await Promise.all([
     getVehicleById(id, { userId: profile.id, role }),
@@ -22,6 +22,10 @@ export default async function EditVehiclePage({
   ]);
 
   if (!vehicle) notFound();
+
+  // advisor solo puede editar si fue quien lo ingresó
+  const isCreator = vehicle.createdByUserId === profile.id;
+  if (role === "advisor" && !isCreator) redirect(`/vehiculos/${id}`);
 
   const advisorBuyerId = advisors.find((a) => a.name === vehicle.advisorBuyer)?.id ?? "";
   const advisorSellerId = advisors.find((a) => a.name === vehicle.advisorSeller)?.id ?? "";
