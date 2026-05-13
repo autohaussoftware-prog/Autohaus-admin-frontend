@@ -59,6 +59,12 @@ const SVGS: Record<string, string> = {
   fuel:     `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><line x1="3" y1="22" x2="15" y2="22"/><path d="M15 10h2a2 2 0 0 1 2 2v5a1 1 0 0 0 2 0v-7l-3-3"/></svg>`,
 };
 
+function formatPlate(raw: string): string {
+  const clean = raw.replace(/[-\s]/g, "").toUpperCase();
+  if (clean.length === 6) return `${clean.slice(0, 3)}-${clean.slice(3)}`;
+  return raw.toUpperCase();
+}
+
 function svgImg(key: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => {
     const blob = new Blob([SVGS[key]], { type: "image/svg+xml" });
@@ -153,9 +159,10 @@ async function renderToCanvas(
   const spec1Y  = panelY + Math.round(152 * scale);
   const spec2Y  = panelY + Math.round(192 * scale);
 
-  // Right column
-  const plateBW = Math.round(96 * (W / 1080));
-  const plateBH = Math.round(36 * scale);
+  // Right column — plate badge width computed from text
+  const plateFontPx = Math.round(13 * scale);
+  const plateText   = formatPlate(v.plate);
+  const plateBH     = Math.round(36 * scale);
 
   // ── Draw ───────────────────────────────────────────────────────────
 
@@ -299,34 +306,44 @@ async function renderToCanvas(
   specUnit(iFuel, v.fuel, x, spec2Y);
 
   /* ── Right column ────────────────────────────────────────────────── */
-  // Line 1: [PLATE BADGE]  LAST_DIGIT | CITY  — same horizontal line as header
-  // Line 2: TECNO: value   — at subtitle level
-  // Line 3: SOAT:  value   — below TECNO
+  // Line 1: [ABC-123]  7 | MEDELLÍN  — at header level
+  // Line 2: TECNO: value             — at subtitle level
+  // Line 3: SOAT:  value             — below TECNO
 
-  // Plate badge — vertically centered near the header text
-  const plateBadgeBaseline = headerY;  // badge text baseline = header baseline
-  const plateBadgeTop = Math.round(plateBadgeBaseline - plateBH * 0.82);
+  // Measure plate text to size badge exactly
+  ctx.font = `bold ${plateFontPx}px monospace`;
+  const plateTextW   = ctx.measureText(plateText).width;
+  const hPad         = Math.round(10 * scale);
+  const plateBW      = plateTextW + hPad * 2;
 
+  // Badge top — align its baseline with the header baseline
+  const plateBadgeTop      = Math.round(headerY - plateBH * 0.82);
+  const plateBadgeBaseline = plateBadgeTop + Math.round(plateBH * 0.72);
+
+  // Draw plate badge (gold rectangle, rounded, inner border)
+  const radius = Math.round(6 * scale);
   ctx.fillStyle = T.plateBg;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(colRX, plateBadgeTop, plateBW, plateBH, 5);
+  if (ctx.roundRect) ctx.roundRect(colRX, plateBadgeTop, plateBW, plateBH, radius);
   else ctx.rect(colRX, plateBadgeTop, plateBW, plateBH);
   ctx.fill();
   ctx.strokeStyle = T.plateBorder;
   ctx.lineWidth   = 1.5;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(colRX + 2, plateBadgeTop + 2, plateBW - 4, plateBH - 4, 3);
+  if (ctx.roundRect) ctx.roundRect(colRX + 2, plateBadgeTop + 2, plateBW - 4, plateBH - 4, Math.max(2, radius - 2));
   else ctx.rect(colRX + 2, plateBadgeTop + 2, plateBW - 4, plateBH - 4);
   ctx.stroke();
+
+  // Plate text centered inside badge
   ctx.fillStyle = T.plateText;
-  ctx.font      = `bold ${Math.round(13 * scale)}px monospace`;
+  ctx.font      = `bold ${plateFontPx}px monospace`;
   ctx.textAlign = "center";
-  ctx.fillText(v.plate.toUpperCase(), colRX + plateBW / 2, plateBadgeBaseline - Math.round(plateBH * 0.1));
+  ctx.fillText(plateText, colRX + plateBW / 2, plateBadgeBaseline);
 
   // Last digit (accent) + " | " + city — to the right of badge, same baseline
-  const afterBadge  = colRX + plateBW + Math.round(10 * scale);
-  const digitFs     = Math.round(22 * scale);
-  const infoLineFs  = Math.round(18 * scale);
+  const afterBadge = colRX + plateBW + Math.round(10 * scale);
+  const digitFs    = Math.round(22 * scale);
+  const infoLineFs = Math.round(18 * scale);
 
   ctx.textAlign = "left";
   ctx.fillStyle = T.accent;
@@ -400,6 +417,7 @@ function DesignPreview({
   const techno     = v.technoDue?.trim() || "N/A";
   const priceText  = "$" + v.targetPrice.toLocaleString("es-CO");
   const headerText = [v.brand, v.line].filter(Boolean).join(" ").toUpperCase();
+  const plateLabel = formatPlate(v.plate);
 
   // Diagonal percentages — pixel-scanned from blank template PNGs:
   //   POST  1080×1350: gold left=1028(76.1%), right=908(67.3%); handle y=267(19.8%)
@@ -479,22 +497,22 @@ function DesignPreview({
             </p>
           </div>
 
-          {/* Right: plate + last digit + city on ONE line, TECNO/SOAT below */}
+          {/* Right: [ABC-123] digit | city on ONE line, TECNO/SOAT below */}
           <div className="min-w-0 flex-1 text-[5.5px]">
-            {/* Line 1: badge + digit + city */}
-            <div className="flex items-center gap-[2px] truncate">
+            {/* Line 1: plate badge + digit + city */}
+            <div className="flex items-center gap-[3px]">
               <span
-                className="shrink-0 rounded px-1 py-[1px] font-mono text-[4.5px] font-bold"
-                style={{ background: T.plateBg, color: T.plateText }}
+                className="shrink-0 rounded-[2px] border px-[3px] py-[1px] font-mono text-[4.5px] font-bold leading-none"
+                style={{ background: T.plateBg, color: T.plateText, borderColor: T.plateBorder }}
               >
-                {v.plate.toUpperCase()}
+                {plateLabel}
               </span>
-              <span className="font-bold shrink-0" style={{ color: T.accent }}>{lastDigit}</span>
-              <span className="text-zinc-500 shrink-0">|</span>
-              <span className="text-zinc-300 truncate">{v.cityRegistration.slice(0, 9).toUpperCase()}</span>
+              <span className="shrink-0 font-bold" style={{ color: T.accent }}>{lastDigit}</span>
+              <span className="shrink-0 text-zinc-600">|</span>
+              <span className="truncate text-zinc-300">{v.cityRegistration.slice(0, 9).toUpperCase()}</span>
             </div>
-            {/* Lines 2-3: TECNO / SOAT at subtitle spacing */}
-            <div className="mt-[3%] leading-snug text-zinc-500">
+            {/* Lines 2-3: TECNO / SOAT */}
+            <div className="mt-[4%] leading-snug text-[5px] text-zinc-500">
               <p>TECNO: <span className="text-zinc-300">{techno}</span></p>
               <p>SOAT: <span className="text-zinc-300">{v.soatDue || "—"}</span></p>
             </div>
