@@ -154,11 +154,8 @@ async function renderToCanvas(
   const spec2Y  = panelY + Math.round(192 * scale);
 
   // Right column
-  const plateBW  = Math.round(96 * (W / 1080));
-  const plateBH  = Math.round(36 * scale);
-  const plateTop = panelY + Math.round(18 * scale);
-  const tecnoY   = panelY + Math.round(148 * scale);  // ≈ spec1Y
-  const soatY    = tecnoY  + Math.round(38  * scale);
+  const plateBW = Math.round(96 * (W / 1080));
+  const plateBH = Math.round(36 * scale);
 
   // ── Draw ───────────────────────────────────────────────────────────
 
@@ -293,11 +290,6 @@ async function renderToCanvas(
     x = pipe(x, spec1Y);
     x = specUnit(iEngine, v.motor, x, spec1Y);
   }
-  ctx.fillStyle = T.accent;
-  ctx.font      = `bold ${specFs}px Inter, sans-serif`;
-  ctx.textAlign = "left";
-  ctx.fillText(" /", x, spec1Y);
-
   // Row 2: Traction | Fuel
   x = lX;
   if (v.traction) {
@@ -306,48 +298,74 @@ async function renderToCanvas(
   }
   specUnit(iFuel, v.fuel, x, spec2Y);
 
-  /* Right column — plate badge */
+  /* ── Right column ────────────────────────────────────────────────── */
+  // Line 1: [PLATE BADGE]  LAST_DIGIT | CITY  — same horizontal line as header
+  // Line 2: TECNO: value   — at subtitle level
+  // Line 3: SOAT:  value   — below TECNO
+
+  // Plate badge — vertically centered near the header text
+  const plateBadgeBaseline = headerY;  // badge text baseline = header baseline
+  const plateBadgeTop = Math.round(plateBadgeBaseline - plateBH * 0.82);
+
   ctx.fillStyle = T.plateBg;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(colRX, plateTop, plateBW, plateBH, 5);
-  else ctx.rect(colRX, plateTop, plateBW, plateBH);
+  if (ctx.roundRect) ctx.roundRect(colRX, plateBadgeTop, plateBW, plateBH, 5);
+  else ctx.rect(colRX, plateBadgeTop, plateBW, plateBH);
   ctx.fill();
   ctx.strokeStyle = T.plateBorder;
   ctx.lineWidth   = 1.5;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(colRX + 2, plateTop + 2, plateBW - 4, plateBH - 4, 3);
-  else ctx.rect(colRX + 2, plateTop + 2, plateBW - 4, plateBH - 4);
+  if (ctx.roundRect) ctx.roundRect(colRX + 2, plateBadgeTop + 2, plateBW - 4, plateBH - 4, 3);
+  else ctx.rect(colRX + 2, plateBadgeTop + 2, plateBW - 4, plateBH - 4);
   ctx.stroke();
   ctx.fillStyle = T.plateText;
   ctx.font      = `bold ${Math.round(13 * scale)}px monospace`;
   ctx.textAlign = "center";
-  ctx.fillText(v.plate.toUpperCase(), colRX + plateBW / 2, plateTop + plateBH * 0.72);
+  ctx.fillText(v.plate.toUpperCase(), colRX + plateBW / 2, plateBadgeBaseline - Math.round(plateBH * 0.1));
 
-  /* Digit | City — below badge */
-  const digitFs  = Math.round(22 * scale);
-  const digitY   = plateTop + plateBH + Math.round(28 * scale);
-  ctx.textAlign  = "left";
-  ctx.fillStyle  = T.accent;
-  ctx.font       = `bold ${digitFs}px Inter, sans-serif`;
-  ctx.fillText(lastDigit, colRX, digitY);
-  const dw = ctx.measureText(lastDigit).width;
-  ctx.fillStyle = "#999999";
-  ctx.font      = `${Math.round(18 * scale)}px Inter, sans-serif`;
-  ctx.fillText("  ·  " + v.cityRegistration.toUpperCase(), colRX + dw, digitY);
+  // Last digit (accent) + " | " + city — to the right of badge, same baseline
+  const afterBadge  = colRX + plateBW + Math.round(10 * scale);
+  const digitFs     = Math.round(22 * scale);
+  const infoLineFs  = Math.round(18 * scale);
 
-  /* TECNO / SOAT — aligned with spec rows */
-  const infoFs  = Math.round(19 * scale);
-  const labelFs = `${infoFs}px Inter, sans-serif`;
-  ctx.font      = labelFs;
   ctx.textAlign = "left";
-  ctx.fillStyle = "#585858";
-  ctx.fillText("TECNO ", colRX, tecnoY);
+  ctx.fillStyle = T.accent;
+  ctx.font      = `700 ${digitFs}px Inter, sans-serif`;
+  ctx.fillText(lastDigit, afterBadge, plateBadgeBaseline);
+  const dw = ctx.measureText(lastDigit).width;
+
+  ctx.fillStyle = "#777777";
+  ctx.font      = `400 ${infoLineFs}px Inter, sans-serif`;
+  const pipe2   = " | ";
+  ctx.fillText(pipe2, afterBadge + dw, plateBadgeBaseline);
+  const pw = ctx.measureText(pipe2).width;
+
   ctx.fillStyle = "#cccccc";
-  ctx.fillText(techno, colRX + ctx.measureText("TECNO ").width, tecnoY);
+  ctx.fillText(v.cityRegistration.toUpperCase(), afterBadge + dw + pw, plateBadgeBaseline);
+
+  // TECNO / SOAT — at subtitle level (below badge line)
+  const infoFs   = Math.round(19 * scale);
+  const labelFont = `400 ${infoFs}px Inter, sans-serif`;
+  const valueFont = `500 ${infoFs}px Inter, sans-serif`;
+  ctx.textAlign  = "left";
+
+  ctx.font      = labelFont;
+  const tecnoLabelW = ctx.measureText("TECNO: ").width;
+  const soatLabelW  = ctx.measureText("SOAT:  ").width;
+
   ctx.fillStyle = "#585858";
-  ctx.fillText("SOAT  ", colRX, soatY);
+  ctx.fillText("TECNO: ", colRX, subY);
+  ctx.font      = valueFont;
   ctx.fillStyle = "#cccccc";
-  ctx.fillText(v.soatDue || "—", colRX + ctx.measureText("SOAT  ").width, soatY);
+  ctx.fillText(techno, colRX + tecnoLabelW, subY);
+
+  const soatInfoY = subY + Math.round(30 * scale);
+  ctx.font      = labelFont;
+  ctx.fillStyle = "#585858";
+  ctx.fillText("SOAT:  ", colRX, soatInfoY);
+  ctx.font      = valueFont;
+  ctx.fillStyle = "#cccccc";
+  ctx.fillText(v.soatDue || "—", colRX + soatLabelW, soatInfoY);
 
   /* 7 — Price text (story only — template already has the gold pill shape)
      Pill measured from template: y=1642–1778, center y=1710, x=137–964 */
@@ -447,39 +465,38 @@ function DesignPreview({
         </p>
 
         {/* Two-column layout */}
-        <div className="mt-[2%] flex gap-1">
-          {/* Left: specs — colRX at 60% of W, inner panel has 5% padding each side → 61% of inner width */}
+        <div className="mt-[1%] flex gap-1">
+          {/* Left specs — 61% of inner width (colRX=60% of W, 5% padding each side) */}
           <div className="min-w-0 space-y-[2%] text-[6px] leading-snug text-zinc-400" style={{ width: "61%" }}>
             <p className="truncate">
               {v.mileage.toLocaleString("es-CO")} KM
-              <span className="text-zinc-600">  |  </span>{v.transmission}
-              {v.motor ? <><span className="text-zinc-600">  |  </span>{v.motor}</> : null}
-              <span style={{ color: T.accent }}> /</span>
+              <span className="text-zinc-600"> | </span>{v.transmission}
+              {v.motor ? <><span className="text-zinc-600"> | </span>{v.motor}</> : null}
             </p>
             <p className="truncate">
-              {v.traction ? <>{v.traction}<span className="text-zinc-600">  |  </span></> : null}
+              {v.traction ? <>{v.traction}<span className="text-zinc-600"> | </span></> : null}
               {v.fuel}
             </p>
           </div>
 
-          {/* Right: plate / city / dates */}
+          {/* Right: plate + last digit + city on ONE line, TECNO/SOAT below */}
           <div className="min-w-0 flex-1 text-[5.5px]">
-            {/* Plate badge */}
-            <span
-              className="inline-block rounded px-1 py-[1px] font-mono text-[5px] font-bold"
-              style={{ background: T.plateBg, color: T.plateText }}
-            >
-              {v.plate.toUpperCase()}
-            </span>
-            {/* Digit · City */}
-            <p className="mt-[1%] truncate">
-              <span className="font-bold" style={{ color: T.accent }}>{lastDigit}</span>
-              <span className="text-zinc-400"> · {v.cityRegistration.slice(0, 9).toUpperCase()}</span>
-            </p>
-            {/* Dates — pushed down to align with spec rows */}
-            <div className="mt-[4%] leading-snug text-zinc-500">
-              <p>TECNO <span className="text-zinc-300">{techno}</span></p>
-              <p>SOAT  <span className="text-zinc-300">{v.soatDue || "—"}</span></p>
+            {/* Line 1: badge + digit + city */}
+            <div className="flex items-center gap-[2px] truncate">
+              <span
+                className="shrink-0 rounded px-1 py-[1px] font-mono text-[4.5px] font-bold"
+                style={{ background: T.plateBg, color: T.plateText }}
+              >
+                {v.plate.toUpperCase()}
+              </span>
+              <span className="font-bold shrink-0" style={{ color: T.accent }}>{lastDigit}</span>
+              <span className="text-zinc-500 shrink-0">|</span>
+              <span className="text-zinc-300 truncate">{v.cityRegistration.slice(0, 9).toUpperCase()}</span>
+            </div>
+            {/* Lines 2-3: TECNO / SOAT at subtitle spacing */}
+            <div className="mt-[3%] leading-snug text-zinc-500">
+              <p>TECNO: <span className="text-zinc-300">{techno}</span></p>
+              <p>SOAT: <span className="text-zinc-300">{v.soatDue || "—"}</span></p>
             </div>
           </div>
         </div>
