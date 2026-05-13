@@ -111,6 +111,8 @@ async function renderToCanvas(
 
   const settled = await Promise.allSettled([
     photoUrl ? photoImg(photoUrl) : Promise.reject(),
+    photoImg("/plantilla-post-base.svg"),       // SVG master template
+    photoImg("/plantilla-logo-panel.png"),      // AH logo in info panel
     svgImg("speed"),
     svgImg("gear"),
     svgImg("engine"),
@@ -121,40 +123,37 @@ async function renderToCanvas(
     settled[i].status === "fulfilled"
       ? (settled[i] as PromiseFulfilledResult<HTMLImageElement>).value
       : null;
-  const [carImg, iSpeed, iGear, iEngine, iTraction, iFuel] =
-    [get(0), get(1), get(2), get(3), get(4), get(5)];
+  const [carImg, svgBg, panelLogo, iSpeed, iGear, iEngine, iTraction, iFuel] =
+    [get(0), get(1), get(2), get(3), get(4), get(5), get(6), get(7)];
 
-  // SVG template coordinate system: viewBox 810×1012.5, canvas W×H
-  // All positions derived from SVG element analysis (× scaleX or scaleY)
+  // SVG template: viewBox 810×1012.5, native output 1080×1350
   const scaleX = W / 810;
   const scaleY = H / 1012.5;
 
-  // Photo area ends at SVG y=471 (rectangular clip, per clipPath analysis)
-  const photoEndY = Math.round(471 * scaleY);  // 628px for post
-  // Info panel starts at SVG y=534 (rectangular clip)
-  const panelY    = Math.round(534 * scaleY);  // 712px for post
-  // Diagonal accent band height
+  // From SVG clipPath analysis:
+  //   photo zone  → clipPath rect y=0–471   → canvas y=0–628
+  //   info panel  → clipPath rect y=534–1012 → canvas y=712–1350
+  //   transition  → y=471–534 (badge decoration lives here)
+  const photoEndY = Math.round(471 * scaleY);  // 628px
+  const panelY    = Math.round(534 * scaleY);  // 712px
   const bandH     = Math.round(20 * scaleY);
 
-  // Left text margin: SVG x=141 (from brand name group translate)
-  const lX     = Math.round(141 * scaleX);     // 188px
-  // Right column x: SVG x=567 (from plate badge group translate)
-  const colRX  = Math.round(567 * scaleX);     // 756px
-
-  // Absolute canvas y for text elements (from SVG glyph translate analysis)
-  const brandAbsY  = Math.round(757 * scaleY); // 1009px — brand name baseline
-  const subAbsY    = Math.round(849 * scaleY); // 1132px — subtitle baseline
-  const spec1AbsY  = Math.round(898 * scaleY); // 1197px — spec row 1 baseline
-  const spec2AbsY  = Math.round(935 * scaleY); // 1246px — spec row 2 baseline
-  const plateAbsX  = Math.round(567 * scaleX); // 756px  — plate badge left
-  const plateAbsY  = Math.round(815 * scaleY); // 1086px — plate badge top
-  const tecnoAbsY  = Math.round(904 * scaleY); // 1205px — TECNO label baseline
+  // Text positions — all derived from SVG element translate/matrix analysis
+  const lX        = Math.round(141 * scaleX);  // 188px left margin (brand group x)
+  const colRX     = Math.round(567 * scaleX);  // 756px right col  (plate badge x)
+  const brandAbsY = Math.round(757 * scaleY);  // 1009px brand baseline
+  const subAbsY   = Math.round(849 * scaleY);  // 1132px subtitle baseline
+  const spec1AbsY = Math.round(898 * scaleY);  // 1197px spec row 1
+  const spec2AbsY = Math.round(935 * scaleY);  // 1246px spec row 2
+  const plateAbsX = Math.round(567 * scaleX);  // 756px  plate badge left
+  const plateAbsY = Math.round(815 * scaleY);  // 1086px plate badge top
+  const tecnoAbsY = Math.round(904 * scaleY);  // 1205px TECNO baseline
 
   /* 1 — Dark base */
   ctx.fillStyle = T.panelBg;
   ctx.fillRect(0, 0, W, H);
 
-  /* 2 — Photo area (horizontal clip to SVG photo zone) */
+  /* 2 — Vehicle photo (drawn first so SVG overlays can sit on top) */
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, W, photoEndY);
@@ -177,30 +176,29 @@ async function renderToCanvas(
   }
   ctx.restore();
 
-  /* 3 — @autohausmed (SVG group at x=293, y=173 → canvas x=391, y=231) */
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.95)";
-  ctx.shadowBlur  = 20;
-  ctx.fillStyle   = "rgba(255,255,255,0.95)";
-  ctx.font        = `600 ${Math.round(34 * scaleY)}px Inter, sans-serif`;
-  ctx.textAlign   = "center";
-  ctx.fillText("@autohausmed", W / 2, Math.round(210 * scaleY));
-  ctx.restore();
+  /* 3 — SVG master template on top of photo
+         The SVG's vehicle photo slot is a transparent 1×1 PNG, so the car photo
+         shows through while all decorative overlays (@autohausmed, brand watermark,
+         diagonal badge, info panel bg) render on top correctly.               */
+  if (svgBg) {
+    ctx.drawImage(svgBg, 0, 0, W, H);
+  }
 
-  /* 4 — Info panel solid background (covers transition zone + panel area) */
+  /* 4 — Cover info panel + transition zone with theme background color
+         This erases the SVG's static text paths so we can redraw dynamic data.
+         The diagonal zone (photoEndY→panelY) is also blanked and redrawn below. */
   ctx.fillStyle = T.panelBg;
-  ctx.fillRect(0, panelY, W, H - panelY);
+  ctx.fillRect(0, photoEndY, W, H - photoEndY);
 
-  /* 5 — Diagonal accent band (lower-left → upper-right across transition zone)
-         Left edge:  y=panelY (712)   to y=panelY-bandH (692)
-         Right edge: y=photoEndY (628) to y=photoEndY-bandH (608)           */
+  /* 5 — Diagonal accent band in theme color (lower-left → upper-right /)
+         Left edge at panelY, right edge at photoEndY — spans full transition zone */
   ctx.save();
   ctx.fillStyle = T.accent;
   ctx.beginPath();
-  ctx.moveTo(0, panelY - bandH);        // upper-left
-  ctx.lineTo(W, photoEndY - bandH);     // upper-right
-  ctx.lineTo(W, photoEndY);             // lower-right
-  ctx.lineTo(0, panelY);                // lower-left
+  ctx.moveTo(0, panelY - bandH);
+  ctx.lineTo(W, photoEndY - bandH);
+  ctx.lineTo(W, photoEndY);
+  ctx.lineTo(0, panelY);
   ctx.closePath();
   ctx.fill();
   ctx.restore();
@@ -328,6 +326,12 @@ async function renderToCanvas(
   ctx.fillText("SOAT: ", colRX, soatY);
   ctx.fillStyle = "#b8b8b8";
   ctx.fillText(v.soatDue || "—", colRX + ctx.measureText("SOAT: ").width, soatY);
+
+  /* AH logo in info panel (SVG x=133, y=932 → canvas ~178, 1243; size ~30px) */
+  if (panelLogo) {
+    const lsz = Math.round(30 * scaleY);
+    ctx.drawImage(panelLogo, Math.round(133 * scaleX), Math.round(932 * scaleY) - lsz, lsz, lsz);
+  }
 
   /* Price badge (near bottom of canvas) */
   const priceText = "$" + v.targetPrice.toLocaleString("es-CO");
