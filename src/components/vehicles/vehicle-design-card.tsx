@@ -109,9 +109,11 @@ async function renderToCanvas(
   const ctx = canvas.getContext("2d")!;
   await document.fonts.ready;
 
-  // Template PNG measured from blank design files:
-  // Post  (1080×1350): gold band left at 81.2%, right at 78.4%
-  // Story (1080×1920): gold band left at 75.5%, right at 72.7%
+  // Exact pixel measurements pixel-scanned from blank template PNGs:
+  //   POST  (1080×1350): gold left y=1028, gold right y=908, dark left y=1035
+  //   STORY (1080×1920): gold left y=1149, gold right y=1025, dark left y=1160
+  //   @autohausmed baseline: POST y=267, STORY y=270 (same absolute position)
+  //   STORY price pill: y=1642–1778 center, x=137–964
   const isPost = fmt === "post";
   const templateUrl = isPost ? "/template-post.png" : "/template-story.png";
 
@@ -132,31 +134,30 @@ async function renderToCanvas(
   const [carImg, logoImg, templateImg, iSpeed, iGear, iEngine, iTraction, iFuel] =
     [get(0), get(1), get(2), get(3), get(4), get(5), get(6), get(7)];
 
-  // ── Layout (from blank template measurements) ──────────────────────
-  const diagLY = Math.round(H * (isPost ? 0.812 : 0.755)); // band left lower corner
-  const diagRY = Math.round(H * (isPost ? 0.784 : 0.727)); // band right (higher)
-  const panelY = diagLY;
-  const scale  = H / 1350;                   // proportional scaler
+  // ── Layout — absolute pixel values from template scan ─────────────
+  const handleY = isPost ? 267  : 270;   // @autohausmed baseline (px)
+  const diagLY  = isPost ? 1028 : 1149;  // top of gold band, left edge (px)
+  const diagRY  = isPost ?  908 : 1025;  // top of gold band, right edge (px)
+  const panelY  = isPost ? 1035 : 1160;  // dark panel start, left edge (px)
+  const scale   = H / 1350;              // only used for text sizing/spacing
 
   const lX    = 54;                          // left text margin
-  const colRX = Math.round(W * 0.570);       // right column x — divider
+  const colRX = Math.round(W * 0.600);       // right column — aligns with "/" decorative
 
-  // @autohausmed / logo positions (from template)
-  const handleY = Math.round(H * (isPost ? 0.189 : 0.161));
   const logoSz  = Math.round(H * 0.075);
   const logoTop = handleY - logoSz - Math.round(H * 0.008);
 
-  // Panel text baselines (scaled from 1350-height reference)
-  const headerY = panelY + Math.round(58  * scale);
-  const subY    = panelY + Math.round(100 * scale);
-  const spec1Y  = panelY + Math.round(148 * scale);
-  const spec2Y  = panelY + Math.round(188 * scale);
+  // Panel text baselines — offsets from panelY, scaled by H/1350
+  const headerY = panelY + Math.round(62  * scale);
+  const subY    = panelY + Math.round(104 * scale);
+  const spec1Y  = panelY + Math.round(152 * scale);
+  const spec2Y  = panelY + Math.round(192 * scale);
 
   // Right column
   const plateBW  = Math.round(96 * (W / 1080));
   const plateBH  = Math.round(36 * scale);
   const plateTop = panelY + Math.round(18 * scale);
-  const tecnoY   = panelY + Math.round(144 * scale);  // ≈ spec1Y
+  const tecnoY   = panelY + Math.round(148 * scale);  // ≈ spec1Y
   const soatY    = tecnoY  + Math.round(38  * scale);
 
   // ── Draw ───────────────────────────────────────────────────────────
@@ -348,32 +349,20 @@ async function renderToCanvas(
   ctx.fillStyle = "#cccccc";
   ctx.fillText(v.soatDue || "—", colRX + ctx.measureText("SOAT  ").width, soatY);
 
-  /* 7 — Price badge (story only — POST template has no price slot) */
+  /* 7 — Price text (story only — template already has the gold pill shape)
+     Pill measured from template: y=1642–1778, center y=1710, x=137–964 */
   if (!isPost) {
     const priceText = "$" + v.targetPrice.toLocaleString("es-CO");
-    const priceFs   = Math.round((priceText.length > 14 ? 42 : 52) * (H / 1350));
-    const badgeH    = Math.round(80 * (H / 1350));
-    const badgeY    = H - Math.round(118 * (H / 1350));
-    const hPad      = Math.round(58 * (W / 1080));
-
-    const grd = ctx.createLinearGradient(hPad, 0, W - hPad, 0);
-    grd.addColorStop(0, T.accentDark);
-    grd.addColorStop(0.3, T.accent);
-    grd.addColorStop(0.7, T.accent);
-    grd.addColorStop(1, T.accentDark);
-    ctx.fillStyle = grd;
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(hPad, badgeY, W - hPad * 2, badgeH, badgeH / 2);
-    else ctx.rect(hPad, badgeY, W - hPad * 2, badgeH);
-    ctx.fill();
-
+    const priceFs   = Math.round((priceText.length > 14 ? 56 : 68) * scale);
+    const pillCenterY = 1710;
+    const priceTextY  = pillCenterY + Math.round(priceFs * 0.36);
     ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.5)";
-    ctx.shadowBlur  = 10;
-    ctx.fillStyle   = "#ffffff";
-    ctx.font        = `bold ${priceFs}px Inter, sans-serif`;
+    ctx.shadowColor = "rgba(0,0,0,0.35)";
+    ctx.shadowBlur  = 8;
+    ctx.fillStyle   = "#1a0d00";
+    ctx.font        = `900 ${priceFs}px Inter, sans-serif`;
     ctx.textAlign   = "center";
-    ctx.fillText(priceText, W / 2, badgeY + badgeH * 0.67);
+    ctx.fillText(priceText, W / 2, priceTextY);
     ctx.restore();
   }
 
@@ -394,10 +383,12 @@ function DesignPreview({
   const priceText  = "$" + v.targetPrice.toLocaleString("es-CO");
   const headerText = [v.brand, v.line].filter(Boolean).join(" ").toUpperCase();
 
-  // Diagonal percentages from blank template measurements
-  const diagL = isPost ? 81.2 : 75.5; // left lower (%)
-  const diagR = isPost ? 78.4 : 72.7; // right lower (%) — higher = less %
-  const handlePct = isPost ? 18.9 : 16.1; // @autohausmed top (%)
+  // Diagonal percentages — pixel-scanned from blank template PNGs:
+  //   POST  1080×1350: gold left=1028(76.1%), right=908(67.3%); handle y=267(19.8%)
+  //   STORY 1080×1920: gold left=1149(59.8%), right=1025(53.4%); handle y=270(14.1%)
+  const diagL     = isPost ? 76.1 : 59.8;  // left  edge photo-end % (was 81.2 / 75.5)
+  const diagR     = isPost ? 67.3 : 53.4;  // right edge photo-end % (was 78.4 / 72.7)
+  const handlePct = isPost ? 19.5 : 13.8;  // @autohausmed center % (was 18.9 / 16.1)
 
   return (
     <div
@@ -457,8 +448,8 @@ function DesignPreview({
 
         {/* Two-column layout */}
         <div className="mt-[2%] flex gap-1">
-          {/* Left: specs (57% width to match canvas colRX at 57%) */}
-          <div className="min-w-0 space-y-[2%] text-[6px] leading-snug text-zinc-400" style={{ width: "57%" }}>
+          {/* Left: specs — colRX at 60% of W, inner panel has 5% padding each side → 61% of inner width */}
+          <div className="min-w-0 space-y-[2%] text-[6px] leading-snug text-zinc-400" style={{ width: "61%" }}>
             <p className="truncate">
               {v.mileage.toLocaleString("es-CO")} KM
               <span className="text-zinc-600">  |  </span>{v.transmission}
@@ -494,17 +485,16 @@ function DesignPreview({
         </div>
       </div>
 
-      {/* z=10 — Price badge (story only) */}
+      {/* z=10 — Price text (story only — template already has the gold pill)
+          Pill at 85.5%–92.6% from top (measured: y=1642–1778 / 1920) */}
       {!isPost && (
         <div
-          className="absolute inset-x-[6%] flex items-center justify-center rounded-full py-1.5 shadow"
-          style={{
-            bottom: "5%",
-            zIndex: 10,
-            background: `linear-gradient(90deg, ${T.accentDark}, ${T.accent} 30%, ${T.accent} 70%, ${T.accentDark})`,
-          }}
+          className="absolute inset-x-[14%] flex items-center justify-center"
+          style={{ top: "85.5%", height: "7.1%", zIndex: 10 }}
         >
-          <span className="text-sm font-black text-white drop-shadow">{priceText}</span>
+          <span className="text-[10px] font-black [color:#1a0d00] [text-shadow:0_1px_3px_rgba(0,0,0,0.3)]">
+            {priceText}
+          </span>
         </div>
       )}
     </div>
