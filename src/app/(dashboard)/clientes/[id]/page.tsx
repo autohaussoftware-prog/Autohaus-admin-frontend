@@ -12,12 +12,14 @@ import {
   User,
 } from "lucide-react";
 import { getCustomerById } from "@/lib/data/customers";
+import { getUserRole } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { compactCOP, currencyCOP } from "@/lib/utils";
+import { DeleteCustomerButton } from "@/components/customers/delete-customer-button";
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -40,12 +42,13 @@ const SALE_STATUS_TONE: Record<string, "gold" | "green" | "blue" | "neutral" | "
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const customer = await getCustomerById(id);
+  const [customer, role] = await Promise.all([getCustomerById(id), getUserRole()]);
 
   if (!customer) notFound();
 
   const firstPurchase = customer.purchases.at(-1);
   const isRecurring = customer.purchaseCount >= 2;
+  const canDelete = role === "admin";
 
   return (
     <>
@@ -65,6 +68,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             <Star className="h-3.5 w-3.5" />
             Cliente recurrente
           </div>
+        )}
+        {canDelete && (
+          <DeleteCustomerButton customerId={customer.id} customerName={customer.fullName} />
         )}
       </div>
 

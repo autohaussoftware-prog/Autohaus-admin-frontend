@@ -1,3 +1,4 @@
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export type Customer = {
@@ -30,7 +31,7 @@ export async function getCustomers(): Promise<Customer[]> {
   if (!supabase) return [];
 
   const [customersRes, salesRes] = await Promise.all([
-    supabase.from("customers").select("id,full_name,phone,email,document_number,created_at").order("created_at", { ascending: false }),
+    supabase.from("customers").select("id,full_name,phone,email,document_number,created_at").is("deleted_at", null).order("created_at", { ascending: false }),
     supabase.from("sales").select("id,customer_id,agreed_price,sale_status,created_at"),
   ]);
 
@@ -70,7 +71,7 @@ export async function getCustomerById(id: string): Promise<CustomerDetail | null
   if (!supabase) return null;
 
   const [customerRes, salesRes] = await Promise.all([
-    supabase.from("customers").select("id,full_name,phone,email,document_number,created_at").eq("id", id).single(),
+    supabase.from("customers").select("id,full_name,phone,email,document_number,created_at").eq("id", id).is("deleted_at", null).single(),
     supabase.from("sales").select("id,vehicle_id,agreed_price,sale_status,created_at").eq("customer_id", id).order("created_at", { ascending: false }),
   ]);
 
@@ -113,4 +114,29 @@ export async function getCustomerById(id: string): Promise<CustomerDetail | null
     lastPurchaseDate: purchases[0]?.createdAt ?? null,
     purchases,
   };
+}
+
+// Requires: ALTER TABLE customers
+//   ADD COLUMN IF NOT EXISTS deleted_at   TIMESTAMPTZ DEFAULT NULL,
+//   ADD COLUMN IF NOT EXISTS deleted_by   TEXT        DEFAULT NULL,
+//   ADD COLUMN IF NOT EXISTS delete_reason TEXT       DEFAULT NULL;
+export async function deleteCustomer(
+  customerId: string,
+  deletedBy: string,
+  reason?: string
+): Promise<void> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  // Always soft-delete to preserve sales/purchase history
+  const { error } = await supabase
+    .from("customers")
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: deletedBy,
+      delete_reason: reason?.trim() || null,
+    })
+    .eq("id", customerId);
+
+  if (error) throw new Error(error.message ?? "No se pudo eliminar el cliente.");
 }
