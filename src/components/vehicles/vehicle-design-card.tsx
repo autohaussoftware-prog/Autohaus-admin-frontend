@@ -98,6 +98,17 @@ function containDraw(
   ctx.drawImage(img, dx + (dw - sw) / 2, dy + (dh - sh) / 2, sw, sh);
 }
 
+function coverDraw(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  dx: number, dy: number, dw: number, dh: number,
+) {
+  const scale = Math.max(dw / img.width, dh / img.height);
+  const sw = img.width * scale;
+  const sh = img.height * scale;
+  ctx.drawImage(img, dx + (dw - sw) / 2, dy + (dh - sh) / 2, sw, sh);
+}
+
 /* ── Canvas renderer ─────────────────────────────────────────────────── */
 
 async function renderToCanvas(
@@ -162,7 +173,7 @@ async function renderToCanvas(
   const spec2Y  = panelY + Math.round(225 * scale);  // was 192
 
   // Right column — plate badge
-  const plateFontPx = Math.round(13 * scale);
+  const plateFontPx = Math.round(17 * scale);
   const plateText   = formatPlate(v.plate);
   const plateBH     = Math.round(20 * scale);  // badge height (was 36)
 
@@ -182,7 +193,7 @@ async function renderToCanvas(
   ctx.closePath();
   ctx.clip();
   if (carImg) {
-    containDraw(ctx, carImg, 0, 0, W, diagLY);
+    coverDraw(ctx, carImg, 0, 0, W, diagLY);
   } else {
     const gGray = ctx.createLinearGradient(0, 0, 0, diagLY);
     gGray.addColorStop(0, "#505050");
@@ -242,7 +253,7 @@ async function renderToCanvas(
   // Header: brand + line — CENTERED (as shown in template)
   const hLen     = headerText.length;
   const headerFs = Math.round(
-    (hLen > 14 ? 52 : hLen > 11 ? 64 : hLen > 8 ? 68 : 84) * (H / 1350)
+    (hLen > 14 ? 70 : hLen > 11 ? 88 : hLen > 8 ? 104 : 128) * (H / 1350)
   );
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffffff";
@@ -250,7 +261,7 @@ async function renderToCanvas(
   ctx.fillText(headerText, W / 2, headerY);
 
   // Subtitle: version (gray) + year (accent) — CENTERED as a unit
-  const subFs = Math.round(30 * (H / 1350));
+  const subFs = Math.round(38 * (H / 1350));
   ctx.font = `400 ${subFs}px Inter, sans-serif`;
   const versionLabel = v.version?.trim() ? v.version.trim() + " " : "";
   const yearLabel    = String(v.year);
@@ -263,7 +274,7 @@ async function renderToCanvas(
   ctx.fillText(yearLabel, subStartX + ctx.measureText(versionLabel).width, subY);
 
   // Spec helpers
-  const specFs    = Math.round(22 * scale);
+  const specFs    = Math.round(27 * scale);
   const iconSz    = Math.round(26 * scale);
   const specFsStr = `600 ${specFs}px Inter, sans-serif`;
   const pipeFsStr = `400 ${specFs}px Inter, sans-serif`;
@@ -451,17 +462,31 @@ function DesignPreview({
         }}
       >
         {photoUrl
-          ? <img src={photoUrl} alt="" className="h-full w-full object-contain" />
+          ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
           : <div className="h-full w-full bg-gradient-to-b from-[#505050] via-[#b8b8b8] to-[#e0e0e0]" />
         }
       </div>
 
+      {/* z=10 — AH logo (screen blend, same as canvas step 4) */}
+      <img
+        src="/logo-ah.jpeg"
+        alt="AH"
+        className="absolute left-1/2 -translate-x-1/2"
+        style={{
+          top: `${handlePct - (isPost ? 8.4 : 6.0)}%`,
+          height: `${isPost ? 7.5 : 5.5}%`,
+          width: "auto",
+          mixBlendMode: "screen",
+          objectFit: "contain",
+          zIndex: 10,
+        }}
+      />
       {/* z=10 — @autohausmed */}
       <div
         className="absolute inset-x-0 flex justify-center"
         style={{ top: `${handlePct}%`, zIndex: 10 }}
       >
-        <p className="text-[8px] font-semibold text-white [text-shadow:0_1px_8px_rgba(0,0,0,1)]">
+        <p className="text-[9px] font-semibold tracking-wide text-white [text-shadow:0_1px_10px_rgba(0,0,0,1)]">
           @autohausmed
         </p>
       </div>
@@ -471,24 +496,24 @@ function DesignPreview({
         className="absolute inset-x-0 text-center"
         style={{ top: `${diagL}%`, zIndex: 10 }}
       >
-        <p className="truncate px-4 text-[11px] font-black uppercase leading-tight text-white mt-[3.6%]">
+        <p className="truncate px-3 font-black uppercase leading-none text-white mt-[3.2%]"
+           style={{ fontSize: `${isPost ? 3.2 : 2.3}%` }}>
           {headerText}
         </p>
-        <p className="mt-[1%] text-[7px] leading-none">
+        <p className="mt-[0.8%] leading-none" style={{ fontSize: `${isPost ? 1.5 : 1.1}%` }}>
           {v.version?.trim() && <span className="text-zinc-400">{v.version.trim()} </span>}
           <span style={{ color: T.accent }}>{v.year}</span>
         </p>
       </div>
 
-      {/* Spec rows: left-margin mirrors lX=54 (≈5% of 1080) */}
+      {/* Spec rows */}
       <div
         className="absolute"
-        style={{ top: `${diagL + (isPost ? 11.9 : 8.4)}%`, left: "5%", right: "5%", zIndex: 10 }}
+        style={{ top: `${diagL + (isPost ? 12.0 : 8.5)}%`, left: "5%", right: "3%", zIndex: 10 }}
       >
-        {/* Two-column: left specs | right plate+TECNO+SOAT */}
-        <div className="flex gap-1">
-          {/* Left specs — colRX=560 ≈ 51.9% of W; subtract 5% left margin → ~47% of container */}
-          <div className="min-w-0 space-y-[3%] text-[6px] leading-snug text-zinc-400" style={{ width: "47%" }}>
+        <div className="flex gap-2">
+          {/* Left specs */}
+          <div className="min-w-0 space-y-[2.5%] leading-snug text-zinc-400" style={{ width: "47%", fontSize: `${isPost ? 1.05 : 0.8}%` }}>
             <p className="truncate">
               {v.mileage.toLocaleString("es-CO")} KM
               <span className="text-zinc-600"> | </span>{v.transmission}
@@ -500,26 +525,23 @@ function DesignPreview({
             </p>
           </div>
 
-          {/* Right column: badge+digit+city, then TECNO, then SOAT */}
-          <div className="min-w-0 flex-1">
-            {/* Badge row — at subtitle level (badge occupies same vertical space as subtitle) */}
-            <div className="flex items-center gap-[3px] text-[5.5px]" style={{ marginTop: "-7%" }}>
+          {/* Right column */}
+          <div className="min-w-0 flex-1" style={{ fontSize: `${isPost ? 1.0 : 0.75}%` }}>
+            <div className="flex items-center gap-[2px]" style={{ marginTop: "-6.5%" }}>
               <span
-                className="shrink-0 rounded-[2px] border px-[3px] py-[0.5px] font-mono text-[4.5px] font-bold leading-none"
-                style={{ background: T.plateBg, color: T.plateText, borderColor: T.plateBorder }}
+                className="shrink-0 rounded-[2px] border px-[2px] py-[0.5px] font-mono font-bold leading-none"
+                style={{ background: T.plateBg, color: T.plateText, borderColor: T.plateBorder, fontSize: `${isPost ? 0.9 : 0.7}%` }}
               >
                 {plateLabel}
               </span>
               <span className="shrink-0 font-bold" style={{ color: T.accent }}>{lastDigit}</span>
               <span className="shrink-0 text-zinc-600">|</span>
-              <span className="truncate text-zinc-300">{v.cityRegistration.slice(0, 9).toUpperCase()}</span>
+              <span className="truncate text-zinc-300">{v.cityRegistration.slice(0, 10).toUpperCase()}</span>
             </div>
-            {/* TECNO — between subtitle and spec1 */}
-            <div className="mt-[5%] text-[5px] leading-snug text-zinc-500">
+            <div className="mt-[4%] leading-snug text-zinc-500">
               <p>TECNO: <span className="text-zinc-300">{techno}</span></p>
             </div>
-            {/* SOAT — at spec1 level */}
-            <div className="mt-[5%] text-[5px] text-zinc-500">
+            <div className="mt-[4%] text-zinc-500">
               <p>SOAT: <span className="text-zinc-300">{v.soatDue || "—"}</span></p>
             </div>
           </div>
