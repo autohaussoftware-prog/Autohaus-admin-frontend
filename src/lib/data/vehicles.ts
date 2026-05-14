@@ -80,6 +80,7 @@ type DbVehicle = {
   owner_document: string | null;
   created_by_user_id: string | null;
   created_by: string | null; // existing column in schema, references profiles(id)
+  commission_rate: number | string | null;
 };
 
 type DbVehicleMovement = {
@@ -176,6 +177,7 @@ function mapVehicle(
     ownerContactVisible: canSeeContact,
     ownerName: canSeeContact ? (vehicle.owner_name ?? undefined) : undefined,
     ownerPhone: canSeeContact ? (vehicle.owner_phone ?? undefined) : undefined,
+    commissionRate: toNumber(vehicle.commission_rate) || 3,
   };
 }
 
@@ -427,6 +429,31 @@ export async function updateVehicleStatus(vehicleId: string, status: VehicleStat
     description: `Cambio de estado registrado por ${responsible}.`,
     new_status: status,
     metadata: { userName: responsible },
+  });
+}
+
+// Requires: ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(5,2) DEFAULT 3;
+export async function updateVehicleCommissionRate(
+  vehicleId: string,
+  rate: number,
+  updatedBy: string
+): Promise<void> {
+  const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
+  if (!supabase) throw new Error("Supabase no configurado.");
+
+  const { error } = await supabase
+    .from("vehicles")
+    .update({ commission_rate: rate, updated_at: new Date().toISOString() })
+    .eq("id", vehicleId);
+
+  if (error) throw new Error(error.message ?? "No se pudo actualizar la comisión.");
+
+  await supabase.from("vehicle_movements").insert({
+    vehicle_id: vehicleId,
+    type: "Actualización",
+    title: "Comisión de consignación actualizada",
+    description: `Comisión cambiada a ${rate}% por ${updatedBy}.`,
+    metadata: { updatedBy, rate, updatedAt: new Date().toISOString() },
   });
 }
 

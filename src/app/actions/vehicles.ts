@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient, getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
-import { deleteVehicle } from "@/lib/data/vehicles";
+import { deleteVehicle, updateVehicleCommissionRate } from "@/lib/data/vehicles";
 
 export async function updateVehiclePriceAction(
   vehicleId: string,
@@ -63,6 +63,36 @@ export async function updateVehiclePriceAction(
     description: `Precio cambiado de ${fmt(oldPrice)} → ${fmt(newPrice)} por ${name}.`,
     metadata: { updatedBy: name, userId, oldPrice, newPrice, updatedAt: new Date().toISOString() },
   });
+
+  revalidatePath(`/vehiculos/${vehicleId}`);
+  revalidatePath("/vehiculos");
+  revalidatePath("/");
+  return { error: null, attempt: next };
+}
+
+export async function updateCommissionRateAction(
+  vehicleId: string,
+  _prev: { error: string | null; attempt: number },
+  formData: FormData
+): Promise<{ error: string | null; attempt: number }> {
+  const next = _prev.attempt + 1;
+
+  const raw = formData.get("rate");
+  const rate = Number(raw);
+  if (!rate || rate <= 0 || rate > 100) {
+    return { error: "El porcentaje debe estar entre 0.1 y 100.", attempt: next };
+  }
+
+  const { name, role } = await getCurrentUserProfile();
+  if (!["owner", "partner", "admin", "gerente"].includes(role)) {
+    return { error: "Sin permisos para modificar la comisión.", attempt: next };
+  }
+
+  try {
+    await updateVehicleCommissionRate(vehicleId, rate, name);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "No se pudo actualizar la comisión.", attempt: next };
+  }
 
   revalidatePath(`/vehiculos/${vehicleId}`);
   revalidatePath("/vehiculos");

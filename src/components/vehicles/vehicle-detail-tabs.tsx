@@ -28,6 +28,7 @@ import { VehiclePhotos } from "@/components/vehicles/vehicle-photos";
 import type { VehiclePhoto } from "@/types/vehicle";
 import { VehicleStatusBadge } from "@/components/vehicles/vehicle-status-badge";
 import { EditPriceButton } from "@/components/vehicles/edit-price-button";
+import { EditCommissionButton } from "@/components/vehicles/edit-commission-button";
 import { DeleteVehicleButton } from "@/components/vehicles/delete-vehicle-button";
 import { compactCOP, currencyCOP, percentage } from "@/lib/utils";
 import type { Vehicle, VehicleMovement } from "@/types/vehicle";
@@ -101,6 +102,7 @@ export function VehicleDetailTabs({
   canManagePhotos = false,
   canEdit = false,
   canDelete = false,
+  canEditCommission = false,
 }: {
   vehicle: Vehicle;
   movements: VehicleMovement[];
@@ -117,6 +119,7 @@ export function VehicleDetailTabs({
   canManagePhotos?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  canEditCommission?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("info");
 
@@ -263,7 +266,7 @@ export function VehicleDetailTabs({
           </div>
 
           <div className="space-y-6">
-            {showFinancials && (
+            {showFinancials && vehicle.ownerType === "Propio" && (
               <Card>
                 <CardHeader className="border-b border-zinc-900">
                   <CardTitle>Rentabilidad</CardTitle>
@@ -293,6 +296,38 @@ export function VehicleDetailTabs({
                     </div>
                     <Progress value={Math.min(costUsage, 100)} className="mt-3" />
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {showFinancials && vehicle.ownerType !== "Propio" && (
+              <Card>
+                <CardHeader className="border-b border-zinc-900">
+                  <CardTitle>Comisión Autohaus</CardTitle>
+                  <CardDescription>Vehículo en {vehicle.ownerType.toLowerCase()} — Autohaus no es propietario.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 p-5">
+                  <div className="rounded-2xl border border-[#D6A93D]/20 bg-[#D6A93D]/10 p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs uppercase tracking-[0.16em] text-[#D6A93D]">Comisión</p>
+                      {canEditCommission && (
+                        <EditCommissionButton vehicleId={vehicle.id} currentRate={vehicle.commissionRate ?? 3} />
+                      )}
+                    </div>
+                    <p className="mt-1 text-2xl font-semibold text-white">{vehicle.commissionRate ?? 3}%</p>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Valor comisión estimado</p>
+                    <p className="mt-1 text-lg font-semibold text-white">
+                      {currencyCOP(vehicle.targetPrice * (vehicle.commissionRate ?? 3) / 100)}
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      Sobre precio objetivo {currencyCOP(vehicle.targetPrice)}
+                    </p>
+                  </div>
+                  <p className="text-xs text-zinc-600">
+                    La utilidad, costos e inversión no aplican para vehículos en {vehicle.ownerType.toLowerCase()}.
+                  </p>
                 </CardContent>
               </Card>
             )}

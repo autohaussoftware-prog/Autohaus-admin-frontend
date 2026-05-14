@@ -48,6 +48,7 @@ export type Vehicle = {
   ownerName?: string;
   ownerPhone?: string;
   ownerContactVisible?: boolean; // false = masked for this viewer (undefined = visible by default)
+  commissionRate?: number; // % comisión para vehículos no propios, default 3
 };
 
 export type VehicleMovement = {

@@ -33,6 +33,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   const canDelete =
     ["owner", "partner", "admin", "gerente"].includes(role) ||
     (vehicle.createdByUserId !== undefined && vehicle.createdByUserId === profile.id);
+  const canEditCommission = ["owner", "partner", "admin", "gerente"].includes(role);
 
   const [movements, costs, legalDocs, photos, investors, expenses] = await Promise.all([
     getVehicleMovementsByVehicleId(vehicle.id),
@@ -74,6 +75,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         canManagePhotos={canEdit}
       canEdit={canEdit}
       canDelete={canDelete}
+      canEditCommission={canEditCommission}
       />
     </>
   );
