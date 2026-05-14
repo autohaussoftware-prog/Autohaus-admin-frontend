@@ -1,76 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { Download, LayoutTemplate, Loader2, Maximize2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, Copy, Download, LayoutTemplate, Loader2, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Vehicle, VehiclePhoto } from "@/types/vehicle";
 
 type Format = "post" | "story";
-type Theme  = "bmw" | "rockse";
 
-interface ThemeCfg {
-  label:       string;
-  dot:         string;
-  panelBg:     string;
-  accent:      string;
-  accentDark:  string;
-  divider:     string;
-  specText:    string;
-  plateBg:     string;
-  plateBorder: string;
-  plateText:   string;
-}
+const GOLD      = "#D4A843";
+const GOLD_DARK = "#1a0e00";
+const W         = 1080;
 
-const THEMES: Record<Theme, ThemeCfg> = {
-  bmw: {
-    label:       "BMW · Negro",
-    dot:         "#D4A843",
-    panelBg:     "#0d0d0d",
-    accent:      "#D4A843",
-    accentDark:  "#6b4c10",
-    divider:     "#242424",
-    specText:    "#c0c0c0",
-    plateBg:     "#E8C547",
-    plateBorder: "#b89c30",
-    plateText:   "#1a1000",
-  },
-  rockse: {
-    label:       "ROCKS-E · Gris",
-    dot:         "#F5C518",
-    panelBg:     "#1b1b1b",
-    accent:      "#F5C518",
-    accentDark:  "#7a6200",
-    divider:     "#2d2d2d",
-    specText:    "#c8c8c8",
-    plateBg:     "#F5C518",
-    plateBorder: "#c4a000",
-    plateText:   "#1a1400",
-  },
-};
-
-/* ── SVG icons ───────────────────────────────────────────────────────── */
-
+// ── SVG icons ─────────────────────────────────────────────────────────
+const IC = "rgba(255,255,255,0.72)";
 const SVGS: Record<string, string> = {
-  speed:    `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-  gear:     `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
-  engine:   `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="10" rx="2"/><path d="M7 8V5M12 8V5M17 8V5"/><path d="M21 13h2M1 13h2"/></svg>`,
-  traction: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="20" height="6" rx="2"/><circle cx="6" cy="5" r="2.5"/><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="19" r="2.5"/></svg>`,
-  fuel:     `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><line x1="3" y1="22" x2="15" y2="22"/><path d="M15 10h2a2 2 0 0 1 2 2v5a1 1 0 0 0 2 0v-7l-3-3"/></svg>`,
+  km:       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  gear:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  fuel:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><line x1="3" y1="22" x2="15" y2="22"/><path d="M15 10h2a2 2 0 0 1 2 2v5a1 1 0 0 0 2 0v-7l-3-3"/></svg>`,
+  traction: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="20" height="6" rx="2"/><circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg>`,
+  city:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
 };
-
-function formatPlate(raw: string): string {
-  const clean = raw.replace(/[-\s]/g, "").toUpperCase();
-  if (clean.length === 6) return `${clean.slice(0, 3)}-${clean.slice(3)}`;
-  return raw.toUpperCase();
-}
 
 function svgImg(key: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => {
     const blob = new Blob([SVGS[key]], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const img = new Image(64, 64);
-    img.onload = () => { URL.revokeObjectURL(url); res(img); };
+    const url  = URL.createObjectURL(blob);
+    const img  = new Image();
+    img.onload  = () => { URL.revokeObjectURL(url); res(img); };
     img.onerror = rej;
     img.src = url;
   });
@@ -80,22 +36,11 @@ function photoImg(src: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => res(img);
+    img.onload  = () => res(img);
     img.onerror = rej;
     img.src = src;
     setTimeout(() => rej(new Error("timeout")), 12000);
   });
-}
-
-function containDraw(
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
-  dx: number, dy: number, dw: number, dh: number,
-) {
-  const scale = Math.min(dw / img.width, dh / img.height);
-  const sw = img.width * scale;
-  const sh = img.height * scale;
-  ctx.drawImage(img, dx + (dw - sw) / 2, dy + (dh - sh) / 2, sw, sh);
 }
 
 function coverDraw(
@@ -103,521 +48,441 @@ function coverDraw(
   img: HTMLImageElement,
   dx: number, dy: number, dw: number, dh: number,
 ) {
-  const scale = Math.max(dw / img.width, dh / img.height);
-  const sw = img.width * scale;
-  const sh = img.height * scale;
+  const s  = Math.max(dw / img.width, dh / img.height);
+  const sw = img.width  * s;
+  const sh = img.height * s;
   ctx.drawImage(img, dx + (dw - sw) / 2, dy + (dh - sh) / 2, sw, sh);
 }
 
-/* ── Canvas renderer ─────────────────────────────────────────────────── */
+function priceCOP(n: number) {
+  return "$ " + n.toLocaleString("es-CO");
+}
 
-async function renderToCanvas(
+// ── Canvas renderer ────────────────────────────────────────────────────
+async function renderCanvas(
   v: Vehicle,
   photoUrl: string | undefined,
   fmt: Format,
-  theme: Theme,
 ): Promise<HTMLCanvasElement> {
-  const T = THEMES[theme];
-  const W = 1080;
-  const H = fmt === "post" ? 1350 : 1920;
+  const isPost = fmt === "post";
+  const H      = isPost ? 1350 : 1920;
+  const S      = H / 1350;
 
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d")!;
+  const canvas    = document.createElement("canvas");
+  canvas.width    = W;
+  canvas.height   = H;
+  const ctx       = canvas.getContext("2d")!;
   await document.fonts.ready;
 
-  // Exact pixel measurements pixel-scanned from blank template PNGs:
-  //   POST  (1080×1350): gold left y=1028, gold right y=908, dark left y=1035
-  //   STORY (1080×1920): gold left y=1149, gold right y=1025, dark left y=1160
-  //   @autohausmed baseline: POST y=267, STORY y=270 (same absolute position)
-  //   STORY price pill: y=1642–1778 center, x=137–964
-  const isPost = fmt === "post";
-  const templateUrl = isPost ? "/template-post.png" : "/template-story.png";
-
   const settled = await Promise.allSettled([
-    photoUrl ? photoImg(photoUrl) : Promise.reject(),
+    photoUrl ? photoImg(photoUrl) : Promise.reject("no-photo"),
     photoImg("/logo-ah.jpeg"),
-    photoImg(templateUrl),
-    svgImg("speed"),
-    svgImg("gear"),
-    svgImg("engine"),
-    svgImg("traction"),
-    svgImg("fuel"),
+    svgImg("km"), svgImg("gear"), svgImg("fuel"), svgImg("traction"), svgImg("city"),
   ]);
-  const get = (i: number) =>
+  const g = (i: number): HTMLImageElement | null =>
     settled[i].status === "fulfilled"
       ? (settled[i] as PromiseFulfilledResult<HTMLImageElement>).value
       : null;
-  const [carImg, logoImg, templateImg, iSpeed, iGear, iEngine, iTraction, iFuel] =
-    [get(0), get(1), get(2), get(3), get(4), get(5), get(6), get(7)];
 
-  // ── Layout — absolute pixel values from template scan ─────────────
-  const handleY = isPost ? 267  : 270;   // @autohausmed baseline (px)
-  const diagLY  = isPost ? 1028 : 1149;  // top of gold band, left edge (px)
-  const diagRY  = isPost ?  908 : 1025;  // top of gold band, right edge (px)
-  const panelY  = isPost ? 1035 : 1160;  // dark panel start, left edge (px)
-  const scale   = H / 1350;              // only used for text sizing/spacing
+  const carImg = g(0); const logoImg = g(1);
+  const iKm = g(2); const iGear = g(3); const iFuel = g(4);
+  const iTrac = g(5); const iCity = g(6);
 
-  const lX     = 54;   // spec rows left margin
-  const lXtext = 196;  // header + subtitle left margin (pixel-scanned from reference)
-  const colRX  = 560;  // right column start (pixel-scanned: badge at x=560–626)
+  // ── Layout: all values scaled relative to 1350px height ────────────
+  const PANEL_Y  = Math.round(H * (isPost ? 0.660 : 0.615));
+  const BRAND_Y  = PANEL_Y + Math.round(70  * S);
+  const YEAR_Y   = PANEL_Y + Math.round(112 * S);
+  const SPEC1_Y  = PANEL_Y + Math.round(165 * S);
+  const SPEC2_Y  = PANEL_Y + Math.round(210 * S);
+  const PRICE_Y  = PANEL_Y + Math.round(300 * S);
 
-  const logoSz  = Math.round(H * 0.075);
-  const logoTop = handleY - logoSz - Math.round(H * 0.008);
+  const HANDLE_Y = Math.round((isPost ? 96 : 72) * S);
+  const LOGO_SZ  = Math.round((isPost ? 74 : 56) * S);
+  const LOGO_Y   = HANDLE_Y - LOGO_SZ - Math.round(8 * S);
+  const HANDLE_FS = Math.round(28 * S);
 
-  // Panel text baselines — pixel-scanned from Ford F150 reference (1080×1350)
-  const headerY = panelY + Math.round(49  * scale);  // was 62
-  const subY    = panelY + Math.round(97  * scale);  // was 104
-  const spec1Y  = panelY + Math.round(162 * scale);  // was 152
-  const spec2Y  = panelY + Math.round(225 * scale);  // was 192
+  const MX = Math.round(58 * S);
 
-  // Right column — plate badge
-  const plateFontPx = Math.round(17 * scale);
-  const plateText   = formatPlate(v.plate);
-  const plateBH     = Math.round(20 * scale);  // badge height (was 36)
-
-  // ── Draw ───────────────────────────────────────────────────────────
-
-  /* 1 — Dark base */
-  ctx.fillStyle = "#111111";
+  // ── 1. Dark base ────────────────────────────────────────────────────
+  ctx.fillStyle = "#0a0a0a";
   ctx.fillRect(0, 0, W, H);
 
-  /* 2 — Vehicle photo clipped to photo polygon */
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(W, 0);
-  ctx.lineTo(W, diagRY);
-  ctx.lineTo(0, diagLY);
-  ctx.closePath();
-  ctx.clip();
+  // ── 2. Car photo — full-bleed, object-cover ─────────────────────────
   if (carImg) {
-    coverDraw(ctx, carImg, 0, 0, W, diagLY);
-  } else {
-    const gGray = ctx.createLinearGradient(0, 0, 0, diagLY);
-    gGray.addColorStop(0, "#505050");
-    gGray.addColorStop(0.4, "#b8b8b8");
-    gGray.addColorStop(1, "#e0e0e0");
-    ctx.fillStyle = gGray;
-    ctx.fillRect(0, 0, W, diagLY);
+    coverDraw(ctx, carImg, 0, 0, W, H);
   }
-  ctx.restore();
 
-  /* 3 — Template panel overlay (actual design PNG, clipped to panel area) */
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(0, diagLY - 4);
-  ctx.lineTo(W, diagRY - 4);
-  ctx.lineTo(W, H);
-  ctx.lineTo(0, H);
-  ctx.closePath();
-  ctx.clip();
-  if (templateImg) {
-    ctx.drawImage(templateImg, 0, 0, W, H);
-  } else {
-    // Fallback: solid panel + gold band
-    ctx.fillStyle = T.panelBg;
-    ctx.fillRect(0, diagLY, W, H - diagLY);
-    ctx.fillStyle = T.accent;
-    ctx.beginPath();
-    ctx.moveTo(0, diagLY - 20); ctx.lineTo(W, diagRY - 20);
-    ctx.lineTo(W, diagRY); ctx.lineTo(0, diagLY);
-    ctx.fill();
+  // ── 3. Bottom dark gradient overlay ─────────────────────────────────
+  {
+    const grad = ctx.createLinearGradient(0, H * 0.28, 0, H);
+    grad.addColorStop(0,    "rgba(8,8,8,0)");
+    grad.addColorStop(0.28, "rgba(8,8,8,0.42)");
+    grad.addColorStop(0.52, "rgba(8,8,8,0.80)");
+    grad.addColorStop(0.74, "rgba(8,8,8,0.94)");
+    grad.addColorStop(1,    "rgba(8,8,8,0.99)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
   }
-  ctx.restore();
 
-  /* 4 — AH logo (screen blend over photo) */
+  // ── 4. Top vignette (behind logo / handle) ───────────────────────────
+  {
+    const tv = ctx.createLinearGradient(0, 0, 0, H * 0.20);
+    tv.addColorStop(0, "rgba(0,0,0,0.55)");
+    tv.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = tv;
+    ctx.fillRect(0, 0, W, H * 0.20);
+  }
+
+  // ── 5. Gold separator line ───────────────────────────────────────────
+  ctx.fillStyle = GOLD;
+  ctx.fillRect(MX, PANEL_Y, W - MX * 2, Math.round(2.5 * S));
+
+  // ── 6. AH Logo ──────────────────────────────────────────────────────
   if (logoImg) {
     ctx.save();
     ctx.globalCompositeOperation = "screen";
-    ctx.drawImage(logoImg, (W - logoSz) / 2, logoTop, logoSz, logoSz);
+    ctx.drawImage(logoImg, (W - LOGO_SZ) / 2, LOGO_Y, LOGO_SZ, LOGO_SZ);
     ctx.restore();
   }
 
-  /* 5 — @autohausmed */
+  // ── 7. @autohausmed handle ───────────────────────────────────────────
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.95)";
-  ctx.shadowBlur  = 18;
-  ctx.fillStyle   = "rgba(255,255,255,0.92)";
-  ctx.font        = `600 ${Math.round(H * 0.022)}px Inter, sans-serif`;
+  ctx.shadowColor = "rgba(0,0,0,1)";
+  ctx.shadowBlur  = 22;
+  ctx.fillStyle   = "rgba(255,255,255,0.88)";
+  ctx.font        = `600 ${HANDLE_FS}px Inter, sans-serif`;
   ctx.textAlign   = "center";
-  ctx.fillText("@autohausmed", W / 2, handleY);
+  ctx.fillText("@autohausmed", W / 2, HANDLE_Y);
   ctx.restore();
 
-  /* 6 — Panel info text */
-  const lastDigit  = v.plate.replace(/\D/g, "").at(-1) ?? "—";
-  const techno     = v.technoDue?.trim() || "N/A";
-  const headerText = [v.brand, v.line].filter(Boolean).join(" ").toUpperCase();
-
-  // Header: brand + line — CENTERED (as shown in template)
-  const hLen     = headerText.length;
-  const headerFs = Math.round(
-    (hLen > 14 ? 70 : hLen > 11 ? 88 : hLen > 8 ? 104 : 128) * (H / 1350)
-  );
-  ctx.textAlign = "center";
+  // ── 8. Brand + Line ─────────────────────────────────────────────────
+  const header  = [v.brand, v.line].filter(Boolean).join("  ").toUpperCase();
+  const hLen    = header.length;
+  const brandFs = Math.round((hLen > 16 ? 68 : hLen > 12 ? 86 : hLen > 8 ? 104 : 126) * S);
   ctx.fillStyle = "#ffffff";
-  ctx.font      = `900 ${headerFs}px Inter, sans-serif`;
-  ctx.fillText(headerText, W / 2, headerY);
-
-  // Subtitle: version (gray) + year (accent) — CENTERED as a unit
-  const subFs = Math.round(38 * (H / 1350));
-  ctx.font = `400 ${subFs}px Inter, sans-serif`;
-  const versionLabel = v.version?.trim() ? v.version.trim() + " " : "";
-  const yearLabel    = String(v.year);
-  const totalSubW    = ctx.measureText(versionLabel + yearLabel).width;
-  const subStartX    = (W - totalSubW) / 2;
-  ctx.fillStyle = "#bbbbbb";
-  ctx.textAlign = "left";
-  ctx.fillText(versionLabel, subStartX, subY);
-  ctx.fillStyle = T.accent;
-  ctx.fillText(yearLabel, subStartX + ctx.measureText(versionLabel).width, subY);
-
-  // Spec helpers
-  const specFs    = Math.round(27 * scale);
-  const iconSz    = Math.round(26 * scale);
-  const specFsStr = `600 ${specFs}px Inter, sans-serif`;
-  const pipeFsStr = `400 ${specFs}px Inter, sans-serif`;
-
-  function specUnit(icon: HTMLImageElement | null, text: string, x: number, y: number): number {
-    if (icon) {
-      ctx.drawImage(icon, x, y - Math.round(specFs * 0.78), iconSz, iconSz);
-      x += iconSz + 6;
-    }
-    ctx.fillStyle = T.specText;
-    ctx.font      = specFsStr;
-    ctx.textAlign = "left";
-    ctx.fillText(text.toUpperCase(), x, y);
-    return x + ctx.measureText(text.toUpperCase()).width;
-  }
-
-  function pipe(x: number, y: number): number {
-    const pipeStr = "  |  ";
-    ctx.fillStyle = "#555555";
-    ctx.font      = pipeFsStr;
-    ctx.textAlign = "left";
-    ctx.fillText(pipeStr, x, y);
-    return x + ctx.measureText(pipeStr).width;
-  }
-
-  // Row 1: KM | Transmission | Motor  /
-  let x = lX;
-  x = specUnit(iSpeed, v.mileage.toLocaleString("es-CO") + " KM", x, spec1Y);
-  x = pipe(x, spec1Y);
-  x = specUnit(iGear, v.transmission, x, spec1Y);
-  if (v.motor) {
-    x = pipe(x, spec1Y);
-    x = specUnit(iEngine, v.motor, x, spec1Y);
-  }
-  // Row 2: Traction | Fuel
-  x = lX;
-  if (v.traction) {
-    x = specUnit(iTraction, v.traction, x, spec2Y);
-    x = pipe(x, spec2Y);
-  }
-  specUnit(iFuel, v.fuel, x, spec2Y);
-
-  /* ── Right column ────────────────────────────────────────────────── */
-  // Line 1: [ABC-123]  7 | MEDELLÍN  — at subtitle level (y=subY, badge top=panelY+76)
-  // Line 2: TECNO: value             — at panelY+108
-  // Line 3: SOAT:  value             — at spec1Y
-
-  // Measure plate text to size badge exactly
-  ctx.font = `bold ${plateFontPx}px monospace`;
-  const plateTextW   = ctx.measureText(plateText).width;
-  const hPad         = Math.round(8 * scale);
-  const plateBW      = plateTextW + hPad * 2;
-
-  // Badge positioned at subtitle level (pixel-scanned: badge top y=1111=panelY+76)
-  const plateBadgeTop      = panelY + Math.round(76 * scale);
-  const plateBadgeBaseline = plateBadgeTop + Math.round(14 * scale);
-
-  // Draw plate badge (gold rectangle, rounded, inner border)
-  const radius = Math.round(6 * scale);
-  ctx.fillStyle = T.plateBg;
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(colRX, plateBadgeTop, plateBW, plateBH, radius);
-  else ctx.rect(colRX, plateBadgeTop, plateBW, plateBH);
-  ctx.fill();
-  ctx.strokeStyle = T.plateBorder;
-  ctx.lineWidth   = 1.5;
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(colRX + 2, plateBadgeTop + 2, plateBW - 4, plateBH - 4, Math.max(2, radius - 2));
-  else ctx.rect(colRX + 2, plateBadgeTop + 2, plateBW - 4, plateBH - 4);
-  ctx.stroke();
-
-  // Plate text centered inside badge
-  ctx.fillStyle = T.plateText;
-  ctx.font      = `bold ${plateFontPx}px monospace`;
+  ctx.font      = `900 ${brandFs}px Inter, sans-serif`;
   ctx.textAlign = "center";
-  ctx.fillText(plateText, colRX + plateBW / 2, plateBadgeBaseline);
+  ctx.fillText(header, W / 2, BRAND_Y);
 
-  // Last digit (accent) + " | " + city — to the right of badge, same baseline
-  const afterBadge = colRX + plateBW + Math.round(8 * scale);
-  const digitFs    = Math.round(20 * scale);
-  const infoLineFs = Math.round(16 * scale);
-
+  // ── 9. Version · Year ────────────────────────────────────────────────
+  const yearFs  = Math.round(36 * S);
+  ctx.font      = `400 ${yearFs}px Inter, sans-serif`;
+  const verTxt  = v.version?.trim() ? v.version.trim() + "  " : "";
+  const yrTxt   = String(v.year);
+  const verW    = ctx.measureText(verTxt).width;
+  const yrW     = ctx.measureText(yrTxt).width;
+  const subX    = (W - verW - yrW) / 2;
   ctx.textAlign = "left";
-  ctx.fillStyle = T.accent;
-  ctx.font      = `700 ${digitFs}px Inter, sans-serif`;
-  ctx.fillText(lastDigit, afterBadge, plateBadgeBaseline);
-  const dw = ctx.measureText(lastDigit).width;
-
-  ctx.fillStyle = "#777777";
-  ctx.font      = `400 ${infoLineFs}px Inter, sans-serif`;
-  const pipe2   = " | ";
-  ctx.fillText(pipe2, afterBadge + dw, plateBadgeBaseline);
-  const pw = ctx.measureText(pipe2).width;
-
-  ctx.fillStyle = "#cccccc";
-  ctx.fillText(v.cityRegistration.toUpperCase(), afterBadge + dw + pw, plateBadgeBaseline);
-
-  // TECNO — at panelY+108 (pixel-scanned); SOAT — at spec1Y
-  const tecnoY = panelY + Math.round(108 * scale);
-  const infoFs = Math.round(18 * scale);
-  const labelFont = `400 ${infoFs}px Inter, sans-serif`;
-  const valueFont = `500 ${infoFs}px Inter, sans-serif`;
-  ctx.textAlign  = "left";
-
-  ctx.font      = labelFont;
-  const tecnoLabelW = ctx.measureText("TECNO: ").width;
-  const soatLabelW  = ctx.measureText("SOAT:  ").width;
-
-  ctx.fillStyle = "#585858";
-  ctx.fillText("TECNO: ", colRX, tecnoY);
-  ctx.font      = valueFont;
-  ctx.fillStyle = "#cccccc";
-  ctx.fillText(techno, colRX + tecnoLabelW, tecnoY);
-
-  ctx.font      = labelFont;
-  ctx.fillStyle = "#585858";
-  ctx.fillText("SOAT:  ", colRX, spec1Y);
-  ctx.font      = valueFont;
-  ctx.fillStyle = "#cccccc";
-  ctx.fillText(v.soatDue || "—", colRX + soatLabelW, spec1Y);
-
-  /* 7 — Price text (story only — template already has the gold pill shape)
-     Pill measured from template: y=1642–1778, center y=1710, x=137–964 */
-  if (!isPost) {
-    const priceText = "$" + v.targetPrice.toLocaleString("es-CO");
-    const priceFs   = Math.round((priceText.length > 14 ? 56 : 68) * scale);
-    const pillCenterY = 1710;
-    const priceTextY  = pillCenterY + Math.round(priceFs * 0.36);
-    ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.35)";
-    ctx.shadowBlur  = 8;
-    ctx.fillStyle   = "#1a0d00";
-    ctx.font        = `900 ${priceFs}px Inter, sans-serif`;
-    ctx.textAlign   = "center";
-    ctx.fillText(priceText, W / 2, priceTextY);
-    ctx.restore();
+  if (verTxt) {
+    ctx.fillStyle = "#888888";
+    ctx.fillText(verTxt, subX, YEAR_Y);
   }
+  ctx.fillStyle = GOLD;
+  ctx.fillText(yrTxt, subX + verW, YEAR_Y);
+
+  // ── 10. Spec rows ────────────────────────────────────────────────────
+  const ICON_SZ  = Math.round(28 * S);
+  const SPEC_FS  = Math.round(26 * S);
+  const ICON_GAP = 10;
+  const DOT_R    = Math.round(3.5 * S);
+  const SEP      = Math.round(50 * S);
+
+  ctx.font = `500 ${SPEC_FS}px Inter, sans-serif`;
+
+  function itemW(icon: HTMLImageElement | null, label: string): number {
+    return (icon ? ICON_SZ + ICON_GAP : 0) + ctx.measureText(label.toUpperCase()).width;
+  }
+
+  function drawSpecRow(items: { icon: HTMLImageElement | null; label: string }[], y: number) {
+    const total = items.reduce(
+      (s, it, i) => s + itemW(it.icon, it.label) + (i < items.length - 1 ? SEP * 2 + DOT_R * 2 : 0),
+      0,
+    );
+    let cx = (W - total) / 2;
+    items.forEach((it, i) => {
+      const iw = itemW(it.icon, it.label);
+      if (it.icon) ctx.drawImage(it.icon, cx, y - Math.round(SPEC_FS * 0.84), ICON_SZ, ICON_SZ);
+      ctx.fillStyle = "rgba(255,255,255,0.76)";
+      ctx.font      = `500 ${SPEC_FS}px Inter, sans-serif`;
+      ctx.textAlign = "left";
+      ctx.fillText(it.label.toUpperCase(), cx + (it.icon ? ICON_SZ + ICON_GAP : 0), y);
+      cx += iw;
+      if (i < items.length - 1) {
+        cx += SEP;
+        ctx.beginPath();
+        ctx.arc(cx, y - Math.round(SPEC_FS * 0.28), DOT_R, 0, Math.PI * 2);
+        ctx.fillStyle = GOLD;
+        ctx.fill();
+        cx += SEP;
+      }
+    });
+  }
+
+  // Row 1: KM · Transmisión · Combustible
+  drawSpecRow([
+    { icon: iKm,   label: v.mileage.toLocaleString("es-CO") + " KM" },
+    { icon: iGear, label: v.transmission },
+    { icon: iFuel, label: v.fuel },
+  ], SPEC1_Y);
+
+  // Row 2 (post only): Tracción · Tránsito
+  if (isPost) {
+    const r2: { icon: HTMLImageElement | null; label: string }[] = [];
+    if (v.traction) r2.push({ icon: iTrac, label: v.traction });
+    r2.push({ icon: iCity, label: v.cityRegistration });
+    if (r2.length) drawSpecRow(r2, SPEC2_Y);
+  }
+
+  // ── 11. Price pill (story only) ──────────────────────────────────────
+  if (!isPost) {
+    const prStr  = priceCOP(v.targetPrice);
+    const prFs   = Math.round((prStr.length > 17 ? 72 : 90) * S);
+    ctx.font     = `900 ${prFs}px Inter, sans-serif`;
+    const ptw    = ctx.measureText(prStr).width;
+    const padX   = Math.round(54 * S);
+    const padY   = Math.round(18 * S);
+    const pillH  = prFs + padY * 2;
+    const pillW  = ptw + padX * 2;
+    const pillX  = (W - pillW) / 2;
+    const pillTop = PRICE_Y - prFs - padY;
+    const pillR  = Math.round(pillH * 0.14);
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.65)";
+    ctx.shadowBlur  = Math.round(24 * S);
+    ctx.fillStyle   = GOLD;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(pillX, pillTop, pillW, pillH, pillR);
+    else ctx.rect(pillX, pillTop, pillW, pillH);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = GOLD_DARK;
+    ctx.textAlign = "center";
+    ctx.fillText(prStr, W / 2, PRICE_Y);
+  }
+
+  // ── 12. AUTOHAUS wordmark — very subtle ──────────────────────────────
+  const wmFs = Math.round(14 * S);
+  const wmY  = H - Math.round(36 * S);
+  ctx.fillStyle = "rgba(255,255,255,0.16)";
+  ctx.font      = `600 ${wmFs}px Inter, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("A U T O H A U S", W / 2, wmY);
 
   return canvas;
 }
 
-/* ── CSS Preview ─────────────────────────────────────────────────────── */
+// ── Instagram caption ──────────────────────────────────────────────────
+function buildCaption(v: Vehicle): string {
+  const brand = v.brand.toLowerCase().replace(/\s+/g, "");
+  const line  = v.line.toLowerCase().replace(/\s+/g, "");
+  return [
+    `${v.brand} ${v.line} ${v.year}${v.version?.trim() ? ` · ${v.version.trim()}` : ""}`,
+    "",
+    `📏 ${v.mileage.toLocaleString("es-CO")} km`,
+    `⚙️ ${v.transmission}`,
+    `⛽ ${v.fuel}`,
+    ...(v.traction ? [`🔄 ${v.traction}`] : []),
+    "",
+    "📲 Escríbenos para más información",
+    "@autohausmed",
+    "",
+    `#Autohaus #${brand}${line} #CarrosUsados #Medellín #VehículosUsados #AutohausMed`,
+  ].join("\n");
+}
 
-function DesignPreview({
-  v, photoUrl, fmt, theme,
-}: {
-  v: Vehicle; photoUrl?: string; fmt: Format; theme: Theme;
-}) {
-  const T = THEMES[theme];
-  const isPost     = fmt === "post";
-  const lastDigit  = v.plate.replace(/\D/g, "").at(-1) ?? "—";
-  const techno     = v.technoDue?.trim() || "N/A";
-  const priceText  = "$" + v.targetPrice.toLocaleString("es-CO");
-  const headerText = [v.brand, v.line].filter(Boolean).join(" ").toUpperCase();
-  const plateLabel = formatPlate(v.plate);
-
-  // Diagonal percentages — pixel-scanned from blank template PNGs:
-  //   POST  1080×1350: gold left=1028(76.1%), right=908(67.3%); handle y=267(19.8%)
-  //   STORY 1080×1920: gold left=1149(59.8%), right=1025(53.4%); handle y=270(14.1%)
-  const diagL     = isPost ? 76.1 : 59.8;  // left  edge photo-end % (was 81.2 / 75.5)
-  const diagR     = isPost ? 67.3 : 53.4;  // right edge photo-end % (was 78.4 / 72.7)
-  const handlePct = isPost ? 19.5 : 13.8;  // @autohausmed center % (was 18.9 / 16.1)
+// ── CSS Preview ────────────────────────────────────────────────────────
+function DesignPreview({ v, photoUrl, fmt }: { v: Vehicle; photoUrl?: string; fmt: Format }) {
+  const isPost   = fmt === "post";
+  const header   = [v.brand, v.line].filter(Boolean).join("  ").toUpperCase();
+  const priceStr = priceCOP(v.targetPrice);
+  const panelPct = isPost ? 66.0 : 61.5;
 
   return (
     <div
       className={cn(
-        "relative w-full overflow-hidden rounded-2xl select-none bg-[#111]",
+        "relative w-full overflow-hidden rounded-2xl select-none bg-[#0a0a0a]",
         isPost ? "aspect-[4/5]" : "aspect-[9/16]",
       )}
+      style={{ containerType: "inline-size" } as React.CSSProperties}
     >
-      {/* z=1 — Template PNG (dark panel + gold band) */}
-      <img
-        src={`/template-${fmt}.png`}
-        alt=""
-        className="absolute inset-0 h-full w-full object-fill"
-        style={{ zIndex: 1 }}
-      />
+      {/* Full-bleed photo */}
+      {photoUrl
+        ? <img src={photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ zIndex: 1 }} />
+        : <div className="absolute inset-0 bg-gradient-to-br from-zinc-700 to-zinc-950" style={{ zIndex: 1 }} />
+      }
 
-      {/* z=2 — Car photo clipped to photo polygon */}
+      {/* Bottom gradient overlay */}
       <div
         className="absolute inset-0"
         style={{
           zIndex: 2,
-          clipPath: `polygon(0 0, 100% 0, 100% ${diagR}%, 0 ${diagL}%)`,
+          background: "linear-gradient(to bottom, transparent 0%, transparent 28%, rgba(8,8,8,0.42) 42%, rgba(8,8,8,0.82) 56%, rgba(8,8,8,0.96) 72%, rgba(8,8,8,0.99) 100%)",
         }}
-      >
-        {photoUrl
-          ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
-          : <div className="h-full w-full bg-gradient-to-b from-[#505050] via-[#b8b8b8] to-[#e0e0e0]" />
-        }
-      </div>
+      />
 
-      {/* z=10 — AH logo (screen blend, same as canvas step 4) */}
+      {/* Top vignette */}
+      <div
+        className="absolute inset-x-0 top-0"
+        style={{ zIndex: 2, height: "20%", background: "linear-gradient(to bottom, rgba(0,0,0,0.52) 0%, transparent 100%)" }}
+      />
+
+      {/* AH Logo */}
       <img
         src="/logo-ah.jpeg"
-        alt="AH"
+        alt=""
         className="absolute left-1/2 -translate-x-1/2"
         style={{
-          top: `${handlePct - (isPost ? 8.4 : 6.0)}%`,
-          height: `${isPost ? 7.5 : 5.5}%`,
+          zIndex: 3,
+          top: isPost ? "2.0%" : "1.5%",
+          height: isPost ? "5.5%" : "4.2%",
           width: "auto",
           mixBlendMode: "screen",
           objectFit: "contain",
-          zIndex: 10,
         }}
       />
-      {/* z=10 — @autohausmed */}
+
+      {/* @autohausmed */}
       <div
         className="absolute inset-x-0 flex justify-center"
-        style={{ top: `${handlePct}%`, zIndex: 10 }}
+        style={{ zIndex: 3, top: isPost ? "8.6%" : "6.5%" }}
       >
-        <p className="text-[9px] font-semibold tracking-wide text-white [text-shadow:0_1px_10px_rgba(0,0,0,1)]">
+        <p style={{ fontSize: "2.7cqw", fontWeight: 600, color: "rgba(255,255,255,0.88)", textShadow: "0 0 14px rgba(0,0,0,1)" }}>
           @autohausmed
         </p>
       </div>
 
-      {/* z=10 — Panel text: header + subtitle CENTERED */}
+      {/* Gold separator line */}
+      <div
+        className="absolute"
+        style={{ zIndex: 3, top: `${panelPct}%`, left: "5.5%", right: "5.5%", height: "0.22%", background: GOLD }}
+      />
+
+      {/* Brand + Line */}
       <div
         className="absolute inset-x-0 text-center"
-        style={{ top: `${diagL}%`, zIndex: 10 }}
+        style={{ zIndex: 3, top: `${panelPct + 2.2}%` }}
       >
-        <p className="truncate px-3 font-black uppercase leading-none text-white mt-[3.2%]"
-           style={{ fontSize: `${isPost ? 3.2 : 2.3}%` }}>
-          {headerText}
+        <p
+          className="truncate px-[4%] font-black uppercase text-white"
+          style={{ fontSize: "9.6cqw", lineHeight: 1, letterSpacing: "-0.01em" }}
+        >
+          {header}
         </p>
-        <p className="mt-[0.8%] leading-none" style={{ fontSize: `${isPost ? 1.5 : 1.1}%` }}>
-          {v.version?.trim() && <span className="text-zinc-400">{v.version.trim()} </span>}
-          <span style={{ color: T.accent }}>{v.year}</span>
+        <p className="mt-[0.8%]" style={{ fontSize: "3.3cqw", lineHeight: 1 }}>
+          {v.version?.trim() && <span style={{ color: "#888" }}>{v.version.trim()}{"  "}</span>}
+          <span style={{ color: GOLD }}>{v.year}</span>
         </p>
       </div>
 
       {/* Spec rows */}
       <div
-        className="absolute"
-        style={{ top: `${diagL + (isPost ? 12.0 : 8.5)}%`, left: "5%", right: "3%", zIndex: 10 }}
+        className="absolute inset-x-0 flex flex-col items-center"
+        style={{ zIndex: 3, top: `${panelPct + 11.8}%`, gap: "1.4%" }}
       >
-        <div className="flex gap-2">
-          {/* Left specs */}
-          <div className="min-w-0 space-y-[2.5%] leading-snug text-zinc-400" style={{ width: "47%", fontSize: `${isPost ? 1.05 : 0.8}%` }}>
-            <p className="truncate">
-              {v.mileage.toLocaleString("es-CO")} KM
-              <span className="text-zinc-600"> | </span>{v.transmission}
-              {v.motor ? <><span className="text-zinc-600"> | </span>{v.motor}</> : null}
-            </p>
-            <p className="truncate">
-              {v.traction ? <>{v.traction}<span className="text-zinc-600"> | </span></> : null}
-              {v.fuel}
-            </p>
-          </div>
-
-          {/* Right column */}
-          <div className="min-w-0 flex-1" style={{ fontSize: `${isPost ? 1.0 : 0.75}%` }}>
-            <div className="flex items-center gap-[2px]" style={{ marginTop: "-6.5%" }}>
-              <span
-                className="shrink-0 rounded-[2px] border px-[2px] py-[0.5px] font-mono font-bold leading-none"
-                style={{ background: T.plateBg, color: T.plateText, borderColor: T.plateBorder, fontSize: `${isPost ? 0.9 : 0.7}%` }}
-              >
-                {plateLabel}
-              </span>
-              <span className="shrink-0 font-bold" style={{ color: T.accent }}>{lastDigit}</span>
-              <span className="shrink-0 text-zinc-600">|</span>
-              <span className="truncate text-zinc-300">{v.cityRegistration.slice(0, 10).toUpperCase()}</span>
-            </div>
-            <div className="mt-[4%] leading-snug text-zinc-500">
-              <p>TECNO: <span className="text-zinc-300">{techno}</span></p>
-            </div>
-            <div className="mt-[4%] text-zinc-500">
-              <p>SOAT: <span className="text-zinc-300">{v.soatDue || "—"}</span></p>
-            </div>
-          </div>
+        {/* Row 1: KM · Transmisión · Combustible */}
+        <div
+          className="flex items-center"
+          style={{ gap: "2.6%", fontSize: "2.5cqw", color: "rgba(255,255,255,0.76)", fontWeight: 500 }}
+        >
+          <span>{v.mileage.toLocaleString("es-CO")} KM</span>
+          <span style={{ color: GOLD, fontSize: "1.6cqw" }}>●</span>
+          <span>{v.transmission.toUpperCase()}</span>
+          <span style={{ color: GOLD, fontSize: "1.6cqw" }}>●</span>
+          <span>{v.fuel.toUpperCase()}</span>
         </div>
+
+        {/* Row 2 (post only): Tracción · Ciudad */}
+        {isPost && (
+          <div
+            className="flex items-center"
+            style={{ gap: "2.6%", fontSize: "2.5cqw", color: "rgba(255,255,255,0.76)", fontWeight: 500 }}
+          >
+            {v.traction && (
+              <>
+                <span>{v.traction.toUpperCase()}</span>
+                <span style={{ color: GOLD, fontSize: "1.6cqw" }}>●</span>
+              </>
+            )}
+            <span>{v.cityRegistration.toUpperCase()}</span>
+          </div>
+        )}
       </div>
 
-      {/* z=10 — Price text (story only — template already has the gold pill)
-          Pill at 85.5%–92.6% from top (measured: y=1642–1778 / 1920) */}
+      {/* Price pill (story only) */}
       {!isPost && (
         <div
-          className="absolute inset-x-[14%] flex items-center justify-center"
-          style={{ top: "85.5%", height: "7.1%", zIndex: 10 }}
+          className="absolute inset-x-[10%] flex items-center justify-center"
+          style={{ zIndex: 3, top: `${panelPct + 22}%`, height: "8%" }}
         >
-          <span className="text-[10px] font-black [color:#1a0d00] [text-shadow:0_1px_3px_rgba(0,0,0,0.3)]">
-            {priceText}
-          </span>
+          <div
+            className="flex items-center justify-center rounded-[12%] px-[5%]"
+            style={{ background: GOLD, minWidth: "55%", height: "100%", boxShadow: "0 4px 24px rgba(0,0,0,0.65)" }}
+          >
+            <span style={{ fontSize: "8cqw", fontWeight: 900, color: GOLD_DARK, letterSpacing: "-0.01em" }}>
+              {priceStr}
+            </span>
+          </div>
         </div>
       )}
+
+      {/* AUTOHAUS wordmark */}
+      <div
+        className="absolute inset-x-0 flex justify-center"
+        style={{ zIndex: 3, bottom: "2%" }}
+      >
+        <p style={{ fontSize: "1.3cqw", color: "rgba(255,255,255,0.16)", fontWeight: 600, letterSpacing: "0.25em" }}>
+          A U T O H A U S
+        </p>
+      </div>
     </div>
   );
 }
 
-/* ── Main component ──────────────────────────────────────────────────── */
-
+// ── Main component ─────────────────────────────────────────────────────
 export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photos: VehiclePhoto[] }) {
-  const [fmt, setFmt]             = useState<Format>("post");
-  const [theme, setTheme]         = useState<Theme>("bmw");
-  const [photoIdx, setPhotoIdx]   = useState(0);
-  const [downloading, setDownloading] = useState(false);
-  const [dlError, setDlError]     = useState<string | null>(null);
+  const [fmt, setFmt]           = useState<Format>("post");
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const [dlPost, setDlPost]     = useState(false);
+  const [dlStory, setDlStory]   = useState(false);
+  const [dlError, setDlError]   = useState<string | null>(null);
+  const [copied, setCopied]     = useState(false);
 
   const primaryPhoto = photos[photoIdx]?.fileUrl;
 
-  async function handleDownload() {
-    setDownloading(true);
+  async function download(f: Format) {
+    const setDl = f === "post" ? setDlPost : setDlStory;
+    setDl(true);
     setDlError(null);
     try {
-      const canvas = await renderToCanvas(vehicle, primaryPhoto, fmt, theme);
+      const canvas = await renderCanvas(vehicle, primaryPhoto, f);
       canvas.toBlob((blob) => {
         if (!blob) { setDlError("Error generando imagen."); return; }
         const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${vehicle.brand}-${vehicle.line}-${vehicle.year}-${theme}-${fmt}.png`;
+        const a   = document.createElement("a");
+        a.href     = url;
+        a.download = `autohaus-${vehicle.brand}-${vehicle.line}-${vehicle.year}-${f}.png`
+          .toLowerCase().replace(/\s+/g, "-");
         a.click();
         URL.revokeObjectURL(url);
       }, "image/png");
     } catch {
-      setDlError("No se pudo generar. Verifica que la foto del vehículo sea accesible.");
+      setDlError("No se pudo generar. Verifica que la foto sea accesible.");
     } finally {
-      setDownloading(false);
+      setDl(false);
     }
+  }
+
+  function copyCaption() {
+    navigator.clipboard.writeText(buildCaption(vehicle)).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    });
   }
 
   return (
     <div className="mx-auto max-w-sm space-y-4 animate-in">
 
-      {/* Theme toggle: BMW vs ROCKS-E */}
-      <div className="flex gap-1 rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[#0a0a0a] p-1.5">
-        {(Object.entries(THEMES) as [Theme, ThemeCfg][]).map(([key, t]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTheme(key)}
-            className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-[12px] font-semibold transition-all duration-150",
-              theme === key ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300",
-            )}
-          >
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: t.dot }} />
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Format toggle: Post vs Story */}
+      {/* Format toggle */}
       <div className="flex gap-1 rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[#0a0a0a] p-1.5">
         {(["post", "story"] as Format[]).map((f) => (
           <button
@@ -631,7 +496,7 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
           >
             {f === "post"
               ? <><LayoutTemplate className="h-4 w-4" />Post 4:5</>
-              : <><Maximize2 className="h-4 w-4" />Story 9:16</>
+              : <><Maximize2 className="h-4 w-4" />Historia 9:16</>
             }
           </button>
         ))}
@@ -663,7 +528,7 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
       )}
 
       {/* Live preview */}
-      <DesignPreview v={vehicle} photoUrl={primaryPhoto} fmt={fmt} theme={theme} />
+      <DesignPreview v={vehicle} photoUrl={primaryPhoto} fmt={fmt} />
 
       {dlError && (
         <p className="rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-2 text-xs text-red-400">
@@ -671,16 +536,42 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
         </p>
       )}
 
-      {/* Download button */}
-      <Button size="md" variant="primary" className="w-full" disabled={downloading} onClick={handleDownload}>
-        {downloading
-          ? <><Loader2 className="h-4 w-4 animate-spin" />Generando…</>
-          : <><Download className="h-4 w-4" />Descargar {fmt === "post" ? "Post 1080×1350" : "Story 1080×1920"}</>
+      {/* Download buttons */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          disabled={dlPost}
+          onClick={() => download("post")}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-[rgba(255,255,255,0.09)] bg-[#0f0f0f] py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-[#1a1a1a] disabled:opacity-60"
+        >
+          {dlPost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Post 1080×1350
+        </button>
+        <button
+          type="button"
+          disabled={dlStory}
+          onClick={() => download("story")}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-[rgba(255,255,255,0.09)] bg-[#0f0f0f] py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-[#1a1a1a] disabled:opacity-60"
+        >
+          {dlStory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Story 1080×1920
+        </button>
+      </div>
+
+      {/* Copy caption */}
+      <button
+        type="button"
+        onClick={copyCaption}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[#0a0a0a] py-2.5 text-sm font-medium text-zinc-400 transition hover:text-zinc-200"
+      >
+        {copied
+          ? <><Check className="h-4 w-4 text-green-400" />¡Descripción copiada!</>
+          : <><Copy className="h-4 w-4" />Copiar descripción de Instagram</>
         }
-      </Button>
+      </button>
 
       <p className="text-center text-[11px] text-zinc-600">
-        PNG de alta resolución · datos del vehículo actualizados automáticamente
+        PNG · 1080px · listo para Instagram
       </p>
     </div>
   );
