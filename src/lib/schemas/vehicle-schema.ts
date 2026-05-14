@@ -49,6 +49,7 @@ export const vehicleSchema = z.object({
   advisorSellerId: optionalText,
   soatDue: optionalText,
   technoDue: optionalText,
+  notes: optionalText,
 }).superRefine((data, ctx) => {
   // ── Reglas de consignación ───────────────────────────────────────
   if (data.ownerType === "Comisión") {

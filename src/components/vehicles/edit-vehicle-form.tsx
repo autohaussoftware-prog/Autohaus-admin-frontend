@@ -51,6 +51,7 @@ function vehicleToFormValues(
     technoDue: vehicle.technoDue ?? "",
     ownerName: vehicle.ownerName ?? "",
     ownerPhone: vehicle.ownerPhone ?? "",
+    notes: vehicle.notes ?? "",
   };
 }
 
@@ -204,6 +205,28 @@ export function EditVehicleForm({
             defaultOwnerPhone={values.ownerPhone}
             fieldErrors={fe}
           />
+        </CardContent>
+      </Card>
+
+      {/* ── Información adicional ────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="border-b border-zinc-900">
+          <CardTitle>Información adicional</CardTitle>
+          <CardDescription>
+            Observaciones internas, pendientes, condiciones especiales o notas de seguimiento.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-5">
+          <label className="block">
+            <span className="mb-2 block text-sm text-zinc-400">Observaciones</span>
+            <textarea
+              name="notes"
+              rows={4}
+              placeholder="Ej: Pendiente de peritaje. Cliente entrega segunda llave mañana. Detalle en defensa trasera…"
+              defaultValue={values.notes}
+              className="w-full resize-y rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white placeholder-zinc-600 focus:border-zinc-500 focus:outline-none min-h-[100px]"
+            />
+          </label>
         </CardContent>
       </Card>
 

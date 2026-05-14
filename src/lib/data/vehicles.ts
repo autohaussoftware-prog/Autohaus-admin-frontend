@@ -42,6 +42,7 @@ export type CreateVehicleInput = {
   ownerPhone?: string;
   ownerDocument?: string;
   createdByUserId?: string;
+  notes?: string;
 };
 
 type DbVehicle = {
@@ -81,6 +82,7 @@ type DbVehicle = {
   created_by_user_id: string | null;
   created_by: string | null; // existing column in schema, references profiles(id)
   commission_rate: number | string | null;
+  notes: string | null;
 };
 
 type DbVehicleMovement = {
@@ -178,6 +180,7 @@ function mapVehicle(
     ownerName: canSeeContact ? (vehicle.owner_name ?? undefined) : undefined,
     ownerPhone: canSeeContact ? (vehicle.owner_phone ?? undefined) : undefined,
     commissionRate: toNumber(vehicle.commission_rate) || 3,
+    notes: vehicle.notes ?? undefined,
   };
 }
 
@@ -310,6 +313,7 @@ export async function createVehicle(input: CreateVehicleInput) {
       owner_document: input.ownerDocument?.trim() || null,
       created_by: input.createdByUserId || null,
       created_by_user_id: input.createdByUserId || null,
+      notes: input.notes?.trim() || null,
     })
     .select("id")
     .single();
@@ -374,6 +378,7 @@ export async function updateVehicle(vehicleId: string, input: CreateVehicleInput
       separated,
       owner_name: input.ownerName?.trim() || null,
       owner_phone: input.ownerPhone?.trim() || null,
+      notes: input.notes?.trim() || null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", vehicleId);

@@ -246,6 +246,15 @@ export function VehicleDetailTabs({
                   )}
                 </div>
 
+                {vehicle.notes?.trim() && (
+                  <div className="mt-5 border-t border-zinc-800 pt-5">
+                    <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">Observaciones</p>
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">{vehicle.notes.trim()}</p>
+                    </div>
+                  </div>
+                )}
+
                 {vehicle.ownerType === "Comisión" && (
                   <div className="mt-5 border-t border-zinc-800 pt-5">
                     <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">Propietario en comisión</p>
