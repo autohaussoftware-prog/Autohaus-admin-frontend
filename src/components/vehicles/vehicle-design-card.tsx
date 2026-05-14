@@ -9,16 +9,17 @@ type Format = "post" | "story";
 
 const GOLD      = "#D4A843";
 const GOLD_DARK = "#1a0e00";
+const PANEL_BG  = "#0c0c0c";
 const W         = 1080;
 
-// ── SVG icons ─────────────────────────────────────────────────────────
-const IC = "rgba(255,255,255,0.72)";
+// ── Tiny uniform icons ─────────────────────────────────────────────────
+const IC = "rgba(255,255,255,0.60)";
 const SVGS: Record<string, string> = {
-  km:       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-  gear:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
-  fuel:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><line x1="3" y1="22" x2="15" y2="22"/><path d="M15 10h2a2 2 0 0 1 2 2v5a1 1 0 0 0 2 0v-7l-3-3"/></svg>`,
-  traction: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="20" height="6" rx="2"/><circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg>`,
-  city:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  km:       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  gear:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  fuel:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><line x1="3" y1="22" x2="15" y2="22"/><path d="M15 10h2a2 2 0 0 1 2 2v5a1 1 0 0 0 2 0v-7l-3-3"/></svg>`,
+  traction: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="20" height="6" rx="2"/><circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg>`,
+  city:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${IC}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
 };
 
 function svgImg(key: string): Promise<HTMLImageElement> {
@@ -58,7 +59,33 @@ function priceCOP(n: number) {
   return "$ " + n.toLocaleString("es-CO");
 }
 
-// ── Canvas renderer ────────────────────────────────────────────────────
+// ── Canvas renderer ─────────────────────────────────────────────────────
+//
+// Fixed structure (all measurements in "1350-base px", scaled by S = H/1350):
+//
+//  ┌──────────────────────────────────────┐  0
+//  │                                      │
+//  │  [logo centered, screen blend]       │  ~16px
+//  │  [@autohausmed centered]             │  ~76px
+//  │                                      │
+//  │        CAR PHOTO (object-cover)      │  0 → PHOTO_BOT
+//  │                                      │
+//  │  [bottom fade into dark panel]       │
+//  ├──────────────────────────────────────┤  PHOTO_BOT (72% post / 65% story)
+//  │  DARK PANEL  #0c0c0c                 │
+//  │                                      │
+//  │      BRAND  LINE                     │  brand baseline
+//  │      Version  ·  Year               │  year baseline
+//  │        ─────────────                 │  gold divider
+//  │   KM  ·  Transmisión  ·  Combustible│  spec row 1
+//  │         Tracción  ·  Ciudad         │  spec row 2 (post only)
+//  │                                      │
+//  │         PRECIO (story only)          │
+//  │          $ 00.000.000               │
+//  │                                      │
+//  │         A U T O H A U S             │  wordmark
+//  └──────────────────────────────────────┘  H
+
 async function renderCanvas(
   v: Vehicle,
   photoUrl: string | undefined,
@@ -85,59 +112,64 @@ async function renderCanvas(
       : null;
 
   const carImg = g(0); const logoImg = g(1);
-  const iKm = g(2); const iGear = g(3); const iFuel = g(4);
-  const iTrac = g(5); const iCity = g(6);
+  const iKm = g(2); const iGear = g(3); const iFuel = g(4); const iTrac = g(5); const iCity = g(6);
 
-  // ── Layout: all values scaled relative to 1350px height ────────────
-  const PANEL_Y  = Math.round(H * (isPost ? 0.660 : 0.615));
-  const BRAND_Y  = PANEL_Y + Math.round(70  * S);
-  const YEAR_Y   = PANEL_Y + Math.round(112 * S);
-  const SPEC1_Y  = PANEL_Y + Math.round(165 * S);
-  const SPEC2_Y  = PANEL_Y + Math.round(210 * S);
-  const PRICE_Y  = PANEL_Y + Math.round(300 * S);
+  // ── Zone heights ─────────────────────────────────────────────────────
+  // Photo: 72% post, 65% story — rest is solid dark panel
+  const PHOTO_H   = Math.round(H * (isPost ? 0.72 : 0.65));
+  const PANEL_TOP = PHOTO_H;  // panel begins immediately after photo
+  const PANEL_H   = H - PANEL_TOP;
 
-  const HANDLE_Y = Math.round((isPost ? 96 : 72) * S);
-  const LOGO_SZ  = Math.round((isPost ? 74 : 56) * S);
-  const LOGO_Y   = HANDLE_Y - LOGO_SZ - Math.round(8 * S);
-  const HANDLE_FS = Math.round(28 * S);
+  // Branding overlay on photo (scale = S relative to 1350)
+  const LOGO_SZ  = Math.round(52 * S);
+  const LOGO_Y   = Math.round(18 * S);
+  const HANDLE_Y = LOGO_Y + LOGO_SZ + Math.round(14 * S);
+  const HANDLE_FS = Math.round(24 * S);
 
-  const MX = Math.round(58 * S);
+  // Panel content baselines (measured from PANEL_TOP, at 1350-base px, then * S)
+  const brandY   = PANEL_TOP + Math.round(110 * S);
+  const yearY    = PANEL_TOP + Math.round(152 * S);
+  const dividerY = PANEL_TOP + Math.round(182 * S);
+  const spec1Y   = PANEL_TOP + Math.round(232 * S);
+  const spec2Y   = PANEL_TOP + Math.round(274 * S);
+  // story-only price
+  const priceLabelY = PANEL_TOP + Math.round(348 * S);
+  const priceY      = PANEL_TOP + Math.round(408 * S);
 
-  // ── 1. Dark base ────────────────────────────────────────────────────
-  ctx.fillStyle = "#0a0a0a";
+  // ── 1. Dark base fill ────────────────────────────────────────────────
+  ctx.fillStyle = PANEL_BG;
   ctx.fillRect(0, 0, W, H);
 
-  // ── 2. Car photo — full-bleed, object-cover ─────────────────────────
+  // ── 2. Car photo — clipped to photo zone (hard straight edge) ────────
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, W, PHOTO_H);
+  ctx.clip();
   if (carImg) {
-    coverDraw(ctx, carImg, 0, 0, W, H);
+    coverDraw(ctx, carImg, 0, 0, W, PHOTO_H);
+  } else {
+    const gFb = ctx.createLinearGradient(0, 0, W, PHOTO_H);
+    gFb.addColorStop(0, "#2a2a2a");
+    gFb.addColorStop(1, "#141414");
+    ctx.fillStyle = gFb;
+    ctx.fillRect(0, 0, W, PHOTO_H);
   }
+  // Top vignette — behind logo/handle
+  const topV = ctx.createLinearGradient(0, 0, 0, Math.round(140 * S));
+  topV.addColorStop(0, "rgba(0,0,0,0.60)");
+  topV.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = topV;
+  ctx.fillRect(0, 0, W, Math.round(140 * S));
+  // Bottom fade — photo transitions into panel
+  const fade = Math.round(100 * S);
+  const botV = ctx.createLinearGradient(0, PHOTO_H - fade, 0, PHOTO_H);
+  botV.addColorStop(0, "rgba(12,12,12,0)");
+  botV.addColorStop(1, "rgba(12,12,12,1)");
+  ctx.fillStyle = botV;
+  ctx.fillRect(0, PHOTO_H - fade, W, fade);
+  ctx.restore();
 
-  // ── 3. Bottom dark gradient overlay ─────────────────────────────────
-  {
-    const grad = ctx.createLinearGradient(0, H * 0.28, 0, H);
-    grad.addColorStop(0,    "rgba(8,8,8,0)");
-    grad.addColorStop(0.28, "rgba(8,8,8,0.42)");
-    grad.addColorStop(0.52, "rgba(8,8,8,0.80)");
-    grad.addColorStop(0.74, "rgba(8,8,8,0.94)");
-    grad.addColorStop(1,    "rgba(8,8,8,0.99)");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  // ── 4. Top vignette (behind logo / handle) ───────────────────────────
-  {
-    const tv = ctx.createLinearGradient(0, 0, 0, H * 0.20);
-    tv.addColorStop(0, "rgba(0,0,0,0.55)");
-    tv.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = tv;
-    ctx.fillRect(0, 0, W, H * 0.20);
-  }
-
-  // ── 5. Gold separator line ───────────────────────────────────────────
-  ctx.fillStyle = GOLD;
-  ctx.fillRect(MX, PANEL_Y, W - MX * 2, Math.round(2.5 * S));
-
-  // ── 6. AH Logo ──────────────────────────────────────────────────────
+  // ── 3. AH Logo (screen blend, over photo top) ────────────────────────
   if (logoImg) {
     ctx.save();
     ctx.globalCompositeOperation = "screen";
@@ -145,49 +177,52 @@ async function renderCanvas(
     ctx.restore();
   }
 
-  // ── 7. @autohausmed handle ───────────────────────────────────────────
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,1)";
-  ctx.shadowBlur  = 22;
-  ctx.fillStyle   = "rgba(255,255,255,0.88)";
-  ctx.font        = `600 ${HANDLE_FS}px Inter, sans-serif`;
-  ctx.textAlign   = "center";
-  ctx.fillText("@autohausmed", W / 2, HANDLE_Y);
-  ctx.restore();
+  // ── 4. @autohausmed ──────────────────────────────────────────────────
+  ctx.fillStyle = "rgba(255,255,255,0.78)";
+  ctx.font      = `500 ${HANDLE_FS}px Inter, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("@autohausmed", W / 2, HANDLE_Y + HANDLE_FS);
 
-  // ── 8. Brand + Line ─────────────────────────────────────────────────
+  // ── 5. Brand + Line ──────────────────────────────────────────────────
   const header  = [v.brand, v.line].filter(Boolean).join("  ").toUpperCase();
   const hLen    = header.length;
-  const brandFs = Math.round((hLen > 16 ? 68 : hLen > 12 ? 86 : hLen > 8 ? 104 : 126) * S);
+  const brandFs = Math.round((hLen > 16 ? 68 : hLen > 12 ? 86 : hLen > 8 ? 106 : 128) * S);
   ctx.fillStyle = "#ffffff";
-  ctx.font      = `900 ${brandFs}px Inter, sans-serif`;
+  ctx.font      = `800 ${brandFs}px Inter, sans-serif`;
   ctx.textAlign = "center";
-  ctx.fillText(header, W / 2, BRAND_Y);
+  ctx.fillText(header, W / 2, brandY);
 
-  // ── 9. Version · Year ────────────────────────────────────────────────
-  const yearFs  = Math.round(36 * S);
+  // ── 6. Version + Year ────────────────────────────────────────────────
+  const yearFs  = Math.round(34 * S);
   ctx.font      = `400 ${yearFs}px Inter, sans-serif`;
-  const verTxt  = v.version?.trim() ? v.version.trim() + "  " : "";
+  const verTxt  = v.version?.trim() ? v.version.trim() + "   " : "";
   const yrTxt   = String(v.year);
   const verW    = ctx.measureText(verTxt).width;
   const yrW     = ctx.measureText(yrTxt).width;
   const subX    = (W - verW - yrW) / 2;
   ctx.textAlign = "left";
   if (verTxt) {
-    ctx.fillStyle = "#888888";
-    ctx.fillText(verTxt, subX, YEAR_Y);
+    ctx.fillStyle = "#707070";
+    ctx.fillText(verTxt, subX, yearY);
   }
   ctx.fillStyle = GOLD;
-  ctx.fillText(yrTxt, subX + verW, YEAR_Y);
+  ctx.fillText(yrTxt, subX + verW, yearY);
 
-  // ── 10. Spec rows ────────────────────────────────────────────────────
-  const ICON_SZ  = Math.round(28 * S);
-  const SPEC_FS  = Math.round(26 * S);
-  const ICON_GAP = 10;
-  const DOT_R    = Math.round(3.5 * S);
-  const SEP      = Math.round(50 * S);
+  // ── 7. Gold divider (short, centered) ────────────────────────────────
+  const divW = Math.round(140 * S);
+  ctx.fillStyle = GOLD;
+  ctx.globalAlpha = 0.7;
+  ctx.fillRect((W - divW) / 2, dividerY, divW, Math.round(1.5 * S));
+  ctx.globalAlpha = 1;
 
-  ctx.font = `500 ${SPEC_FS}px Inter, sans-serif`;
+  // ── 8. Spec rows ─────────────────────────────────────────────────────
+  const ICON_SZ  = Math.round(20 * S);
+  const SPEC_FS  = Math.round(24 * S);
+  const ICON_GAP = Math.round(7 * S);
+  const DOT_R    = Math.round(2.8 * S);
+  const SEP      = Math.round(42 * S);
+
+  ctx.font = `400 ${SPEC_FS}px Inter, sans-serif`;
 
   function itemW(icon: HTMLImageElement | null, label: string): number {
     return (icon ? ICON_SZ + ICON_GAP : 0) + ctx.measureText(label.toUpperCase()).width;
@@ -201,77 +236,72 @@ async function renderCanvas(
     let cx = (W - total) / 2;
     items.forEach((it, i) => {
       const iw = itemW(it.icon, it.label);
-      if (it.icon) ctx.drawImage(it.icon, cx, y - Math.round(SPEC_FS * 0.84), ICON_SZ, ICON_SZ);
-      ctx.fillStyle = "rgba(255,255,255,0.76)";
-      ctx.font      = `500 ${SPEC_FS}px Inter, sans-serif`;
+      if (it.icon) ctx.drawImage(it.icon, cx, y - Math.round(SPEC_FS * 0.80), ICON_SZ, ICON_SZ);
+      ctx.fillStyle = "rgba(210,210,210,0.80)";
+      ctx.font      = `400 ${SPEC_FS}px Inter, sans-serif`;
       ctx.textAlign = "left";
       ctx.fillText(it.label.toUpperCase(), cx + (it.icon ? ICON_SZ + ICON_GAP : 0), y);
       cx += iw;
       if (i < items.length - 1) {
         cx += SEP;
         ctx.beginPath();
-        ctx.arc(cx, y - Math.round(SPEC_FS * 0.28), DOT_R, 0, Math.PI * 2);
-        ctx.fillStyle = GOLD;
+        ctx.arc(cx, y - Math.round(SPEC_FS * 0.30), DOT_R, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(212,168,67,0.55)`;
         ctx.fill();
         cx += SEP;
       }
     });
   }
 
-  // Row 1: KM · Transmisión · Combustible
+  // Row 1 (both formats): KM · Transmisión · Combustible
   drawSpecRow([
     { icon: iKm,   label: v.mileage.toLocaleString("es-CO") + " KM" },
     { icon: iGear, label: v.transmission },
     { icon: iFuel, label: v.fuel },
-  ], SPEC1_Y);
+  ], spec1Y);
 
   // Row 2 (post only): Tracción · Tránsito
   if (isPost) {
     const r2: { icon: HTMLImageElement | null; label: string }[] = [];
     if (v.traction) r2.push({ icon: iTrac, label: v.traction });
     r2.push({ icon: iCity, label: v.cityRegistration });
-    if (r2.length) drawSpecRow(r2, SPEC2_Y);
+    if (r2.length) drawSpecRow(r2, spec2Y);
   }
 
-  // ── 11. Price pill (story only) ──────────────────────────────────────
+  // ── 9. Price (story only) ─────────────────────────────────────────────
   if (!isPost) {
-    const prStr  = priceCOP(v.targetPrice);
-    const prFs   = Math.round((prStr.length > 17 ? 72 : 90) * S);
-    ctx.font     = `900 ${prFs}px Inter, sans-serif`;
-    const ptw    = ctx.measureText(prStr).width;
-    const padX   = Math.round(54 * S);
-    const padY   = Math.round(18 * S);
-    const pillH  = prFs + padY * 2;
-    const pillW  = ptw + padX * 2;
-    const pillX  = (W - pillW) / 2;
-    const pillTop = PRICE_Y - prFs - padY;
-    const pillR  = Math.round(pillH * 0.14);
-    ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.65)";
-    ctx.shadowBlur  = Math.round(24 * S);
+    // PRECIO label
+    const labelFs = Math.round(16 * S);
+    ctx.globalAlpha = 0.55;
     ctx.fillStyle   = GOLD;
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(pillX, pillTop, pillW, pillH, pillR);
-    else ctx.rect(pillX, pillTop, pillW, pillH);
-    ctx.fill();
-    ctx.restore();
-    ctx.fillStyle = GOLD_DARK;
+    ctx.font        = `500 ${labelFs}px Inter, sans-serif`;
+    ctx.textAlign   = "center";
+    ctx.fillText("PRECIO", W / 2, priceLabelY);
+    ctx.globalAlpha = 1;
+
+    // Price value — large, clean
+    const prStr  = priceCOP(v.targetPrice);
+    const prFs   = Math.round((prStr.length > 17 ? 72 : 88) * S);
+    ctx.fillStyle = GOLD;
+    ctx.font      = `800 ${prFs}px Inter, sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillText(prStr, W / 2, PRICE_Y);
+    ctx.fillText(prStr, W / 2, priceY);
   }
 
-  // ── 12. AUTOHAUS wordmark — very subtle ──────────────────────────────
-  const wmFs = Math.round(14 * S);
-  const wmY  = H - Math.round(36 * S);
-  ctx.fillStyle = "rgba(255,255,255,0.16)";
-  ctx.font      = `600 ${wmFs}px Inter, sans-serif`;
-  ctx.textAlign = "center";
+  // ── 10. AUTOHAUS wordmark — very subtle ───────────────────────────────
+  const wmFs = Math.round(13 * S);
+  const wmY  = H - Math.round(28 * S);
+  ctx.globalAlpha = 0.14;
+  ctx.fillStyle   = "#ffffff";
+  ctx.font        = `600 ${wmFs}px Inter, sans-serif`;
+  ctx.textAlign   = "center";
   ctx.fillText("A U T O H A U S", W / 2, wmY);
+  ctx.globalAlpha = 1;
 
   return canvas;
 }
 
-// ── Instagram caption ──────────────────────────────────────────────────
+// ── Instagram caption ────────────────────────────────────────────────────
 function buildCaption(v: Vehicle): string {
   const brand = v.brand.toLowerCase().replace(/\s+/g, "");
   const line  = v.line.toLowerCase().replace(/\s+/g, "");
@@ -290,147 +320,125 @@ function buildCaption(v: Vehicle): string {
   ].join("\n");
 }
 
-// ── CSS Preview ────────────────────────────────────────────────────────
+// ── CSS Preview ──────────────────────────────────────────────────────────
+//
+// Mirrors the canvas layout exactly using CSS:
+//  • Photo zone: top 72% (post) / 65% (story) — overflow:hidden, object-cover
+//  • Info panel: remaining height — solid dark, all text centered
+//
 function DesignPreview({ v, photoUrl, fmt }: { v: Vehicle; photoUrl?: string; fmt: Format }) {
-  const isPost   = fmt === "post";
-  const header   = [v.brand, v.line].filter(Boolean).join("  ").toUpperCase();
-  const priceStr = priceCOP(v.targetPrice);
-  const panelPct = isPost ? 66.0 : 61.5;
+  const isPost     = fmt === "post";
+  const header     = [v.brand, v.line].filter(Boolean).join("  ").toUpperCase();
+  const priceStr   = priceCOP(v.targetPrice);
+  const photoPct   = isPost ? 72 : 65;   // % of total height
+  const panelPct   = 100 - photoPct;
 
   return (
     <div
-      className={cn(
-        "relative w-full overflow-hidden rounded-2xl select-none bg-[#0a0a0a]",
-        isPost ? "aspect-[4/5]" : "aspect-[9/16]",
-      )}
+      className={cn("relative w-full overflow-hidden rounded-2xl select-none bg-[#0c0c0c]", isPost ? "aspect-[4/5]" : "aspect-[9/16]")}
       style={{ containerType: "inline-size" } as React.CSSProperties}
     >
-      {/* Full-bleed photo */}
-      {photoUrl
-        ? <img src={photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ zIndex: 1 }} />
-        : <div className="absolute inset-0 bg-gradient-to-br from-zinc-700 to-zinc-950" style={{ zIndex: 1 }} />
-      }
+      {/* ── Photo zone ─────────────────────────────────────────────── */}
+      <div className="absolute inset-x-0 top-0 overflow-hidden" style={{ height: `${photoPct}%` }}>
+        {/* Car photo */}
+        {photoUrl
+          ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+          : <div className="h-full w-full" style={{ background: "linear-gradient(135deg, #2a2a2a 0%, #141414 100%)" }} />
+        }
+        {/* Top vignette — logo area */}
+        <div
+          className="absolute inset-x-0 top-0"
+          style={{ height: "18%", background: "linear-gradient(to bottom, rgba(0,0,0,0.58) 0%, transparent 100%)", zIndex: 1 }}
+        />
+        {/* Bottom fade — transitions into dark panel */}
+        <div
+          className="absolute inset-x-0 bottom-0"
+          style={{ height: "16%", background: `linear-gradient(to bottom, transparent 0%, ${PANEL_BG} 100%)`, zIndex: 1 }}
+        />
 
-      {/* Bottom gradient overlay */}
-      <div
-        className="absolute inset-0"
-        style={{
-          zIndex: 2,
-          background: "linear-gradient(to bottom, transparent 0%, transparent 28%, rgba(8,8,8,0.42) 42%, rgba(8,8,8,0.82) 56%, rgba(8,8,8,0.96) 72%, rgba(8,8,8,0.99) 100%)",
-        }}
-      />
-
-      {/* Top vignette */}
-      <div
-        className="absolute inset-x-0 top-0"
-        style={{ zIndex: 2, height: "20%", background: "linear-gradient(to bottom, rgba(0,0,0,0.52) 0%, transparent 100%)" }}
-      />
-
-      {/* AH Logo */}
-      <img
-        src="/logo-ah.jpeg"
-        alt=""
-        className="absolute left-1/2 -translate-x-1/2"
-        style={{
-          zIndex: 3,
-          top: isPost ? "2.0%" : "1.5%",
-          height: isPost ? "5.5%" : "4.2%",
-          width: "auto",
-          mixBlendMode: "screen",
-          objectFit: "contain",
-        }}
-      />
-
-      {/* @autohausmed */}
-      <div
-        className="absolute inset-x-0 flex justify-center"
-        style={{ zIndex: 3, top: isPost ? "8.6%" : "6.5%" }}
-      >
-        <p style={{ fontSize: "2.7cqw", fontWeight: 600, color: "rgba(255,255,255,0.88)", textShadow: "0 0 14px rgba(0,0,0,1)" }}>
-          @autohausmed
-        </p>
+        {/* AH Logo */}
+        <img
+          src="/logo-ah.jpeg"
+          alt=""
+          className="absolute left-1/2 -translate-x-1/2"
+          style={{ zIndex: 2, top: "2.8%", height: "8%", width: "auto", mixBlendMode: "screen", objectFit: "contain" }}
+        />
+        {/* @autohausmed */}
+        <div className="absolute inset-x-0 flex justify-center" style={{ zIndex: 2, top: isPost ? "14%" : "13%" }}>
+          <p style={{ fontSize: "2.5cqw", fontWeight: 500, color: "rgba(255,255,255,0.78)" }}>
+            @autohausmed
+          </p>
+        </div>
       </div>
 
-      {/* Gold separator line */}
+      {/* ── Info panel ─────────────────────────────────────────────── */}
       <div
-        className="absolute"
-        style={{ zIndex: 3, top: `${panelPct}%`, left: "5.5%", right: "5.5%", height: "0.22%", background: GOLD }}
-      />
-
-      {/* Brand + Line */}
-      <div
-        className="absolute inset-x-0 text-center"
-        style={{ zIndex: 3, top: `${panelPct + 2.2}%` }}
+        className="absolute inset-x-0 bottom-0 flex flex-col items-center"
+        style={{ top: `${photoPct}%`, background: PANEL_BG, paddingTop: "5.5%", paddingBottom: "2%" }}
       >
+        {/* Brand + Line */}
         <p
-          className="truncate px-[4%] font-black uppercase text-white"
-          style={{ fontSize: "9.6cqw", lineHeight: 1, letterSpacing: "-0.01em" }}
+          className="truncate w-full text-center font-extrabold uppercase text-white"
+          style={{ fontSize: "9.2cqw", lineHeight: 1.0, letterSpacing: "-0.01em", paddingInline: "4%" }}
         >
           {header}
         </p>
-        <p className="mt-[0.8%]" style={{ fontSize: "3.3cqw", lineHeight: 1 }}>
-          {v.version?.trim() && <span style={{ color: "#888" }}>{v.version.trim()}{"  "}</span>}
+
+        {/* Version + Year */}
+        <p className="mt-[1.5%]" style={{ fontSize: "3.1cqw", lineHeight: 1 }}>
+          {v.version?.trim() && <span style={{ color: "#707070" }}>{v.version.trim()}{"   "}</span>}
           <span style={{ color: GOLD }}>{v.year}</span>
         </p>
-      </div>
 
-      {/* Spec rows */}
-      <div
-        className="absolute inset-x-0 flex flex-col items-center"
-        style={{ zIndex: 3, top: `${panelPct + 11.8}%`, gap: "1.4%" }}
-      >
-        {/* Row 1: KM · Transmisión · Combustible */}
+        {/* Gold divider */}
         <div
-          className="flex items-center"
-          style={{ gap: "2.6%", fontSize: "2.5cqw", color: "rgba(255,255,255,0.76)", fontWeight: 500 }}
+          className="mt-[2.5%] mb-[0%]"
+          style={{ width: "13cqw", height: "0.18%", minHeight: 1, background: GOLD, opacity: 0.7 }}
+        />
+
+        {/* Spec row 1: KM · Transmisión · Combustible */}
+        <div
+          className="mt-[3.5%] flex items-center justify-center"
+          style={{ gap: "2.2%", fontSize: "2.2cqw", color: "rgba(210,210,210,0.80)", fontWeight: 400, width: "100%" }}
         >
           <span>{v.mileage.toLocaleString("es-CO")} KM</span>
-          <span style={{ color: GOLD, fontSize: "1.6cqw" }}>●</span>
+          <span style={{ color: GOLD, opacity: 0.55, fontSize: "1.4cqw" }}>●</span>
           <span>{v.transmission.toUpperCase()}</span>
-          <span style={{ color: GOLD, fontSize: "1.6cqw" }}>●</span>
+          <span style={{ color: GOLD, opacity: 0.55, fontSize: "1.4cqw" }}>●</span>
           <span>{v.fuel.toUpperCase()}</span>
         </div>
 
-        {/* Row 2 (post only): Tracción · Ciudad */}
+        {/* Spec row 2 (post only): Tracción · Ciudad */}
         {isPost && (
           <div
-            className="flex items-center"
-            style={{ gap: "2.6%", fontSize: "2.5cqw", color: "rgba(255,255,255,0.76)", fontWeight: 500 }}
+            className="mt-[2%] flex items-center justify-center"
+            style={{ gap: "2.2%", fontSize: "2.2cqw", color: "rgba(210,210,210,0.80)", fontWeight: 400, width: "100%" }}
           >
             {v.traction && (
               <>
                 <span>{v.traction.toUpperCase()}</span>
-                <span style={{ color: GOLD, fontSize: "1.6cqw" }}>●</span>
+                <span style={{ color: GOLD, opacity: 0.55, fontSize: "1.4cqw" }}>●</span>
               </>
             )}
             <span>{v.cityRegistration.toUpperCase()}</span>
           </div>
         )}
-      </div>
 
-      {/* Price pill (story only) */}
-      {!isPost && (
-        <div
-          className="absolute inset-x-[10%] flex items-center justify-center"
-          style={{ zIndex: 3, top: `${panelPct + 22}%`, height: "8%" }}
-        >
-          <div
-            className="flex items-center justify-center rounded-[12%] px-[5%]"
-            style={{ background: GOLD, minWidth: "55%", height: "100%", boxShadow: "0 4px 24px rgba(0,0,0,0.65)" }}
-          >
-            <span style={{ fontSize: "8cqw", fontWeight: 900, color: GOLD_DARK, letterSpacing: "-0.01em" }}>
+        {/* Price (story only) */}
+        {!isPost && (
+          <div className="mt-auto mb-[6%] flex flex-col items-center" style={{ paddingTop: "5%" }}>
+            <p style={{ fontSize: "1.5cqw", color: GOLD, opacity: 0.55, fontWeight: 500, letterSpacing: "0.1em" }}>PRECIO</p>
+            <p className="mt-[1.5%]" style={{ fontSize: "8.2cqw", fontWeight: 800, color: GOLD, lineHeight: 1, letterSpacing: "-0.01em" }}>
               {priceStr}
-            </span>
+            </p>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* AUTOHAUS wordmark */}
-      <div
-        className="absolute inset-x-0 flex justify-center"
-        style={{ zIndex: 3, bottom: "2%" }}
-      >
-        <p style={{ fontSize: "1.3cqw", color: "rgba(255,255,255,0.16)", fontWeight: 600, letterSpacing: "0.25em" }}>
+        {/* Wordmark */}
+        <p
+          className={isPost ? "mt-auto" : ""}
+          style={{ fontSize: "1.2cqw", color: "rgba(255,255,255,0.14)", fontWeight: 600, letterSpacing: "0.25em", paddingTop: isPost ? undefined : "2%" }}
+        >
           A U T O H A U S
         </p>
       </div>
@@ -438,7 +446,7 @@ function DesignPreview({ v, photoUrl, fmt }: { v: Vehicle; photoUrl?: string; fm
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────────
+// ── Main component ───────────────────────────────────────────────────────
 export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photos: VehiclePhoto[] }) {
   const [fmt, setFmt]           = useState<Format>("post");
   const [photoIdx, setPhotoIdx] = useState(0);
@@ -527,7 +535,7 @@ export function VehicleDesignCard({ vehicle, photos }: { vehicle: Vehicle; photo
         </p>
       )}
 
-      {/* Live preview */}
+      {/* Preview */}
       <DesignPreview v={vehicle} photoUrl={primaryPhoto} fmt={fmt} />
 
       {dlError && (
