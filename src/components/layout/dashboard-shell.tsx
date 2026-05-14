@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { AppSidebar } from "./app-sidebar";
+import { MobileFab } from "./mobile-fab";
+import { MobileNav } from "./mobile-nav";
 import { Topbar } from "./topbar";
 import type { UserRole } from "@/types/auth";
 
@@ -34,8 +36,11 @@ export function DashboardShell({
 
       <div className="min-w-0 flex-1">
         <Topbar onOpenSidebar={() => setSidebarOpen(true)} unreadCount={unreadCount} />
-        <main className="p-4 xl:p-8">{children}</main>
+        <main className="p-4 pb-24 xl:p-8 xl:pb-8">{children}</main>
       </div>
+
+      <MobileNav role={role} />
+      <MobileFab role={role} />
     </div>
   );
 }

@@ -109,6 +109,13 @@ body {
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   .animate-in { animation: slideUp 0.28s var(--ease) both; }
   .fade-in    { animation: fadeIn  0.18s ease both; }
+
+  /* Safe area for iPhone notch / home indicator */
+  .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+  .safe-top    { padding-top:    max(0px,   env(safe-area-inset-top));    }
+
+  /* Larger tap targets on mobile */
+  .tap-target  { min-height: 44px; min-width: 44px; }
 }
 
 /* ── Keyframes ─────────────────────────────────────────────────────────────── */

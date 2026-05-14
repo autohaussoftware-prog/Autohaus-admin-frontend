@@ -241,7 +241,7 @@ export function VehiclesInventory({ vehicles, initialQuery, canEditPrice = false
   const [status, setStatus] = useState("Todos");
   const [brand, setBrand] = useState("Todas");
   const [ownerType, setOwnerType] = useState("Todos");
-  const [view, setView] = useState<"cards" | "table" | "kanban">("table");
+  const [view, setView] = useState<"cards" | "table" | "kanban">("cards");
 
   const brands = useMemo(() => ["Todas", ...Array.from(new Set(vehicles.map((v) => v.brand))).sort()], [vehicles]);
   const ownerTypes = ["Todos", "Propio", "Comisión"];
