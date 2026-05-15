@@ -6,11 +6,17 @@ export function getVehicleInvestedCapital(vehicle: Vehicle) {
 }
 
 export function getVehicleProjectedProfit(vehicle: Vehicle) {
+  if (vehicle.ownerType !== "Propio") {
+    return vehicle.targetPrice * ((vehicle.commissionRate ?? 3) / 100);
+  }
   return vehicle.targetPrice - vehicle.buyPrice - vehicle.realCost;
 }
 
 export function getVehicleProjectedMargin(vehicle: Vehicle) {
   if (!vehicle.targetPrice) return 0;
+  if (vehicle.ownerType !== "Propio") {
+    return vehicle.commissionRate ?? 3;
+  }
   return (getVehicleProjectedProfit(vehicle) / vehicle.targetPrice) * 100;
 }
 

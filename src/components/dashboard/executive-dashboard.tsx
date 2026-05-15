@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { StatCard } from "@/components/shared/stat-card";
 import { compactCOP, percentage } from "@/lib/utils";
 import { getVehicleProjectedMargin, getVehicleProjectedProfit } from "@/lib/domain/vehicle-calculations";
+import { useAlertPrefs } from "@/lib/hooks/use-alert-prefs";
 import type { AppAlert } from "@/lib/data/alerts";
 import type { Commission, FinanceMovement } from "@/types/finance";
 import type { Vehicle } from "@/types/vehicle";
@@ -38,7 +39,15 @@ export function ExecutiveDashboard({
     cashBankSeries: CashBankSeries[];
   };
 }) {
-  const { alerts, cashBankSeries, commissions, financeMovements, monthlyPerformance, vehicles } = data;
+  const { alerts: rawAlerts, cashBankSeries, commissions, financeMovements, monthlyPerformance, vehicles } = data;
+  const { prefs } = useAlertPrefs();
+
+  const alerts = rawAlerts.filter((a) => {
+    if (!prefs.showExpiryAlerts && a.module === "Documentos") return false;
+    if (!prefs.showFinancialAlerts && (a.module === "Costos" || a.module === "Ventas")) return false;
+    if (!prefs.showMarginWarnings && a.module === "Rentabilidad") return false;
+    return true;
+  });
   const available = vehicles.filter((v) => v.status === "Disponible" || v.status === "Publicado").length;
   const separated = vehicles.filter((v) => v.status === "Separado").length;
   const sold = vehicles.filter((v) => v.status === "Vendido" || v.status === "Entregado").length;
@@ -47,8 +56,9 @@ export function ExecutiveDashboard({
   const bankBalance = financeMovements.filter((m) => m.channel === "Banco").reduce((sum, m) => sum + (m.type === "Ingreso" ? m.amount : -m.amount), 0);
   const cashBalance = financeMovements.filter((m) => m.channel !== "Banco").reduce((sum, m) => sum + (m.type === "Ingreso" ? m.amount : -m.amount), 0);
   const pendingCommissions = commissions.filter((commission) => commission.status === "Pendiente").reduce((sum, commission) => sum + commission.amount, 0);
-  const averageMargin = vehicles.length
-    ? vehicles.reduce((sum, vehicle) => sum + getVehicleProjectedMargin(vehicle), 0) / vehicles.length
+  const propioVehicles = vehicles.filter((v) => v.ownerType === "Propio");
+  const averageMargin = propioVehicles.length
+    ? propioVehicles.reduce((sum, vehicle) => sum + getVehicleProjectedMargin(vehicle), 0) / propioVehicles.length
     : 0;
 
   return (
@@ -124,7 +134,7 @@ export function ExecutiveDashboard({
         <StatCard label="Saldo bancario" value={compactCOP(bankBalance)} helper="Movimientos bancarizados registrados" icon={Landmark} tone="blue" />
         <StatCard label="Efectivo total" value={compactCOP(cashBalance)} helper="Ubicación 1 + ubicación 2" icon={Wallet} tone="gold" />
         <StatCard label="Comisiones pendientes" value={compactCOP(pendingCommissions)} helper="Captadores, vendedores y crédito" icon={Users} tone="red" />
-        <StatCard label="Margen promedio" value={percentage(averageMargin)} helper="Estimado neto del inventario" icon={Gauge} tone="green" />
+        <StatCard label="Margen promedio" value={percentage(averageMargin)} helper="Vehículos propios — margen neto estimado" icon={Gauge} tone="green" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">

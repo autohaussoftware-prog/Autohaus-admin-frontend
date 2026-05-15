@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { compactCOP, percentage } from "@/lib/utils";
 import { getVehicleProjectedMargin } from "@/lib/domain/vehicle-calculations";
+import { useAlertPrefs } from "@/lib/hooks/use-alert-prefs";
 import { VehicleStatusBadge } from "./vehicle-status-badge";
 import { EditPriceButton } from "./edit-price-button";
 import type { Vehicle } from "@/types/vehicle";
@@ -23,12 +24,14 @@ function daysInInventory(vehicle: Vehicle): number | null {
   return Math.floor((Date.now() - new Date(vehicle.createdAt).getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function CardView({ vehicles }: { vehicles: Vehicle[] }) {
+function CardView({ vehicles, showVisualAlerts, showMarginWarnings }: { vehicles: Vehicle[]; showVisualAlerts: boolean; showMarginWarnings: boolean }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {vehicles.map((vehicle) => {
         const margin = getVehicleProjectedMargin(vehicle);
-        const isLowMargin = margin < 3;
+        const isPropio = vehicle.ownerType === "Propio";
+        const isLowMargin = showMarginWarnings && isPropio && margin < 3;
+        const marginLabel = isPropio ? "Margen neto" : "Comisión";
         return (
           <Link
             key={vehicle.id}
@@ -57,7 +60,7 @@ function CardView({ vehicles }: { vehicles: Vehicle[] }) {
               </div>
               <div className={`rounded-2xl border p-3 ${isLowMargin ? "border-red-500/20 bg-red-500/5" : "border-zinc-800 bg-zinc-900/60"}`}>
                 <p className={`text-xs ${isLowMargin ? "text-red-400" : "text-zinc-500"}`}>
-                  <TrendingUp className="mr-1 inline h-3 w-3" />Margen neto
+                  <TrendingUp className="mr-1 inline h-3 w-3" />{marginLabel}
                 </p>
                 <p className={`mt-0.5 text-sm font-semibold ${isLowMargin ? "text-red-300" : "text-[#D6A93D]"}`}>
                   {percentage(margin)}
@@ -75,7 +78,7 @@ function CardView({ vehicles }: { vehicles: Vehicle[] }) {
                   <span>{vehicle.advisorBuyer}</span>
                 </>
               )}
-              {vehicle.alert && (
+              {showVisualAlerts && vehicle.alert && (
                 <span className="ml-auto text-amber-400">{vehicle.alert}</span>
               )}
             </div>
@@ -95,7 +98,7 @@ const KANBAN_COLUMNS = [
   { status: "Vendido", color: "border-zinc-700/30 bg-zinc-900/30", label: "Vendido" },
 ];
 
-function KanbanView({ vehicles }: { vehicles: Vehicle[] }) {
+function KanbanView({ vehicles, showMarginWarnings }: { vehicles: Vehicle[]; showMarginWarnings: boolean }) {
   const byStatus = useMemo(() => {
     const map: Record<string, Vehicle[]> = {};
     for (const col of KANBAN_COLUMNS) map[col.status] = [];
@@ -124,6 +127,7 @@ function KanbanView({ vehicles }: { vehicles: Vehicle[] }) {
                 ) : (
                   colVehicles.map((vehicle) => {
                     const margin = getVehicleProjectedMargin(vehicle);
+                    const isLowMargin = showMarginWarnings && vehicle.ownerType === "Propio" && margin < 3;
                     return (
                       <Link
                         key={vehicle.id}
@@ -134,7 +138,7 @@ function KanbanView({ vehicles }: { vehicles: Vehicle[] }) {
                         <p className="mt-0.5 text-xs text-zinc-500">{vehicle.plate} · {vehicle.year}</p>
                         <div className="mt-2 flex items-center justify-between">
                           <p className="text-xs text-zinc-400">{compactCOP(vehicle.targetPrice)}</p>
-                          <p className={`text-xs font-medium ${margin < 3 ? "text-red-400" : "text-[#D6A93D]"}`}>
+                          <p className={`text-xs font-medium ${isLowMargin ? "text-red-400" : "text-[#D6A93D]"}`}>
                             {percentage(margin)}
                           </p>
                         </div>
@@ -154,7 +158,7 @@ function KanbanView({ vehicles }: { vehicles: Vehicle[] }) {
   );
 }
 
-function TableView({ vehicles, canEditPrice }: { vehicles: Vehicle[]; canEditPrice?: boolean }) {
+function TableView({ vehicles, canEditPrice, showVisualAlerts, showMarginWarnings }: { vehicles: Vehicle[]; canEditPrice?: boolean; showVisualAlerts: boolean; showMarginWarnings: boolean }) {
   return (
     <Card>
       <CardContent className="p-0">
@@ -205,7 +209,7 @@ function TableView({ vehicles, canEditPrice }: { vehicles: Vehicle[]; canEditPri
                           {canEditPrice && <EditPriceButton vehicleId={vehicle.id} currentPrice={vehicle.targetPrice} />}
                         </div>
                       </td>
-                      <td className={`px-5 py-3.5 font-medium ${margin < 3 ? "text-red-300" : "text-[#D6A93D]"}`}>
+                      <td className={`px-5 py-3.5 font-medium ${showMarginWarnings && vehicle.ownerType === "Propio" && margin < 3 ? "text-red-300" : "text-[#D6A93D]"}`}>
                         {percentage(margin)}
                       </td>
                       <td className="px-5 py-3.5">
@@ -220,7 +224,7 @@ function TableView({ vehicles, canEditPrice }: { vehicles: Vehicle[]; canEditPri
                       </td>
                       <td className="px-5 py-3.5 text-zinc-400">{vehicle.soatDue || "—"}</td>
                       <td className="px-5 py-3.5">
-                        {vehicle.alert
+                        {showVisualAlerts && vehicle.alert
                           ? <span className="text-xs text-amber-400">{vehicle.alert}</span>
                           : <span className="text-xs text-emerald-500">OK</span>}
                       </td>
@@ -242,6 +246,7 @@ export function VehiclesInventory({ vehicles, initialQuery, canEditPrice = false
   const [brand, setBrand] = useState("Todas");
   const [ownerType, setOwnerType] = useState("Todos");
   const [view, setView] = useState<"cards" | "table" | "kanban">("cards");
+  const { prefs } = useAlertPrefs();
 
   const brands = useMemo(() => ["Todas", ...Array.from(new Set(vehicles.map((v) => v.brand))).sort()], [vehicles]);
   const ownerTypes = ["Todos", "Propio", "Comisión"];
@@ -315,9 +320,9 @@ export function VehiclesInventory({ vehicles, initialQuery, canEditPrice = false
 
       {!hasFilters && <p className="mb-3 text-xs text-zinc-600">{filtered.length} de {vehicles.length} vehículos</p>}
 
-      {view === "table" && <TableView vehicles={filtered} canEditPrice={canEditPrice} />}
-      {view === "cards" && <CardView vehicles={filtered} />}
-      {view === "kanban" && <KanbanView vehicles={filtered} />}
+      {view === "table" && <TableView vehicles={filtered} canEditPrice={canEditPrice} showVisualAlerts={prefs.showVisualAlerts} showMarginWarnings={prefs.showMarginWarnings} />}
+      {view === "cards" && <CardView vehicles={filtered} showVisualAlerts={prefs.showVisualAlerts} showMarginWarnings={prefs.showMarginWarnings} />}
+      {view === "kanban" && <KanbanView vehicles={filtered} showMarginWarnings={prefs.showMarginWarnings} />}
     </>
   );
 }
