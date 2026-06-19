@@ -5,6 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { getAlerts, getResolvedAlertsCount } from "@/lib/data/alerts";
+import { resolveAlertAction } from "@/app/actions/alerts";
+
+export const dynamic = "force-dynamic";
+
+function isDbAlert(id: string) {
+  return !id.startsWith("auto-");
+}
 
 export default async function AlertsPage() {
   const [alerts, resolved] = await Promise.all([getAlerts(), getResolvedAlertsCount()]);
@@ -47,30 +54,45 @@ export default async function AlertsPage() {
                 </div>
                 <Badge tone={alert.priority === "Alta" ? "red" : "amber"}>{alert.priority}</Badge>
               </div>
-              {(alert.vehicleId || alert.saleId) && (
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-zinc-800 pt-4">
-                  {alert.vehicleId && (
-                    <Link
-                      href={`/vehiculos/${alert.vehicleId}`}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:border-[#D6A93D]/50 hover:text-white transition"
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-800 pt-4">
+                {alert.vehicleId && (
+                  <Link
+                    href={`/vehiculos/${alert.vehicleId}`}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:border-[#D6A93D]/50 hover:text-white transition"
+                  >
+                    <Car className="h-3 w-3" />
+                    Ver vehículo
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                )}
+                {alert.saleId && (
+                  <Link
+                    href={`/ventas/${alert.saleId}`}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:border-[#D6A93D]/50 hover:text-white transition"
+                  >
+                    <CreditCard className="h-3 w-3" />
+                    Ver venta
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                )}
+                {isDbAlert(alert.id) && (
+                  <form
+                    action={async () => {
+                      "use server";
+                      await resolveAlertAction(alert.id);
+                    }}
+                    className="ml-auto"
+                  >
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-800/50 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition"
                     >
-                      <Car className="h-3 w-3" />
-                      Ver vehículo
-                      <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  )}
-                  {alert.saleId && (
-                    <Link
-                      href={`/ventas/${alert.saleId}`}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:border-[#D6A93D]/50 hover:text-white transition"
-                    >
-                      <CreditCard className="h-3 w-3" />
-                      Ver venta
-                      <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  )}
-                </div>
-              )}
+                      <CheckCircle2 className="h-3 w-3" />
+                      Marcar resuelta
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           ))}
         </CardContent>

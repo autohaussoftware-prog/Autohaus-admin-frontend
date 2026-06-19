@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, Car, CircleDollarSign, Gauge, Landmark, Users, Wallet } from "lucide-react";
+import { useTransition, useState } from "react";
+import { AlertTriangle, Car, CheckCircle2, CircleDollarSign, Gauge, Landmark, Users, Wallet } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { compactCOP, percentage } from "@/lib/utils";
 import { getVehicleProjectedMargin, getVehicleProjectedProfit } from "@/lib/domain/vehicle-calculations";
 import { useAlertPrefs } from "@/lib/hooks/use-alert-prefs";
+import { resolveAlertAction } from "@/app/actions/alerts";
 import type { AppAlert } from "@/lib/data/alerts";
 import type { Commission, FinanceMovement } from "@/types/finance";
 import type { Vehicle } from "@/types/vehicle";
@@ -41,8 +43,18 @@ export function ExecutiveDashboard({
 }) {
   const { alerts: rawAlerts, cashBankSeries, commissions, financeMovements, monthlyPerformance, vehicles } = data;
   const { prefs } = useAlertPrefs();
+  const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
+  const [resolvePending, startResolve] = useTransition();
+
+  function handleResolve(id: string) {
+    startResolve(async () => {
+      const result = await resolveAlertAction(id);
+      if (!result.error) setResolvedIds((prev) => new Set(prev).add(id));
+    });
+  }
 
   const alerts = rawAlerts.filter((a) => {
+    if (resolvedIds.has(a.id)) return false;
     if (!prefs.showExpiryAlerts && a.module === "Documentos") return false;
     if (!prefs.showFinancialAlerts && (a.module === "Costos" || a.module === "Ventas")) return false;
     if (!prefs.showMarginWarnings && a.module === "Rentabilidad") return false;
@@ -118,12 +130,25 @@ export function ExecutiveDashboard({
             {alerts.slice(0, 5).map((alert) => (
               <div key={alert.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-medium text-white">{alert.title}</h4>
                     <p className="mt-1 text-xs leading-5 text-zinc-500">{alert.description}</p>
                   </div>
                   <Badge tone={alert.priority === "Alta" ? "red" : "amber"}>{alert.priority}</Badge>
                 </div>
+                {!alert.id.startsWith("auto-") && (
+                  <div className="mt-3 flex justify-end border-t border-zinc-800 pt-3">
+                    <button
+                      type="button"
+                      disabled={resolvePending}
+                      onClick={() => handleResolve(alert.id)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-800/50 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition disabled:opacity-40"
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      Marcar resuelta
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </CardContent>
