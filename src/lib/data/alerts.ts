@@ -1,6 +1,7 @@
 import { alerts as mockAlerts } from "@/data/mock";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getVehicleProjectedMargin } from "@/lib/domain/vehicle-calculations";
+import { getSettings } from "@/lib/data/settings";
 
 export type AppAlert = {
   id: string;
@@ -12,7 +13,6 @@ export type AppAlert = {
   saleId?: string;
 };
 
-const MIN_MARGIN_PERCENT = 3;
 const DAYS_BEFORE_EXPIRY_ALERT = 45;
 
 function daysUntil(dateStr: string): number {
@@ -49,7 +49,8 @@ type DbSale = {
 
 async function computeAutoAlerts(
   vehicles: DbVehicle[],
-  sales: DbSale[]
+  sales: DbSale[],
+  minMarginPct: number
 ): Promise<AppAlert[]> {
   const alerts: AppAlert[] = [];
 
@@ -114,11 +115,11 @@ async function computeAutoAlerts(
     if (targetPrice > 0 && buyPrice > 0) {
       const profit = targetPrice - buyPrice - realCost;
       const margin = (profit / targetPrice) * 100;
-      if (margin < MIN_MARGIN_PERCENT) {
+      if (margin < minMarginPct) {
         alerts.push({
           id: `auto-margin-${v.id}`,
           title: `Margen bajo — ${name}`,
-          description: `Margen proyectado ${margin.toFixed(1)}% está por debajo del mínimo esperado (${MIN_MARGIN_PERCENT}%).`,
+          description: `Margen proyectado ${margin.toFixed(1)}% está por debajo del mínimo esperado (${minMarginPct}%).`,
           priority: margin < 0 ? "Alta" : "Media",
           module: "Rentabilidad",
           vehicleId: v.id,
@@ -197,7 +198,7 @@ export async function getAlerts(): Promise<AppAlert[]> {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return mockAlerts as AppAlert[];
 
-  const [vehiclesResult, salesResult, dbAlertsResult] = await Promise.all([
+  const [vehiclesResult, salesResult, dbAlertsResult, settings] = await Promise.all([
     supabase.from("vehicles").select("id,plate,brand,line,status,soat_due,techno_due,buy_price,target_price,min_price,real_cost,estimated_cost"),
     supabase.from("sales").select("id,vehicle_id,pending_balance,sale_status,payment_status,expiry_date"),
     supabase
@@ -205,6 +206,7 @@ export async function getAlerts(): Promise<AppAlert[]> {
       .select("id,title,description,priority,module")
       .eq("status", "abierta")
       .order("created_at", { ascending: false }),
+    getSettings(),
   ]);
 
   if (vehiclesResult.error) {
@@ -212,9 +214,13 @@ export async function getAlerts(): Promise<AppAlert[]> {
     return mockAlerts as AppAlert[];
   }
 
+  const settingsMap = Object.fromEntries(settings.map((s) => [s.key, Number(s.value)]));
+  const minMarginPct = settingsMap["margin_min"] ?? 3;
+
   const autoAlerts = await computeAutoAlerts(
     (vehiclesResult.data ?? []) as DbVehicle[],
-    (salesResult.data ?? []) as DbSale[]
+    (salesResult.data ?? []) as DbSale[],
+    minMarginPct
   );
 
   const dbAlerts: AppAlert[] = (dbAlertsResult.data ?? []).map((a) => ({

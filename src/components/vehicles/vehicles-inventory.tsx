@@ -24,13 +24,13 @@ function daysInInventory(vehicle: Vehicle): number | null {
   return Math.floor((Date.now() - new Date(vehicle.createdAt).getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function CardView({ vehicles, showVisualAlerts, showMarginWarnings }: { vehicles: Vehicle[]; showVisualAlerts: boolean; showMarginWarnings: boolean }) {
+function CardView({ vehicles, showVisualAlerts, showMarginWarnings, marginMin }: { vehicles: Vehicle[]; showVisualAlerts: boolean; showMarginWarnings: boolean; marginMin: number }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {vehicles.map((vehicle) => {
         const margin = getVehicleProjectedMargin(vehicle);
         const isPropio = vehicle.ownerType === "Propio";
-        const isLowMargin = showMarginWarnings && isPropio && margin < 3;
+        const isLowMargin = showMarginWarnings && isPropio && margin < marginMin;
         const marginLabel = isPropio ? "Margen neto" : "Comisión";
         return (
           <Link
@@ -98,7 +98,7 @@ const KANBAN_COLUMNS = [
   { status: "Vendido", color: "border-zinc-700/30 bg-zinc-900/30", label: "Vendido" },
 ];
 
-function KanbanView({ vehicles, showMarginWarnings }: { vehicles: Vehicle[]; showMarginWarnings: boolean }) {
+function KanbanView({ vehicles, showMarginWarnings, marginMin }: { vehicles: Vehicle[]; showMarginWarnings: boolean; marginMin: number }) {
   const byStatus = useMemo(() => {
     const map: Record<string, Vehicle[]> = {};
     for (const col of KANBAN_COLUMNS) map[col.status] = [];
@@ -127,7 +127,7 @@ function KanbanView({ vehicles, showMarginWarnings }: { vehicles: Vehicle[]; sho
                 ) : (
                   colVehicles.map((vehicle) => {
                     const margin = getVehicleProjectedMargin(vehicle);
-                    const isLowMargin = showMarginWarnings && vehicle.ownerType === "Propio" && margin < 3;
+                    const isLowMargin = showMarginWarnings && vehicle.ownerType === "Propio" && margin < marginMin;
                     return (
                       <Link
                         key={vehicle.id}
@@ -158,7 +158,7 @@ function KanbanView({ vehicles, showMarginWarnings }: { vehicles: Vehicle[]; sho
   );
 }
 
-function TableView({ vehicles, canEditPrice, showVisualAlerts, showMarginWarnings }: { vehicles: Vehicle[]; canEditPrice?: boolean; showVisualAlerts: boolean; showMarginWarnings: boolean }) {
+function TableView({ vehicles, canEditPrice, showVisualAlerts, showMarginWarnings, marginMin }: { vehicles: Vehicle[]; canEditPrice?: boolean; showVisualAlerts: boolean; showMarginWarnings: boolean; marginMin: number }) {
   return (
     <Card>
       <CardContent className="p-0">
@@ -209,7 +209,7 @@ function TableView({ vehicles, canEditPrice, showVisualAlerts, showMarginWarning
                           {canEditPrice && <EditPriceButton vehicleId={vehicle.id} currentPrice={vehicle.targetPrice} />}
                         </div>
                       </td>
-                      <td className={`px-5 py-3.5 font-medium ${showMarginWarnings && vehicle.ownerType === "Propio" && margin < 3 ? "text-red-300" : "text-[#D6A93D]"}`}>
+                      <td className={`px-5 py-3.5 font-medium ${showMarginWarnings && vehicle.ownerType === "Propio" && margin < marginMin ? "text-red-300" : "text-[#D6A93D]"}`}>
                         {percentage(margin)}
                       </td>
                       <td className="px-5 py-3.5">
@@ -240,7 +240,7 @@ function TableView({ vehicles, canEditPrice, showVisualAlerts, showMarginWarning
   );
 }
 
-export function VehiclesInventory({ vehicles, initialQuery, canEditPrice = false }: { vehicles: Vehicle[]; initialQuery?: string; canEditPrice?: boolean }) {
+export function VehiclesInventory({ vehicles, initialQuery, canEditPrice = false, marginMin = 3 }: { vehicles: Vehicle[]; initialQuery?: string; canEditPrice?: boolean; marginMin?: number }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const [status, setStatus] = useState("Todos");
   const [brand, setBrand] = useState("Todas");
@@ -320,9 +320,9 @@ export function VehiclesInventory({ vehicles, initialQuery, canEditPrice = false
 
       {!hasFilters && <p className="mb-3 text-xs text-zinc-600">{filtered.length} de {vehicles.length} vehículos</p>}
 
-      {view === "table" && <TableView vehicles={filtered} canEditPrice={canEditPrice} showVisualAlerts={prefs.showVisualAlerts} showMarginWarnings={prefs.showMarginWarnings} />}
-      {view === "cards" && <CardView vehicles={filtered} showVisualAlerts={prefs.showVisualAlerts} showMarginWarnings={prefs.showMarginWarnings} />}
-      {view === "kanban" && <KanbanView vehicles={filtered} showMarginWarnings={prefs.showMarginWarnings} />}
+      {view === "table" && <TableView vehicles={filtered} canEditPrice={canEditPrice} showVisualAlerts={prefs.showVisualAlerts} showMarginWarnings={prefs.showMarginWarnings} marginMin={marginMin} />}
+      {view === "cards" && <CardView vehicles={filtered} showVisualAlerts={prefs.showVisualAlerts} showMarginWarnings={prefs.showMarginWarnings} marginMin={marginMin} />}
+      {view === "kanban" && <KanbanView vehicles={filtered} showMarginWarnings={prefs.showMarginWarnings} marginMin={marginMin} />}
     </>
   );
 }
