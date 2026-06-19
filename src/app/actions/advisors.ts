@@ -116,6 +116,35 @@ export async function deleteAdvisorAction(advisorId: string): Promise<{ error?: 
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) return { error: "Supabase no configurado." };
 
+  // Check for pending commissions and active vehicle assignments in parallel
+  const [commissionsRes, vehiclesRes] = await Promise.all([
+    supabase
+      .from("commissions")
+      .select("id", { count: "exact", head: true })
+      .eq("advisor_id", advisorId)
+      .eq("status", "Pendiente"),
+    supabase
+      .from("vehicles")
+      .select("id", { count: "exact", head: true })
+      .or(`advisor_buyer_id.eq.${advisorId},advisor_seller_id.eq.${advisorId}`)
+      .not("status", "in", '("Vendido","Entregado")'),
+  ]);
+
+  const pendingCount = commissionsRes.count ?? 0;
+  const activeVehicles = vehiclesRes.count ?? 0;
+
+  if (pendingCount > 0) {
+    return {
+      error: `No se puede eliminar: el asesor tiene ${pendingCount} comisión(es) pendiente(s) de pago. Págalas primero o reasígnalas.`,
+    };
+  }
+
+  if (activeVehicles > 0) {
+    return {
+      error: `No se puede eliminar: el asesor está asignado a ${activeVehicles} vehículo(s) activo(s) en inventario. Reasígnalos primero.`,
+    };
+  }
+
   const { error } = await supabase.from("advisors").delete().eq("id", advisorId);
   if (error) return { error: error.message };
   revalidatePath("/asesores");
