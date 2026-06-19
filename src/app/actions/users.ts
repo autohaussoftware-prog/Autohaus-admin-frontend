@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient, getUserRole, getCurrentUserProfile } from "@/lib/supabase/server";
 import { ROLES, requireRole } from "@/lib/security";
+import { logAudit } from "@/lib/data/audit";
 import type { UserRole } from "@/types/auth";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -252,8 +253,27 @@ export async function updateUserRoleAction(userId: string, role: UserRole) {
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) return { error: "Supabase no configurado." };
 
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+  const oldRole = (existing?.role as string | null) ?? "desconocido";
+
   const { error } = await supabase.from("profiles").update({ role }).eq("id", userId);
   if (error) return { error: error.message };
+
+  const { id: callerId, name: callerName } = await getCurrentUserProfile();
+  logAudit({
+    tableName: "profiles",
+    recordId: userId,
+    action: "UPDATE",
+    fieldChanged: "role",
+    oldValue: oldRole,
+    newValue: role,
+    userName: callerName,
+    userId: callerId,
+  }).catch(() => {});
 
   revalidatePath("/usuarios");
   return { success: true };

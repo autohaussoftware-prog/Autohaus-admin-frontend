@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient, getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { deleteVehicle, updateVehicleCommissionRate } from "@/lib/data/vehicles";
+import { logAudit } from "@/lib/data/audit";
 
 export async function updateVehiclePriceAction(
   vehicleId: string,
@@ -63,6 +64,17 @@ export async function updateVehiclePriceAction(
     description: `Precio cambiado de ${fmt(oldPrice)} → ${fmt(newPrice)} por ${name}.`,
     metadata: { updatedBy: name, userId, oldPrice, newPrice, updatedAt: new Date().toISOString() },
   });
+
+  logAudit({
+    tableName: "vehicles",
+    recordId: vehicleId,
+    action: "UPDATE",
+    fieldChanged: "target_price",
+    oldValue: String(oldPrice),
+    newValue: String(newPrice),
+    userName: name,
+    userId,
+  }).catch(() => {});
 
   revalidatePath(`/vehiculos/${vehicleId}`);
   revalidatePath("/vehiculos");

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createFinanceMovement, deleteFinanceMovement, updateFinanceMovement } from "@/lib/data/finance";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { ROLES, requireRole } from "@/lib/security";
+import { logAudit } from "@/lib/data/audit";
 
 const movimientoSchema = z.object({
   type: z.enum(["Ingreso", "Egreso"]),
@@ -33,12 +34,23 @@ export async function createMovimientoAction(formData: FormData) {
     redirect("/movimientos/nuevo?error=" + encodeURIComponent(msg));
   }
 
+  let newId: string;
   try {
-    await createFinanceMovement(parsed.data);
+    newId = await createFinanceMovement(parsed.data);
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se pudo registrar el movimiento.";
     redirect("/movimientos/nuevo?error=" + encodeURIComponent(message));
   }
+
+  const { id: userId, name } = await getCurrentUserProfile();
+  logAudit({
+    tableName: "finance_movements",
+    recordId: newId!,
+    action: "INSERT",
+    newValue: `${parsed.data.type} ${parsed.data.amount} — ${parsed.data.concept}`,
+    userName: name,
+    userId,
+  }).catch(() => {});
 
   revalidatePath("/banco");
   revalidatePath("/efectivo");
@@ -81,13 +93,22 @@ export async function deleteMovimientoAction(
   const denied = requireRole(role, ROLES.MANAGEMENT, "Sin permisos para eliminar movimientos financieros.");
   if (denied) return denied;
 
-  const { name } = await getCurrentUserProfile();
+  const { id: userId, name } = await getCurrentUserProfile();
 
   try {
     await deleteFinanceMovement(id, name, reason);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "No se pudo eliminar el movimiento." };
   }
+
+  logAudit({
+    tableName: "finance_movements",
+    recordId: id,
+    action: "DELETE",
+    newValue: reason ?? "sin motivo",
+    userName: name,
+    userId,
+  }).catch(() => {});
 
   revalidatePath("/banco");
   revalidatePath("/efectivo");
