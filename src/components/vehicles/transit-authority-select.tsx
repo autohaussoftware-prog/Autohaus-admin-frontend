@@ -9,6 +9,7 @@ type Props = {
   defaultValue?: string;
   required?: boolean;
   placeholder?: string;
+  highlighted?: boolean;
 };
 
 export function TransitAuthoritySelect({
@@ -16,6 +17,7 @@ export function TransitAuthoritySelect({
   defaultValue = "",
   required = false,
   placeholder = "Buscar organismo de tránsito…",
+  highlighted = false,
 }: Props) {
   const [query, setQuery] = useState(defaultValue);
   const [value, setValue] = useState(defaultValue);
@@ -83,7 +85,7 @@ export function TransitAuthoritySelect({
             }, 150);
           }}
           placeholder={placeholder}
-          className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 pr-16 text-sm text-white placeholder-zinc-600 outline-none transition focus:border-[#D6A93D] focus:ring-1 focus:ring-[#D6A93D]"
+          className={`w-full rounded-2xl border bg-zinc-950 px-3 py-2 pr-16 text-sm text-white placeholder-zinc-600 outline-none transition focus:border-[#D6A93D] focus:ring-1 focus:ring-[#D6A93D] ${highlighted ? "border-[#D6A93D]/40 bg-[#D6A93D]/5 ring-1 ring-[#D6A93D]/60" : "border-zinc-800"}`}
           autoComplete="off"
         />
         <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">

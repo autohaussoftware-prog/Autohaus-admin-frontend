@@ -12,6 +12,8 @@ import {
 } from "@/data/car-catalog";
 import { getColorsForBrand } from "@/data/vehicle-colors";
 
+const HL = "ring-1 ring-[#D6A93D]/60 border-[#D6A93D]/40 bg-[#D6A93D]/5";
+
 type Props = {
   defaultBrand?: string;
   defaultLine?: string;
@@ -22,6 +24,7 @@ type Props = {
   defaultTraction?: string;
   defaultColor?: string;
   fieldErrors?: Record<string, string[]>;
+  autoFilledFields?: Set<string>;
 };
 
 const OTHER = "__other__";
@@ -75,7 +78,9 @@ export function VehicleIdentificationFields({
   defaultTraction = "",
   defaultColor = "",
   fieldErrors = {},
+  autoFilledFields = new Set(),
 }: Props) {
+  const hl = (field: string) => autoFilledFields.has(field) ? HL : undefined;
   const knownBrand = BRAND_NAMES.includes(defaultBrand);
   const [selectedBrand, setSelectedBrand] = useState(knownBrand ? defaultBrand : defaultBrand ? OTHER : "");
   const [customBrand, setCustomBrand] = useState(knownBrand ? "" : defaultBrand);
@@ -162,6 +167,7 @@ export function VehicleIdentificationFields({
           value={selectedBrand}
           onChange={(e) => handleBrandChange(e.target.value)}
           required={selectedBrand !== OTHER}
+          className={hl("brand")}
         >
           <option value="" disabled>Selecciona marca</option>
           {BRAND_NAMES.map((b) => (
@@ -180,6 +186,7 @@ export function VehicleIdentificationFields({
             placeholder="Ej: Lexus, Infiniti…"
             value={customBrand}
             onChange={(e) => setCustomBrand(e.target.value)}
+            className={hl("brand")}
           />
         </label>
       )}
@@ -193,6 +200,7 @@ export function VehicleIdentificationFields({
             value={selectedLine}
             onChange={(e) => handleLineChange(e.target.value)}
             required={selectedLine !== OTHER}
+            className={hl("line")}
           >
             <option value="" disabled>Selecciona línea</option>
             {lines.map((l) => (
@@ -210,6 +218,7 @@ export function VehicleIdentificationFields({
               setSelectedLine(OTHER);
               setCustomLine(e.target.value);
             }}
+            className={hl("line")}
           />
         )}
       </label>
@@ -261,6 +270,7 @@ export function VehicleIdentificationFields({
             setSelectedMotor(e.target.value);
             if (e.target.value !== OTHER) setCustomMotor("");
           }}
+          className={hl("motor")}
         >
           <option value="" disabled>Selecciona motor</option>
           {MOTOR_OPTIONS.map((m) => (
@@ -292,6 +302,7 @@ export function VehicleIdentificationFields({
           value={transmission}
           onChange={(e) => setTransmission(e.target.value as "Manual" | "Automática" | "")}
           required
+          className={hl("transmission")}
         >
           <option value="" disabled>Selecciona transmisión</option>
           <option value="Manual">Manual</option>
@@ -308,7 +319,7 @@ export function VehicleIdentificationFields({
         <span className="mb-2 block text-sm text-zinc-400">
           Combustible <span className="text-red-400">*</span>
         </span>
-        <Select name="fuel" value={fuel} onChange={(e) => setFuel(e.target.value)} required>
+        <Select name="fuel" value={fuel} onChange={(e) => setFuel(e.target.value)} required className={hl("fuel")}>
           <option value="" disabled>Selecciona combustible</option>
           <option value="Gasolina">Gasolina</option>
           <option value="Diésel">Diésel</option>
@@ -321,7 +332,7 @@ export function VehicleIdentificationFields({
       {/* ── Tracción ────────────────────────────────────────────── */}
       <label className="block">
         <span className="mb-2 block text-sm text-zinc-400">Tracción</span>
-        <Select name="traction" value={traction} onChange={(e) => setTraction(e.target.value)}>
+        <Select name="traction" value={traction} onChange={(e) => setTraction(e.target.value)} className={hl("traction")}>
           <option value="">Selecciona o deja en blanco</option>
           <option value="4x2">4x2</option>
           <option value="4x4">4x4</option>
@@ -355,6 +366,7 @@ export function VehicleIdentificationFields({
               setSelectedColor(e.target.value);
               if (e.target.value !== OTHER) setCustomColor("");
             }}
+            className={hl("color")}
           >
             <option value="">Selecciona color</option>
             {colors.map((c) => (
