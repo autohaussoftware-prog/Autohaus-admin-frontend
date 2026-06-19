@@ -26,16 +26,43 @@ export type CustomerPurchase = {
   createdAt: string;
 };
 
-export async function getCustomers(): Promise<Customer[]> {
-  const supabase = await getSupabaseServerClient();
-  if (!supabase) return [];
+const CUSTOMERS_PAGE_SIZE = 50;
 
-  const [customersRes, salesRes] = await Promise.all([
-    supabase.from("customers").select("id,full_name,phone,email,document_number,created_at").is("deleted_at", null).order("created_at", { ascending: false }),
-    supabase.from("sales").select("id,customer_id,agreed_price,sale_status,created_at"),
+export async function getCustomers(opts?: {
+  page?: number;
+  pageSize?: number;
+}): Promise<{ customers: Customer[]; total: number }> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { customers: [], total: 0 };
+
+  const page = Math.max(1, opts?.page ?? 1);
+  const pageSize = opts?.pageSize ?? CUSTOMERS_PAGE_SIZE;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const [customersRes, countRes] = await Promise.all([
+    supabase
+      .from("customers")
+      .select("id,full_name,phone,email,document_number,created_at")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .range(from, to),
+    supabase
+      .from("customers")
+      .select("*", { count: "exact", head: true })
+      .is("deleted_at", null),
   ]);
 
-  if (customersRes.error || !customersRes.data) return [];
+  if (customersRes.error || !customersRes.data) return { customers: [], total: 0 };
+
+  // Only fetch sales for the current page's customer IDs
+  const customerIds = customersRes.data.map((c: any) => c.id as string);
+  const salesRes = customerIds.length
+    ? await supabase
+        .from("sales")
+        .select("id,customer_id,agreed_price,sale_status,created_at")
+        .in("customer_id", customerIds)
+    : { data: [] };
 
   const salesByCustomer = new Map<string, { count: number; total: number; last: string | null }>();
   for (const s of (salesRes.data ?? [])) {
@@ -50,7 +77,7 @@ export async function getCustomers(): Promise<Customer[]> {
     salesByCustomer.set(cid, existing);
   }
 
-  return customersRes.data.map((c: any) => {
+  const customers = customersRes.data.map((c: any) => {
     const stats = salesByCustomer.get(c.id) ?? { count: 0, total: 0, last: null };
     return {
       id: c.id as string,
@@ -64,6 +91,43 @@ export async function getCustomers(): Promise<Customer[]> {
       lastPurchaseDate: stats.last,
     };
   });
+
+  return { customers, total: countRes.count ?? customers.length };
+}
+
+export async function getCustomersSummary(): Promise<{
+  total: number;
+  withPurchases: number;
+  repeat: number;
+  totalRevenue: number;
+  totalPurchases: number;
+}> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { total: 0, withPurchases: 0, repeat: 0, totalRevenue: 0, totalPurchases: 0 };
+
+  const [countRes, salesRes] = await Promise.all([
+    supabase.from("customers").select("*", { count: "exact", head: true }).is("deleted_at", null),
+    supabase.from("sales").select("customer_id,agreed_price"),
+  ]);
+
+  const salesByCustomer = new Map<string, { count: number; total: number }>();
+  for (const s of (salesRes.data ?? [])) {
+    const cid = s.customer_id as string;
+    if (!cid) continue;
+    const e = salesByCustomer.get(cid) ?? { count: 0, total: 0 };
+    e.count += 1;
+    e.total += Number(s.agreed_price ?? 0);
+    salesByCustomer.set(cid, e);
+  }
+
+  const stats = [...salesByCustomer.values()];
+  return {
+    total: countRes.count ?? 0,
+    withPurchases: stats.filter((s) => s.count > 0).length,
+    repeat: stats.filter((s) => s.count >= 2).length,
+    totalRevenue: stats.reduce((sum, s) => sum + s.total, 0),
+    totalPurchases: stats.reduce((sum, s) => sum + s.count, 0),
+  };
 }
 
 export async function getCustomerById(id: string): Promise<CustomerDetail | null> {

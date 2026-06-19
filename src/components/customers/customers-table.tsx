@@ -4,15 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Search, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/shared/pagination";
 import { compactCOP } from "@/lib/utils";
 import type { Customer } from "@/lib/data/customers";
+
+const PAGE_SIZE = 50;
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export function CustomersTable({ customers }: { customers: Customer[] }) {
+export function CustomersTable({ customers, total, page = 1 }: { customers: Customer[]; total?: number; page?: number }) {
   const [query, setQuery] = useState("");
 
   const filtered = customers.filter((c) => {
@@ -94,6 +97,15 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {total && total > PAGE_SIZE && (
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          buildHref={(p) => `/clientes?page=${p}`}
+        />
       )}
     </div>
   );

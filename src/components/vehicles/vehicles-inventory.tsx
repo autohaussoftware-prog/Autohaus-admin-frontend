@@ -10,9 +10,12 @@ import { Select } from "@/components/ui/select";
 import { compactCOP, percentage } from "@/lib/utils";
 import { getVehicleProjectedMargin } from "@/lib/domain/vehicle-calculations";
 import { useAlertPrefs } from "@/lib/hooks/use-alert-prefs";
+import { Pagination } from "@/components/shared/pagination";
 import { VehicleStatusBadge } from "./vehicle-status-badge";
 import { EditPriceButton } from "./edit-price-button";
 import type { Vehicle } from "@/types/vehicle";
+
+const PAGE_SIZE = 60;
 
 const ALL_STATUSES = [
   "Todos", "Disponible", "Publicado", "Separado", "En comisión",
@@ -240,7 +243,21 @@ function TableView({ vehicles, canEditPrice, showVisualAlerts, showMarginWarning
   );
 }
 
-export function VehiclesInventory({ vehicles, initialQuery, canEditPrice = false, marginMin = 3 }: { vehicles: Vehicle[]; initialQuery?: string; canEditPrice?: boolean; marginMin?: number }) {
+export function VehiclesInventory({
+  vehicles,
+  total,
+  page = 1,
+  initialQuery,
+  canEditPrice = false,
+  marginMin = 3,
+}: {
+  vehicles: Vehicle[];
+  total?: number;
+  page?: number;
+  initialQuery?: string;
+  canEditPrice?: boolean;
+  marginMin?: number;
+}) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const [status, setStatus] = useState("Todos");
   const [brand, setBrand] = useState("Todas");
@@ -308,7 +325,7 @@ export function VehiclesInventory({ vehicles, initialQuery, canEditPrice = false
       </div>
       {hasFilters && (
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-xs text-zinc-500">{filtered.length} de {vehicles.length} vehículos</p>
+          <p className="text-xs text-zinc-500">{filtered.length} de {vehicles.length} en esta página</p>
           <button
             onClick={() => { setQuery(""); setStatus("Todos"); setBrand("Todas"); setOwnerType("Todos"); }}
             className="text-xs text-zinc-500 hover:text-white transition"
@@ -318,11 +335,25 @@ export function VehiclesInventory({ vehicles, initialQuery, canEditPrice = false
         </div>
       )}
 
-      {!hasFilters && <p className="mb-3 text-xs text-zinc-600">{filtered.length} de {vehicles.length} vehículos</p>}
+      {!hasFilters && (
+        <p className="mb-3 text-xs text-zinc-600">
+          {vehicles.length} vehículo{vehicles.length !== 1 ? "s" : ""} en esta página
+          {total && total > vehicles.length ? ` · ${total} en total` : ""}
+        </p>
+      )}
 
       {view === "table" && <TableView vehicles={filtered} canEditPrice={canEditPrice} showVisualAlerts={prefs.showVisualAlerts} showMarginWarnings={prefs.showMarginWarnings} marginMin={marginMin} />}
       {view === "cards" && <CardView vehicles={filtered} showVisualAlerts={prefs.showVisualAlerts} showMarginWarnings={prefs.showMarginWarnings} marginMin={marginMin} />}
       {view === "kanban" && <KanbanView vehicles={filtered} showMarginWarnings={prefs.showMarginWarnings} marginMin={marginMin} />}
+
+      {total && total > PAGE_SIZE && (
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          buildHref={(p) => `/vehiculos?page=${p}`}
+        />
+      )}
     </>
   );
 }

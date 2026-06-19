@@ -2,16 +2,23 @@ import { Users, ShoppingBag, CircleDollarSign, Star } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { CustomersTable } from "@/components/customers/customers-table";
-import { getCustomers } from "@/lib/data/customers";
+import { getCustomers, getCustomersSummary } from "@/lib/data/customers";
 import { compactCOP } from "@/lib/utils";
 
-export default async function ClientesPage() {
-  const customers = await getCustomers();
+export const dynamic = "force-dynamic";
 
-  const totalCustomers = customers.length;
-  const withPurchases = customers.filter((c) => c.purchaseCount > 0).length;
-  const repeat = customers.filter((c) => c.purchaseCount >= 2).length;
-  const totalRevenue = customers.reduce((sum, c) => sum + c.totalSpent, 0);
+export default async function ClientesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+
+  const [summary, { customers, total }] = await Promise.all([
+    getCustomersSummary(),
+    getCustomers({ page }),
+  ]);
 
   return (
     <>
@@ -22,13 +29,13 @@ export default async function ClientesPage() {
       />
 
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Clientes registrados" value={`${totalCustomers}`} helper={`${withPurchases} con compras`} icon={Users} tone="gold" />
-        <StatCard label="Clientes recurrentes" value={`${repeat}`} helper="2 o más compras" icon={Star} tone="green" />
-        <StatCard label="Compras totales" value={`${customers.reduce((s, c) => s + c.purchaseCount, 0)}`} helper="Ventas con cliente asignado" icon={ShoppingBag} tone="blue" />
-        <StatCard label="Facturación total" value={compactCOP(totalRevenue)} helper="Precio acordado acumulado" icon={CircleDollarSign} tone="neutral" />
+        <StatCard label="Clientes registrados" value={`${summary.total}`} helper={`${summary.withPurchases} con compras`} icon={Users} tone="gold" />
+        <StatCard label="Clientes recurrentes" value={`${summary.repeat}`} helper="2 o más compras" icon={Star} tone="green" />
+        <StatCard label="Compras totales" value={`${summary.totalPurchases}`} helper="Ventas con cliente asignado" icon={ShoppingBag} tone="blue" />
+        <StatCard label="Facturación total" value={compactCOP(summary.totalRevenue)} helper="Precio acordado acumulado" icon={CircleDollarSign} tone="neutral" />
       </div>
 
-      <CustomersTable customers={customers} />
+      <CustomersTable customers={customers} total={total} page={page} />
     </>
   );
 }

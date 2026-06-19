@@ -196,22 +196,74 @@ function mapMovement(movement: DbVehicleMovement): VehicleMovement {
   };
 }
 
-export async function getVehicles(viewer?: { userId: string; role: string }) {
-  const supabase = await getSupabaseServerClient();
-  if (!supabase) return mockVehicles;
+const VEHICLES_PAGE_SIZE = 60;
 
-  const { data, error } = await supabase
-    .from("vehicles")
-    .select("*")
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
-  if (error || !data) {
-    console.error("No se pudieron cargar vehículos desde Supabase:", error?.message);
-    return mockVehicles;
+export async function getVehicles(
+  viewer?: { userId: string; role: string },
+  opts?: { page?: number; pageSize?: number }
+): Promise<{ vehicles: Vehicle[]; total: number }> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { vehicles: mockVehicles, total: mockVehicles.length };
+
+  const page = Math.max(1, opts?.page ?? 1);
+  const pageSize = opts?.pageSize ?? VEHICLES_PAGE_SIZE;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const [dataRes, countRes] = await Promise.all([
+    supabase
+      .from("vehicles")
+      .select("*")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .range(from, to),
+    supabase
+      .from("vehicles")
+      .select("*", { count: "exact", head: true })
+      .is("deleted_at", null),
+  ]);
+
+  if (dataRes.error || !dataRes.data) {
+    console.error("No se pudieron cargar vehículos desde Supabase:", dataRes.error?.message);
+    return { vehicles: mockVehicles, total: mockVehicles.length };
   }
 
   const references = await getReferenceMaps();
-  return (data as DbVehicle[]).map((vehicle) => mapVehicle(vehicle, references, viewer));
+  const vehicles = (dataRes.data as DbVehicle[]).map((v) => mapVehicle(v, references, viewer));
+  return { vehicles, total: countRes.count ?? vehicles.length };
+}
+
+export async function getVehiclesSummary(): Promise<{
+  total: number;
+  available: number;
+  withAlerts: number;
+  totalCapital: number;
+}> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) {
+    return {
+      total: mockVehicles.length,
+      available: mockVehicles.filter((v) => v.status === "Disponible" || v.status === "Publicado").length,
+      withAlerts: mockVehicles.filter((v) => v.alert).length,
+      totalCapital: mockVehicles.reduce((s, v) => s + v.buyPrice + v.realCost, 0),
+    };
+  }
+
+  const { data } = await supabase
+    .from("vehicles")
+    .select("status, buy_price, real_cost, alert_summary")
+    .is("deleted_at", null);
+
+  if (!data) return { total: 0, available: 0, withAlerts: 0, totalCapital: 0 };
+
+  return {
+    total: data.length,
+    available: data.filter((v) => v.status === "Disponible" || v.status === "Publicado").length,
+    withAlerts: data.filter((v) => v.alert_summary).length,
+    totalCapital: data
+      .filter((v) => !["Vendido", "Entregado"].includes(v.status))
+      .reduce((s, v) => s + Number(v.buy_price ?? 0) + Number(v.real_cost ?? 0), 0),
+  };
 }
 
 export async function getVehicleById(id: string, viewer?: { userId: string; role: string }) {
