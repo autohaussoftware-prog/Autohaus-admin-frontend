@@ -36,6 +36,7 @@ type DbVehicle = {
   min_price: number | string | null;
   real_cost: number | string | null;
   estimated_cost: number | string | null;
+  created_at: string | null;
 };
 
 type DbSale = {
@@ -50,7 +51,8 @@ type DbSale = {
 async function computeAutoAlerts(
   vehicles: DbVehicle[],
   sales: DbSale[],
-  minMarginPct: number
+  minMarginPct: number,
+  staleAlertDays: number
 ): Promise<AppAlert[]> {
   const alerts: AppAlert[] = [];
 
@@ -141,6 +143,24 @@ async function computeAutoAlerts(
         vehicleId: v.id,
       });
     }
+
+    // Vehículo estancado — disponible/publicado sin venderse por más de N días
+    const activeStatuses = ["Disponible", "Publicado", "No publicado"];
+    if (activeStatuses.includes(v.status) && v.created_at) {
+      const daysInInventory = Math.floor(
+        (Date.now() - new Date(v.created_at).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysInInventory >= staleAlertDays) {
+        alerts.push({
+          id: `auto-stale-${v.id}`,
+          title: `Vehículo estancado — ${name}`,
+          description: `Lleva ${daysInInventory} días en inventario sin venderse. Considerar ajuste de precio o estrategia de promoción.`,
+          priority: daysInInventory >= staleAlertDays * 2 ? "Alta" : "Media",
+          module: "Inventario",
+          vehicleId: v.id,
+        });
+      }
+    }
   }
 
   // Separaciones con saldo pendiente y separaciones vencidas
@@ -199,7 +219,7 @@ export async function getAlerts(): Promise<AppAlert[]> {
   if (!supabase) return mockAlerts as AppAlert[];
 
   const [vehiclesResult, salesResult, dbAlertsResult, settings] = await Promise.all([
-    supabase.from("vehicles").select("id,plate,brand,line,status,soat_due,techno_due,buy_price,target_price,min_price,real_cost,estimated_cost"),
+    supabase.from("vehicles").select("id,plate,brand,line,status,soat_due,techno_due,buy_price,target_price,min_price,real_cost,estimated_cost,created_at"),
     supabase.from("sales").select("id,vehicle_id,pending_balance,sale_status,payment_status,expiry_date"),
     supabase
       .from("alerts")
@@ -216,11 +236,13 @@ export async function getAlerts(): Promise<AppAlert[]> {
 
   const settingsMap = Object.fromEntries(settings.map((s) => [s.key, Number(s.value)]));
   const minMarginPct = settingsMap["margin_min"] ?? 3;
+  const staleAlertDays = settingsMap["stale_days_alert"] ?? 45;
 
   const autoAlerts = await computeAutoAlerts(
     (vehiclesResult.data ?? []) as DbVehicle[],
     (salesResult.data ?? []) as DbSale[],
-    minMarginPct
+    minMarginPct,
+    staleAlertDays
   );
 
   const dbAlerts: AppAlert[] = (dbAlertsResult.data ?? []).map((a) => ({
