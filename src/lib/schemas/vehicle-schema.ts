@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPlate } from "@/lib/security";
 
 const optionalNumber = z.preprocess(
   (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
@@ -11,7 +12,11 @@ const optionalText = z.preprocess(
 ).optional();
 
 export const vehicleSchema = z.object({
-  plate: z.string().trim().min(3, "La placa debe tener al menos 3 caracteres."),
+  plate: z
+    .string()
+    .trim()
+    .min(3, "La placa debe tener al menos 3 caracteres.")
+    .refine((v) => isValidPlate(v), "Formato inválido. Ejemplos válidos: ABC123, ABC1234, ABC123D."),
   brand: z.string().trim().min(2, "La marca es obligatoria."),
   line: z.string().trim().min(1, "La línea es obligatoria."),
   version: optionalText,
