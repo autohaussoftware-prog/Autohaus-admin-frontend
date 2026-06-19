@@ -60,6 +60,8 @@ export type VehicleMovement = {
   description: string;
   createdAt: string;
   user: string;
+  oldPrice?: number;
+  newPrice?: number;
 };
 
 export type VehiclePhoto = {

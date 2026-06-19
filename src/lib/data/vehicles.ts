@@ -92,7 +92,7 @@ type DbVehicleMovement = {
   title: string;
   description: string | null;
   created_at: string;
-  metadata: { userName?: string } | null;
+  metadata: { userName?: string; oldPrice?: number; newPrice?: number } | null;
 };
 
 function toNumber(value: number | string | null | undefined) {
@@ -193,6 +193,8 @@ function mapMovement(movement: DbVehicleMovement): VehicleMovement {
     description: movement.description ?? "",
     createdAt: formatDateTime(movement.created_at),
     user: movement.metadata?.userName ?? "Sistema",
+    oldPrice: movement.metadata?.oldPrice,
+    newPrice: movement.metadata?.newPrice,
   };
 }
 

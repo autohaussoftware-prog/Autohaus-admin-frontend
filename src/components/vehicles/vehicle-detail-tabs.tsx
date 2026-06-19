@@ -13,6 +13,8 @@ import {
   Share2,
   ShieldCheck,
   Sparkles,
+  TrendingDown,
+  TrendingUp,
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -122,6 +124,10 @@ export function VehicleDetailTabs({
   canEditCommission?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("info");
+
+  const priceHistory = movements
+    .filter((m) => m.title === "Precio de venta actualizado" && m.newPrice !== undefined)
+    .reverse();
 
   const grossProfit = vehicle.targetPrice - vehicle.buyPrice;
   const netProfit = grossProfit - vehicle.realCost;
@@ -251,6 +257,38 @@ export function VehicleDetailTabs({
                     <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">Observaciones</p>
                     <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
                       <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">{vehicle.notes.trim()}</p>
+                    </div>
+                  </div>
+                )}
+
+                {showFinancials && priceHistory.length > 0 && (
+                  <div className="mt-5 border-t border-zinc-800 pt-5">
+                    <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
+                      Historial de precios
+                    </p>
+                    <div className="space-y-2">
+                      {priceHistory.map((m) => {
+                        const went_up = (m.newPrice ?? 0) > (m.oldPrice ?? 0);
+                        const Icon = went_up ? TrendingUp : TrendingDown;
+                        return (
+                          <div
+                            key={m.id}
+                            className="flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-950/60 px-4 py-3"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Icon className={`h-4 w-4 shrink-0 ${went_up ? "text-emerald-400" : "text-red-400"}`} />
+                              <div>
+                                <p className="text-sm text-white">
+                                  {m.oldPrice !== undefined
+                                    ? `${currencyCOP(m.oldPrice)} → ${currencyCOP(m.newPrice ?? 0)}`
+                                    : currencyCOP(m.newPrice ?? 0)}
+                                </p>
+                                <p className="text-xs text-zinc-500">{m.user} · {m.createdAt}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
