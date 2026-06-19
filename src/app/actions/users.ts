@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient, getUserRole, getCurrentUserProfile } from "@/lib/supabase/server";
+import { ROLES, requireRole } from "@/lib/security";
 import type { UserRole } from "@/types/auth";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -142,11 +143,20 @@ export async function changePasswordAction(
 }
 
 export async function inviteUserAction(formData: FormData) {
+  const callerRole = await getUserRole();
+  const guard = requireRole(callerRole, ROLES.ADMIN_ONLY, "Solo administradores pueden invitar usuarios.");
+  if (guard) return guard;
+
   const email = (formData.get("email") as string)?.trim();
   const fullName = (formData.get("fullName") as string)?.trim();
   const role = (formData.get("role") as UserRole) ?? "viewer";
   if (!email) return { error: "El email es requerido." };
   if (!fullName) return { error: "El nombre es requerido." };
+
+  // Only owner/partner can assign owner or partner roles
+  if ((role === "owner" || role === "partner") && !ROLES.OWNER_ADMIN.includes(callerRole)) {
+    return { error: "Solo el dueño o socio pueden asignar ese rol." };
+  }
 
   const admin = getSupabaseAdminClient();
   if (!admin) return { error: "Servicio no disponible (falta SUPABASE_SERVICE_ROLE_KEY)." };
@@ -195,6 +205,10 @@ export async function inviteUserAction(formData: FormData) {
 }
 
 export async function resendInviteAction(userId: string) {
+  const callerRole = await getUserRole();
+  const guard = requireRole(callerRole, ROLES.ADMIN_ONLY, "Solo administradores pueden reenviar invitaciones.");
+  if (guard) return guard;
+
   const admin = getSupabaseAdminClient();
   if (!admin) return { error: "Servicio no disponible (falta SUPABASE_SERVICE_ROLE_KEY)." };
 
@@ -227,6 +241,14 @@ export async function resendInviteAction(userId: string) {
 }
 
 export async function updateUserRoleAction(userId: string, role: UserRole) {
+  const callerRole = await getUserRole();
+  const guard = requireRole(callerRole, ROLES.ADMIN_ONLY, "Solo administradores pueden cambiar roles.");
+  if (guard) return guard;
+
+  if ((role === "owner" || role === "partner") && !ROLES.OWNER_ADMIN.includes(callerRole)) {
+    return { error: "Solo el dueño o socio pueden asignar ese rol." };
+  }
+
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) return { error: "Supabase no configurado." };
 
@@ -238,6 +260,10 @@ export async function updateUserRoleAction(userId: string, role: UserRole) {
 }
 
 export async function toggleUserActiveAction(userId: string, active: boolean) {
+  const callerRole = await getUserRole();
+  const guard = requireRole(callerRole, ROLES.ADMIN_ONLY, "Solo administradores pueden activar o desactivar usuarios.");
+  if (guard) return guard;
+
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) return { error: "Supabase no configurado." };
 
