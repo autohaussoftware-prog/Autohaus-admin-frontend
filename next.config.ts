@@ -45,6 +45,8 @@ const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
 
+  serverExternalPackages: ["@anthropic-ai/sdk"],
+
   experimental: {
     serverActions: {
       // 20mb is needed for vehicle photo uploads — monitor for abuse

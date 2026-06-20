@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import imageCompression from "browser-image-compression";
 import { Camera, CheckCircle2, FileSearch, Loader2, ScanLine, Upload, X } from "lucide-react";
 
 type ScanResult = {
@@ -47,6 +46,7 @@ export function DocumentScanner({ onScanComplete }: Props) {
     setState({ status: "scanning", preview });
 
     try {
+      const { default: imageCompression } = await import("browser-image-compression");
       const compressed = await imageCompression(file, {
         maxSizeMB: 1.5,
         maxWidthOrHeight: 2000,
