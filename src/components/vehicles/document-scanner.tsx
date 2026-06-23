@@ -46,15 +46,8 @@ export function DocumentScanner({ onScanComplete }: Props) {
     setState({ status: "scanning", preview });
 
     try {
-      const { default: imageCompression } = await import("browser-image-compression");
-      const compressed = await imageCompression(file, {
-        maxSizeMB: 1.5,
-        maxWidthOrHeight: 2000,
-        useWebWorker: true,
-      });
-
       const form = new FormData();
-      form.append("image", compressed, compressed.name || "document.jpg");
+      form.append("image", file, file.name || "document.jpg");
 
       const res = await fetch("/api/scan-vehicle-document", {
         method: "POST",
@@ -82,8 +75,6 @@ export function DocumentScanner({ onScanComplete }: Props) {
     }
     setState({ status: "idle" });
   }
-
-  const preview = state.status !== "idle" && "preview" in state ? state.preview : null;
 
   return (
     <div className="rounded-3xl border border-[#D6A93D]/20 bg-[#D6A93D]/5 p-5 space-y-4">
