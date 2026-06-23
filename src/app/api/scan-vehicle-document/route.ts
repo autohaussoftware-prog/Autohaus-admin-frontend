@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 
 const PROMPT = `Eres un experto en documentos vehiculares colombianos (tarjeta de propiedad, RUNT, matrícula).
 
@@ -55,29 +54,44 @@ export async function POST(req: NextRequest) {
 
   const buffer = await file.arrayBuffer();
   const base64 = Buffer.from(buffer).toString("base64");
-  const mediaType = file.type as "image/jpeg" | "image/png" | "image/webp";
-
-  const client = new Anthropic({ apiKey });
+  const mediaType = file.type === "image/jpg" ? "image/jpeg" : file.type as "image/jpeg" | "image/png" | "image/webp";
 
   try {
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: { type: "base64", media_type: mediaType, data: base64 },
-            },
-            { type: "text", text: PROMPT },
-          ],
-        },
-      ],
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 512,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: { type: "base64", media_type: mediaType, data: base64 },
+              },
+              { type: "text", text: PROMPT },
+            ],
+          },
+        ],
+      }),
     });
 
-    const raw = response.content[0].type === "text" ? response.content[0].text.trim() : "";
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      return NextResponse.json(
+        { error: (err as any)?.error?.message ?? "Error en la API de IA." },
+        { status: 502 }
+      );
+    }
+
+    const data = await response.json();
+    const raw: string = data?.content?.[0]?.text?.trim() ?? "";
 
     let fields: Record<string, string> = {};
     try {
