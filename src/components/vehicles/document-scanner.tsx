@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import imageCompression from "browser-image-compression";
 import { Camera, CheckCircle2, FileSearch, Loader2, ScanLine, Upload, X } from "lucide-react";
 
 type ScanResult = {
@@ -46,8 +47,14 @@ export function DocumentScanner({ onScanComplete }: Props) {
     setState({ status: "scanning", preview });
 
     try {
+      let toSend = file;
+      try {
+        const blob = await imageCompression(file, { maxSizeMB: 1.5, maxWidthOrHeight: 2000, useWebWorker: true });
+        toSend = new File([blob], file.name, { type: blob.type });
+      } catch { /* si falla la compresión enviar original */ }
+
       const form = new FormData();
-      form.append("image", file, file.name || "document.jpg");
+      form.append("image", toSend, toSend.name || "document.jpg");
 
       const res = await fetch("/api/scan-vehicle-document", {
         method: "POST",
