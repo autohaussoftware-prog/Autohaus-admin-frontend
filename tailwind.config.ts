@@ -65,13 +65,8 @@ const config: Config = {
         "scale-in":   "scaleIn 0.20s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "shimmer":    "shimmer 2s ease-in-out infinite",
         "glow-pulse": "glowPulse 3s ease-in-out infinite",
-        "scan":       "scan 1.5s ease-in-out infinite",
       },
       keyframes: {
-        scan: {
-          "0%":   { transform: "translateX(-100%)" },
-          "100%": { transform: "translateX(200%)" },
-        },
         fadeIn: {
           "0%":   { opacity: "0" },
           "100%": { opacity: "1" },
