@@ -41,13 +41,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  const role: UserRole = (profile?.role as UserRole) ?? "viewer";
+  // Role is synced to app_metadata by the sync_role_to_jwt trigger (phase14).
+  // Avoids a DB round-trip on every request. Server Actions re-query the DB
+  // for security-critical role checks, so stale JWT claims are acceptable here.
+  const role: UserRole = (user.app_metadata?.user_role as UserRole) ?? "viewer";
 
   if (!canAccessRoute(role, pathname)) {
     return NextResponse.redirect(new URL(getDefaultRedirect(role), request.url));
