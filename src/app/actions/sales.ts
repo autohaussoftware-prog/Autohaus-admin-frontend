@@ -83,6 +83,11 @@ const saleSchema = z.object({
 });
 
 export async function createSaleAction(formData: FormData) {
+  const role = await getUserRole();
+  if (!["owner", "partner", "admin", "gerente", "advisor", "accounting"].includes(role)) {
+    redirect("/ventas/nueva?error=" + encodeURIComponent("Sin permisos para registrar ventas."));
+  }
+
   const parsed = saleSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
