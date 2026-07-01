@@ -18,12 +18,29 @@ function toAmount(value: number | string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export async function getCommissions() {
+export async function getCommissions(month?: string) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return mockCommissions;
 
+  // Default to last 6 months if no month filter — prevents loading full history
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const defaultFrom = sixMonthsAgo.toISOString().slice(0, 7);
+
+  let commissionsQuery = supabase
+    .from("commissions")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(300);
+
+  if (month) {
+    commissionsQuery = commissionsQuery.eq("month", month);
+  } else {
+    commissionsQuery = commissionsQuery.gte("month", defaultFrom);
+  }
+
   const [commissionsResult, advisorsResult, vehiclesResult] = await Promise.all([
-    supabase.from("commissions").select("*").order("created_at", { ascending: false }),
+    commissionsQuery,
     supabase.from("advisors").select("id,full_name"),
     supabase.from("vehicles").select("id,brand,line"),
   ]);

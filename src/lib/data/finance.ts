@@ -22,13 +22,41 @@ function toAmount(value: number | string) {
 
 export type DateRange = { from?: string; to?: string };
 
+function defaultDateFrom(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 90);
+  return d.toISOString().split("T")[0];
+}
+
+function mapMovements(data: DbFinanceMovement[], categories: Map<string, string>): FinanceMovement[] {
+  return data.map((m) => ({
+    id: m.id,
+    type: m.type,
+    channel: m.channel,
+    category: m.category_id ? categories.get(m.category_id) ?? "Sin categoría" : "Sin categoría",
+    concept: m.concept,
+    amount: toAmount(m.amount),
+    date: m.date,
+    vehicleId: m.vehicle_id ?? undefined,
+    responsible: m.responsible_name ?? "Sin responsable",
+  }));
+}
+
 export async function getFinanceMovements(dateRange?: DateRange): Promise<FinanceMovement[]> {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return mockFinanceMovements;
 
-  let query = supabase.from("finance_movements").select("*").is("deleted_at", null).order("date", { ascending: false });
-  if (dateRange?.from) query = query.gte("date", dateRange.from);
-  if (dateRange?.to) query = query.lte("date", dateRange.to);
+  // Default to last 90 days when no range is given — prevents loading full history
+  const from = dateRange?.from ?? defaultDateFrom();
+  const to   = dateRange?.to;
+
+  let query = supabase
+    .from("finance_movements")
+    .select("*")
+    .is("deleted_at", null)
+    .gte("date", from)
+    .order("date", { ascending: false });
+  if (to) query = query.lte("date", to);
 
   const [movementsResult, categoriesResult] = await Promise.all([
     query,
@@ -44,27 +72,63 @@ export async function getFinanceMovements(dateRange?: DateRange): Promise<Financ
     (categoriesResult.data ?? []).map((c) => [c.id as string, c.name as string])
   );
 
-  return (movementsResult.data as DbFinanceMovement[]).map((m) => ({
-    id: m.id,
-    type: m.type,
-    channel: m.channel,
-    category: m.category_id ? categories.get(m.category_id) ?? "Sin categoría" : "Sin categoría",
-    concept: m.concept,
-    amount: toAmount(m.amount),
-    date: m.date,
-    vehicleId: m.vehicle_id ?? undefined,
-    responsible: m.responsible_name ?? "Sin responsable",
-  }));
+  return mapMovements(movementsResult.data as DbFinanceMovement[], categories);
 }
 
-export async function getBankMovements(dateRange?: DateRange) {
-  const movements = await getFinanceMovements(dateRange);
-  return movements.filter((m) => m.channel === "Banco");
+export async function getBankMovements(dateRange?: DateRange): Promise<FinanceMovement[]> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return mockFinanceMovements.filter((m) => m.channel === "Banco");
+
+  const from = dateRange?.from ?? defaultDateFrom();
+  const to   = dateRange?.to;
+
+  let query = supabase
+    .from("finance_movements")
+    .select("*")
+    .is("deleted_at", null)
+    .eq("channel", "Banco")
+    .gte("date", from)
+    .order("date", { ascending: false });
+  if (to) query = query.lte("date", to);
+
+  const [result, catResult] = await Promise.all([
+    query,
+    supabase.from("finance_categories").select("id,name"),
+  ]);
+
+  if (result.error || !result.data) return [];
+  const categories = new Map(
+    (catResult.data ?? []).map((c) => [c.id as string, c.name as string])
+  );
+  return mapMovements(result.data as DbFinanceMovement[], categories);
 }
 
-export async function getCashMovements(dateRange?: DateRange) {
-  const movements = await getFinanceMovements(dateRange);
-  return movements.filter((m) => m.channel !== "Banco");
+export async function getCashMovements(dateRange?: DateRange): Promise<FinanceMovement[]> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return mockFinanceMovements.filter((m) => m.channel !== "Banco");
+
+  const from = dateRange?.from ?? defaultDateFrom();
+  const to   = dateRange?.to;
+
+  let query = supabase
+    .from("finance_movements")
+    .select("*")
+    .is("deleted_at", null)
+    .neq("channel", "Banco")
+    .gte("date", from)
+    .order("date", { ascending: false });
+  if (to) query = query.lte("date", to);
+
+  const [result, catResult] = await Promise.all([
+    query,
+    supabase.from("finance_categories").select("id,name"),
+  ]);
+
+  if (result.error || !result.data) return [];
+  const categories = new Map(
+    (catResult.data ?? []).map((c) => [c.id as string, c.name as string])
+  );
+  return mapMovements(result.data as DbFinanceMovement[], categories);
 }
 
 export type CreateFinanceMovementInput = {
