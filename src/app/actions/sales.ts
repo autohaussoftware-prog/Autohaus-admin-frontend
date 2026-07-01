@@ -9,6 +9,7 @@ import { createTraspasoFromSale } from "@/lib/data/traspasos";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { sendSaleNotification } from "@/lib/email";
 import { logAudit } from "@/lib/data/audit";
+import { isValidUUID } from "@/lib/security";
 
 // In Zod v4, z.preprocess fires the nonoptional check before running fn.
 // Adding .optional() on the outer wrapper lets undefined pass through correctly.
@@ -154,6 +155,8 @@ export async function createSaleAction(formData: FormData) {
 }
 
 export async function confirmSaleAction(saleId: string, vehicleId: string) {
+  if (!isValidUUID(saleId) || !isValidUUID(vehicleId)) return { error: "ID inválido." };
+
   const role = await getUserRole();
   if (!["owner", "partner", "admin", "accounting"].includes(role)) {
     return { error: "Sin permisos para confirmar ventas." };
@@ -190,6 +193,8 @@ export async function updateSaleStatusesAction(
   saleId: string,
   updates: { paymentStatus?: string; documentStatus?: string; deliveryStatus?: string }
 ) {
+  if (!isValidUUID(saleId)) return { error: "ID inválido." };
+
   const role = await getUserRole();
   if (!["owner", "partner", "admin", "accounting", "advisor"].includes(role)) {
     return { error: "Sin permisos para actualizar estados." };
@@ -221,6 +226,8 @@ export async function markSaleDeliveredAction(
   vehicleId: string,
   checklist: string[]
 ) {
+  if (!isValidUUID(saleId) || !isValidUUID(vehicleId)) return { error: "ID inválido." };
+
   const role = await getUserRole();
   if (!["owner", "partner", "admin", "accounting"].includes(role)) {
     return { error: "Sin permisos para registrar entregas." };
@@ -256,6 +263,9 @@ export async function updateCommissionAmountAction(
   _prev: { error: string | null; attempt: number },
   formData: FormData
 ): Promise<{ error: string | null; attempt: number }> {
+  const next = _prev.attempt + 1;
+  if (!isValidUUID(saleId) || !isValidUUID(vehicleId)) return { error: "ID inválido.", attempt: next };
+
   const role = await getUserRole();
   if (!["owner", "partner", "admin", "gerente"].includes(role)) {
     return { error: "Sin permisos para modificar el valor de la comisión.", attempt: _prev.attempt + 1 };
@@ -284,6 +294,8 @@ export async function updatePaperworkAmountAction(
   _prev: { error: string | null; attempt: number },
   formData: FormData
 ): Promise<{ error: string | null; attempt: number }> {
+  if (!isValidUUID(saleId)) return { error: "ID inválido.", attempt: _prev.attempt + 1 };
+
   const role = await getUserRole();
   if (!["owner", "partner", "admin", "accounting", "advisor"].includes(role)) {
     return { error: "Sin permisos.", attempt: _prev.attempt + 1 };
@@ -311,6 +323,8 @@ export async function cancelSaleAction(
   deleteInitialPayment: boolean,
   reason?: string
 ): Promise<{ error?: string }> {
+  if (!isValidUUID(saleId) || !isValidUUID(vehicleId)) return { error: "ID inválido." };
+
   const role = await getUserRole();
   if (!["owner", "partner", "admin", "gerente"].includes(role)) {
     return { error: "Sin permisos para cancelar ventas." };

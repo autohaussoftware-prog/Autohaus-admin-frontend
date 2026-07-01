@@ -6,6 +6,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient, getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { deleteVehicle, updateVehicleCommissionRate } from "@/lib/data/vehicles";
 import { logAudit } from "@/lib/data/audit";
+import { isValidUUID } from "@/lib/security";
 
 export async function updateVehiclePriceAction(
   vehicleId: string,
@@ -13,6 +14,8 @@ export async function updateVehiclePriceAction(
   formData: FormData
 ): Promise<{ error: string | null; attempt: number }> {
   const next = _prev.attempt + 1;
+
+  if (!isValidUUID(vehicleId)) return { error: "ID de vehículo inválido.", attempt: next };
 
   const raw = formData.get("price");
   const newPrice = Number(raw);
@@ -89,6 +92,8 @@ export async function updateCommissionRateAction(
 ): Promise<{ error: string | null; attempt: number }> {
   const next = _prev.attempt + 1;
 
+  if (!isValidUUID(vehicleId)) return { error: "ID de vehículo inválido.", attempt: next };
+
   const raw = formData.get("rate");
   const rate = Number(raw);
   if (!rate || rate <= 0 || rate > 100) {
@@ -116,6 +121,8 @@ export async function deleteVehicleAction(
   vehicleId: string,
   reason?: string
 ): Promise<{ error?: string }> {
+  if (!isValidUUID(vehicleId)) return { error: "ID de vehículo inválido." };
+
   const { id: userId, name, role } = await getCurrentUserProfile();
 
   // Permissions: admin roles OR the creator

@@ -8,7 +8,7 @@ import { createFinanceMovement } from "@/lib/data/finance";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { ROLES, requireRole } from "@/lib/security";
+import { ROLES, requireRole, isValidUUID } from "@/lib/security";
 import { logAudit } from "@/lib/data/audit";
 
 const commissionSchema = z.object({
@@ -63,6 +63,8 @@ export async function markCommissionPaidAction(
   amount: number,
   vehicleName: string
 ): Promise<{ error?: string }> {
+  if (!isValidUUID(commissionId)) return { error: "ID de comisión inválido." };
+
   const role = await getUserRole();
   if (!["owner", "partner", "admin", "accounting"].includes(role)) {
     return { error: "Sin permisos para marcar comisiones como pagadas." };
