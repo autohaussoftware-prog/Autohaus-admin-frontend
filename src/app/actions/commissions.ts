@@ -9,6 +9,7 @@ import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { ROLES, requireRole } from "@/lib/security";
+import { logAudit } from "@/lib/data/audit";
 
 const commissionSchema = z.object({
   advisorId: z.string().trim().min(1),
@@ -34,12 +35,23 @@ export async function createCommissionAction(formData: FormData) {
     redirect("/comisiones/nueva?error=" + encodeURIComponent(msg));
   }
 
+  let newId: string;
   try {
-    await createCommission(parsed.data);
+    newId = await createCommission(parsed.data);
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se pudo registrar la comisión.";
     redirect("/comisiones/nueva?error=" + encodeURIComponent(message));
   }
+
+  const { id: userId, name } = await getCurrentUserProfile();
+  logAudit({
+    tableName: "commissions",
+    recordId: newId!,
+    action: "INSERT",
+    newValue: `${parsed.data.role} — $${parsed.data.amount} — ${parsed.data.month}`,
+    userName: name,
+    userId,
+  }).catch(() => {});
 
   revalidatePath("/comisiones");
   redirect("/comisiones");
@@ -66,7 +78,7 @@ export async function markCommissionPaidAction(
 
   if (error) return { error: error.message };
 
-  const { name } = await getCurrentUserProfile();
+  const { id: userId, name } = await getCurrentUserProfile();
 
   try {
     await createFinanceMovement({
@@ -81,6 +93,17 @@ export async function markCommissionPaidAction(
   } catch {
     // El movimiento financiero es secundario — no fallar si hay error
   }
+
+  logAudit({
+    tableName: "commissions",
+    recordId: commissionId,
+    action: "UPDATE",
+    fieldChanged: "status",
+    oldValue: "Pendiente",
+    newValue: "Pagada",
+    userName: name,
+    userId,
+  }).catch(() => {});
 
   revalidatePath("/comisiones");
   return {};

@@ -8,6 +8,7 @@ import { createVehicle } from "@/lib/data/vehicles";
 import { createTraspasoFromSale } from "@/lib/data/traspasos";
 import { getCurrentUserProfile, getUserRole } from "@/lib/supabase/server";
 import { sendSaleNotification } from "@/lib/email";
+import { logAudit } from "@/lib/data/audit";
 
 // In Zod v4, z.preprocess fires the nonoptional check before running fn.
 // Adding .optional() on the outer wrapper lets undefined pass through correctly.
@@ -132,6 +133,15 @@ export async function createSaleAction(formData: FormData) {
     redirect("/ventas/nueva?error=" + encodeURIComponent(message));
   }
 
+  logAudit({
+    tableName: "sales",
+    recordId: saleId,
+    action: "INSERT",
+    newValue: `${parsed.data.saleStatus} — $${parsed.data.agreedPrice} — vehículo ${vehicleId}`,
+    userName: name,
+    userId,
+  }).catch(() => {});
+
   sendSaleNotification(saleId).catch(() => {});
   if (parsed.data.saleStatus === "vendido") {
     createTraspasoFromSale(saleId, name).catch(() => {});
@@ -157,6 +167,16 @@ export async function confirmSaleAction(saleId: string, vehicleId: string) {
     return { error: err instanceof Error ? err.message : "Error confirmando venta." };
   }
 
+  logAudit({
+    tableName: "sales",
+    recordId: saleId,
+    action: "UPDATE",
+    fieldChanged: "sale_status",
+    oldValue: "separacion",
+    newValue: "vendido",
+    userName: name,
+  }).catch(() => {});
+
   createTraspasoFromSale(saleId, name).catch(() => {});
 
   revalidatePath("/ventas");
@@ -175,11 +195,22 @@ export async function updateSaleStatusesAction(
     return { error: "Sin permisos para actualizar estados." };
   }
 
+  const { id: userId, name } = await getCurrentUserProfile();
+
   try {
     await updateSaleStatuses(saleId, updates);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Error actualizando estado." };
   }
+
+  logAudit({
+    tableName: "sales",
+    recordId: saleId,
+    action: "UPDATE",
+    newValue: JSON.stringify(updates),
+    userName: name,
+    userId,
+  }).catch(() => {});
 
   revalidatePath("/ventas");
   return { success: true };
@@ -202,6 +233,15 @@ export async function markSaleDeliveredAction(
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Error registrando entrega." };
   }
+
+  logAudit({
+    tableName: "sales",
+    recordId: saleId,
+    action: "UPDATE",
+    fieldChanged: "delivery_status",
+    newValue: "completada",
+    userName: name,
+  }).catch(() => {});
 
   revalidatePath("/ventas");
   revalidatePath("/vehiculos");
@@ -278,11 +318,22 @@ export async function cancelSaleAction(
 
   const { name } = await getCurrentUserProfile();
 
+  const { id: userId } = await getCurrentUserProfile();
+
   try {
     await cancelSale(saleId, deleteInitialPayment, name, reason);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Error cancelando la venta." };
   }
+
+  logAudit({
+    tableName: "sales",
+    recordId: saleId,
+    action: "DELETE",
+    newValue: reason ?? "sin motivo",
+    userName: name,
+    userId,
+  }).catch(() => {});
 
   revalidatePath("/ventas");
   revalidatePath("/vehiculos");

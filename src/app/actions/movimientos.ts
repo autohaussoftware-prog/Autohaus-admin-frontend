@@ -79,6 +79,16 @@ export async function updateMovimientoAction(formData: FormData) {
     redirect(`/movimientos/${id}/editar?error=` + encodeURIComponent(message));
   }
 
+  const { id: userId, name } = await getCurrentUserProfile();
+  logAudit({
+    tableName: "finance_movements",
+    recordId: id,
+    action: "UPDATE",
+    newValue: `${parsed.data.type} ${parsed.data.amount} — ${parsed.data.concept}`,
+    userName: name,
+    userId,
+  }).catch(() => {});
+
   revalidatePath("/banco");
   revalidatePath("/efectivo");
   revalidatePath("/");
