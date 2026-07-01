@@ -197,209 +197,109 @@ export async function createSale(input: CreateSaleInput): Promise<string> {
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) throw new Error("Supabase no configurado.");
 
-  // Crear o encontrar cliente
-  let customerId: string | null = null;
-  if (input.customerName.trim()) {
-    const { data: existing } = await supabase
-      .from("customers")
-      .select("id")
-      .ilike("full_name", input.customerName.trim())
-      .maybeSingle();
-
-    if (existing) {
-      customerId = existing.id as string;
-    } else {
-      const { data: newCustomer, error: customerError } = await supabase
-        .from("customers")
-        .insert({
-          full_name: input.customerName.trim(),
-          phone: input.customerPhone?.trim() || null,
-          document_number: input.customerDocument?.trim() || null,
-        })
-        .select("id")
-        .single();
-      if (customerError) throw new Error(customerError.message);
-      customerId = newCustomer.id as string;
-    }
-  }
-
-  const pendingBalance = Math.max(0, input.agreedPrice - input.initialPayment);
   const isSold = input.saleStatus === "vendido";
+  const customerLabel = input.customerName.trim() || "Cliente";
 
-  // Registrar venta
-  const { data: sale, error: saleError } = await supabase
-    .from("sales")
-    .insert({
-      vehicle_id: input.vehicleId,
-      customer_id: customerId,
-      seller_id: input.sellerId || null,
-      agreed_price: input.agreedPrice,
-      initial_payment: input.initialPayment,
-      pending_balance: pendingBalance,
-      payment_status: input.paymentStatus,
-      document_status: input.documentStatus,
-      delivery_status: input.deliveryStatus,
-      sale_status: input.saleStatus,
-      expiry_date: input.expiryDate || null,
-      payment_method: input.paymentMethod ?? "Contado",
-      client_paperwork_amount: input.clientPaperworkAmount ?? 0,
-      created_by_user_id: input.createdByUserId || null,
-    })
-    .select("id")
-    .single();
+  // Fetch vehicle data + settings in parallel to compute commissions before the transaction
+  const [vehicleRes, settings] = await Promise.all([
+    supabase
+      .from("vehicles")
+      .select("brand,line,plate,owner_type,advisor_buyer_id,buy_price,real_cost")
+      .eq("id", input.vehicleId)
+      .single(),
+    getSettings(),
+  ]);
 
-  if (saleError || !sale) throw new Error(saleError?.message ?? "Error creando venta.");
+  if (vehicleRes.error) throw new Error(vehicleRes.error.message);
+  const vehicle = vehicleRes.data as any;
 
-  // Actualizar estado del vehículo
-  const newStatus = isSold ? "Vendido" : "Separado";
-  await supabase
-    .from("vehicles")
-    .update({ status: newStatus, separated: !isSold })
-    .eq("id", input.vehicleId);
-
-  // Fetch vehicle info for movement labels
-  const { data: vehicleInfo } = await supabase
-    .from("vehicles")
-    .select("brand, line, plate")
-    .eq("id", input.vehicleId)
-    .maybeSingle();
-  const vehicleTag = vehicleInfo
-    ? [vehicleInfo.brand + " " + vehicleInfo.line, vehicleInfo.plate].filter(Boolean).join(" · ")
+  const vehicleTag = vehicle
+    ? [vehicle.brand + " " + vehicle.line, vehicle.plate].filter(Boolean).join(" · ")
     : "";
 
-  // Registrar movimiento del vehículo
-  const customerLabel = input.customerName.trim() || "Cliente";
-  await supabase.from("vehicle_movements").insert({
-    vehicle_id: input.vehicleId,
-    type: newStatus,
-    title: isSold ? "Vehículo vendido" : "Vehículo separado",
-    description: `Cliente: ${customerLabel}. Precio acordado: $${input.agreedPrice.toLocaleString("es-CO")}. Abono inicial: $${input.initialPayment.toLocaleString("es-CO")}.`,
-    new_status: newStatus,
-    metadata: { userName: "Sistema", saleId: sale.id },
+  const settingsMap = Object.fromEntries(settings.map((s) => [s.key, Number(s.value)]));
+  const pctCaptador     = settingsMap["commission_captador"] ?? 20;
+  const pctVendedor     = settingsMap["commission_vendedor"] ?? 20;
+  const pctConsignacion = settingsMap["commission_consignacion"] ?? 3;
+  const currentMonth    = new Date().toISOString().slice(0, 7);
+
+  const conceptParts = [isSold ? "Pago venta" : "Abono separación"];
+  if (vehicleTag) conceptParts.push(vehicleTag);
+  conceptParts.push(customerLabel);
+
+  type CommissionRow = {
+    advisor_id: string; role: string;
+    base_amount: number; percentage: number; amount: number; month: string;
+  };
+  const commissions: CommissionRow[] = [];
+  let consignmentIncomeAmount = 0;
+  let consignmentIncomeConcept = "";
+
+  if (vehicle && vehicle.owner_type !== "Externo") {
+    if (vehicle.owner_type === "Comisión") {
+      consignmentIncomeAmount = Math.round(input.agreedPrice * pctConsignacion / 100);
+      const parts = ["Comisión consignación"];
+      if (vehicleTag) parts.push(vehicleTag);
+      if (customerLabel) parts.push(customerLabel);
+      consignmentIncomeConcept = parts.join(" — ");
+    } else {
+      const grossProfit = Math.max(
+        0,
+        input.agreedPrice - Number(vehicle.buy_price) - Number(vehicle.real_cost ?? 0)
+      );
+      if (vehicle.advisor_buyer_id) {
+        commissions.push({
+          advisor_id: vehicle.advisor_buyer_id,
+          role: "Captador",
+          base_amount: grossProfit,
+          percentage: pctCaptador,
+          amount: Math.round((grossProfit * pctCaptador) / 100),
+          month: currentMonth,
+        });
+      }
+      if (input.sellerId) {
+        commissions.push({
+          advisor_id: input.sellerId,
+          role: "Vendedor",
+          base_amount: grossProfit,
+          percentage: pctVendedor,
+          amount: Math.round((grossProfit * pctVendedor) / 100),
+          month: currentMonth,
+        });
+      }
+    }
+  }
+
+  const { data: saleId, error } = await supabase.rpc("create_sale_atomic", {
+    p_vehicle_id:                input.vehicleId,
+    p_customer_name:             input.customerName,
+    p_customer_phone:            input.customerPhone ?? "",
+    p_customer_document:         input.customerDocument ?? "",
+    p_seller_id:                 input.sellerId ?? null,
+    p_agreed_price:              input.agreedPrice,
+    p_initial_payment:           input.initialPayment,
+    p_pending_balance:           Math.max(0, input.agreedPrice - input.initialPayment),
+    p_payment_status:            input.paymentStatus,
+    p_document_status:           input.documentStatus,
+    p_delivery_status:           input.deliveryStatus,
+    p_sale_status:               input.saleStatus,
+    p_expiry_date:               input.expiryDate ?? null,
+    p_payment_method:            input.paymentMethod ?? "Contado",
+    p_client_paperwork_amount:   input.clientPaperworkAmount ?? 0,
+    p_created_by_user_id:        input.createdByUserId ?? null,
+    p_vehicle_new_status:        isSold ? "Vendido" : "Separado",
+    p_vehicle_separated:         !isSold,
+    p_movement_title:            isSold ? "Vehículo vendido" : "Vehículo separado",
+    p_movement_description:      `Cliente: ${customerLabel}. Precio acordado: $${input.agreedPrice.toLocaleString("es-CO")}. Abono inicial: $${input.initialPayment.toLocaleString("es-CO")}.`,
+    p_finance_channel:           input.initialPaymentChannel ?? "Banco",
+    p_finance_concept:           conceptParts.join(" — "),
+    p_commissions:               commissions,
+    p_consignment_income_amount: consignmentIncomeAmount,
+    p_consignment_income_concept: consignmentIncomeConcept,
   });
 
-  // Registrar abono inicial como movimiento financiero si > 0
-  if (input.initialPayment > 0) {
-    const conceptParts = [isSold ? "Pago venta" : "Abono separación"];
-    if (vehicleTag) conceptParts.push(vehicleTag);
-    conceptParts.push(customerLabel);
-    await supabase.from("finance_movements").insert({
-      type: "Ingreso",
-      channel: input.initialPaymentChannel || "Banco",
-      concept: conceptParts.join(" — "),
-      amount: input.initialPayment,
-      date: new Date().toISOString().split("T")[0],
-      vehicle_id: input.vehicleId,
-      responsible_name: "Sistema",
-      notes: `Venta ID: ${sale.id}.`,
-    });
-  }
-
-  // Auto-calcular comisiones si hay asesores asignados
-  await autoCreateCommissions(supabase, sale.id as string, input.vehicleId, input.sellerId ?? null, input.agreedPrice, customerLabel, vehicleTag);
-
-  return sale.id as string;
-}
-
-async function autoCreateCommissions(
-  supabase: NonNullable<Awaited<ReturnType<typeof getSupabaseServerClient>>>,
-  saleId: string,
-  vehicleId: string,
-  sellerId: string | null,
-  agreedPrice: number,
-  customerLabel: string = "",
-  vehicleTag: string = ""
-) {
-  try {
-    const [settings, vehicleRes] = await Promise.all([
-      getSettings(),
-      supabase.from("vehicles").select("advisor_buyer_id, buy_price, real_cost, owner_type, brand, line, plate").eq("id", vehicleId).single(),
-    ]);
-
-    const vehicle = vehicleRes.data as any;
-    if (!vehicle) return;
-
-    const settingsMap = Object.fromEntries(settings.map((s) => [s.key, Number(s.value)]));
-    const pctCaptador = settingsMap["commission_captador"] ?? 20;
-    const pctVendedor = settingsMap["commission_vendedor"] ?? 20;
-    const pctConsignacion = settingsMap["commission_consignacion"] ?? 3;
-
-    const currentMonth = new Date().toISOString().slice(0, 7);
-
-    // Build vehicle tag if not passed in
-    const vTag = vehicleTag || [vehicle.brand + " " + vehicle.line, vehicle.plate].filter(Boolean).join(" · ");
-
-    // External vehicles have no automatic commissions (no buy_price to base gross profit on)
-    if (vehicle.owner_type === "Externo") return;
-
-    // ── Comisión de consignación (ingreso para el negocio) ─────────
-    if (vehicle.owner_type === "Comisión") {
-      const commissionAmount = Math.round(agreedPrice * pctConsignacion / 100);
-      const commissionConceptParts = ["Comisión consignación"];
-      if (vTag) commissionConceptParts.push(vTag);
-      if (customerLabel) commissionConceptParts.push(customerLabel);
-
-      await Promise.all([
-        supabase.from("finance_movements").insert({
-          type: "Ingreso",
-          channel: "Banco",
-          concept: commissionConceptParts.join(" — "),
-          amount: commissionAmount,
-          date: new Date().toISOString().split("T")[0],
-          vehicle_id: vehicleId,
-          responsible_name: "Sistema",
-          category: "Consignaciones",
-          notes: `${pctConsignacion}% del precio de venta $${agreedPrice.toLocaleString("es-CO")}. Venta ID: ${saleId}.`,
-        }),
-        supabase.from("sales").update({
-          commission_amount: commissionAmount,
-          commission_auto_amount: commissionAmount,
-        }).eq("id", saleId),
-      ]);
-      // Para vehículos en consignación no se calculan comisiones de asesores
-      // sobre ganancia bruta ya que el negocio no compró el vehículo.
-      return;
-    }
-
-    // ── Comisiones de asesores (solo para vehículos propios) ───────
-    const grossProfit = Math.max(0, agreedPrice - Number(vehicle.buy_price) - Number(vehicle.real_cost ?? 0));
-
-    const commissionsToInsert: any[] = [];
-
-    if (vehicle.advisor_buyer_id) {
-      commissionsToInsert.push({
-        advisor_id: vehicle.advisor_buyer_id,
-        role: "Captador",
-        vehicle_id: vehicleId,
-        sale_id: saleId,
-        base_amount: grossProfit,
-        percentage: pctCaptador,
-        amount: Math.round((grossProfit * pctCaptador) / 100),
-        status: "Pendiente",
-        month: currentMonth,
-      });
-    }
-
-    if (sellerId) {
-      commissionsToInsert.push({
-        advisor_id: sellerId,
-        role: "Vendedor",
-        vehicle_id: vehicleId,
-        sale_id: saleId,
-        base_amount: grossProfit,
-        percentage: pctVendedor,
-        amount: Math.round((grossProfit * pctVendedor) / 100),
-        status: "Pendiente",
-        month: currentMonth,
-      });
-    }
-
-    if (commissionsToInsert.length > 0) {
-      await supabase.from("commissions").insert(commissionsToInsert);
-    }
-  } catch {
-    // Comisiones son secundarias — no fallar la venta si hay error
-  }
+  if (error) throw new Error(error.message);
+  return saleId as string;
 }
 
 export async function updateSaleCommission(
@@ -524,52 +424,12 @@ export async function cancelSale(
   const supabase = getSupabaseAdminClient() ?? (await getSupabaseServerClient());
   if (!supabase) throw new Error("Supabase no configurado.");
 
-  // Fetch sale data before deleting
-  const { data: sale } = await supabase
-    .from("sales")
-    .select("vehicle_id, initial_payment, agreed_price, sale_status, customer_id")
-    .eq("id", saleId)
-    .single();
-  if (!sale) throw new Error("Venta no encontrada.");
-
-  const { data: vehicleInfo } = await supabase
-    .from("vehicles")
-    .select("owner_type")
-    .eq("id", sale.vehicle_id)
-    .maybeSingle();
-  const isExternal = (vehicleInfo as any)?.owner_type === "Externo";
-
-  // Delete all child records that reference sales.id (FK constraints)
-  await Promise.all([
-    supabase.from("traspasos").delete().eq("sale_id", saleId),
-    supabase.from("payments").delete().eq("sale_id", saleId),
-    supabase.from("commissions").delete().eq("sale_id", saleId),
-  ]);
-
-  if (deleteInitialPayment) {
-    // Delete related finance movements (initial payment + commissions)
-    await supabase.from("finance_movements").delete().ilike("notes", `%${saleId}%`);
-  }
-
-  // Log the cancellation before deleting
-  await supabase.from("vehicle_movements").insert({
-    vehicle_id: sale.vehicle_id,
-    type: "Disponible",
-    title: "Venta cancelada — vehículo liberado",
-    description: `Venta cancelada por ${cancelledBy}.${reason ? ` Motivo: ${reason}.` : ""} Abono inicial ${deleteInitialPayment ? "eliminado" : "conservado"}.`,
-    new_status: "Disponible",
-    metadata: { cancelledBy, saleId, deleteInitialPayment, reason: reason ?? null },
+  const { error } = await supabase.rpc("cancel_sale_atomic", {
+    p_sale_id:                saleId,
+    p_cancelled_by:           cancelledBy,
+    p_delete_initial_payment: deleteInitialPayment,
+    p_reason:                 reason ?? null,
   });
 
-  // Delete the sale record
-  const { error } = await supabase.from("sales").delete().eq("id", saleId);
   if (error) throw new Error(error.message);
-
-  // Restore or archive vehicle
-  if (isExternal) {
-    // External vehicles are deleted when their sale is cancelled (they don't belong in inventory)
-    await supabase.from("vehicles").delete().eq("id", sale.vehicle_id);
-  } else {
-    await supabase.from("vehicles").update({ status: "Disponible", separated: false }).eq("id", sale.vehicle_id);
-  }
 }
